@@ -50,8 +50,18 @@ def apply_geometry(m, A_upper, A_lower, zeta_T_u, zeta_T_l, psi) -> None:
 
     mod.build_gamma(m, m.oper.alpha)
     mod.build_wake(m)
-    mod.stagpoint_find(m)
-    mod.identify_surfaces(m)
+    if m.oper.viscous and len(m.vsol.Is) == 3:
+        # In-loop viscous update: the stagnation point is a VISCOUS quantity here,
+        # tracked by stagpoint_move from ue's sign change. Re-finding it from the
+        # inviscid gam (stagpoint_find) resets xi inconsistently with the state
+        # and produces a period-2 residual oscillation (observed empirically).
+        # Keep Istag/sgnue/Is; refresh xi from the existing sstag on the new s/wake.
+        m.isol.xi = np.concatenate(
+            (np.abs(m.foil.s - m.isol.sstag), m.wake.s - m.isol.sstag)
+        )
+    else:
+        mod.stagpoint_find(m)
+        mod.identify_surfaces(m)
     mod.set_wake_gap(m)
     mod.calc_ue_m(m)
 

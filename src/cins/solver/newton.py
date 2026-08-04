@@ -48,6 +48,8 @@ class InverseProblem:
     b: np.ndarray                  # (K,)
     free_idx: np.ndarray           # indices into the stacked A vector that are unknowns
     alpha0: float = 0.0
+    alpha_free: bool = True   # False: alpha fixed (self-consistency tests) — removes
+                              # the camber-alpha equivalence null direction
 
 
 @dataclass
@@ -79,13 +81,15 @@ def select_target_stations(m, cfg: CinsConfig, n_stations: int) -> np.ndarray:
     return candidates[np.unique(pick)]
 
 
-def assert_square(n_free: int, n_targets: int, n_constraints: int) -> None:
-    """FM-1 bookkeeping: M + K = n_A_free + 1 (the +1 is α). Raise loudly."""
-    lhs, rhs = n_targets + n_constraints, n_free + 1
-    log.info("DOF accounting: M=%d K=%d n_A_free=%d (+1 alpha)", n_targets, n_constraints, n_free)
+def assert_square(n_free: int, n_targets: int, n_constraints: int, alpha_free: bool = True) -> None:
+    """FM-1 bookkeeping: M + K = n_A_free (+1 if α free). Raise loudly."""
+    n_alpha = 1 if alpha_free else 0
+    lhs, rhs = n_targets + n_constraints, n_free + n_alpha
+    log.info("DOF accounting: M=%d K=%d n_A_free=%d (+%d alpha)",
+             n_targets, n_constraints, n_free, n_alpha)
     if lhs != rhs:
         raise ValueError(
-            f"extended system not square: M+K={lhs} but n_A_free+1={rhs} "
+            f"extended system not square: M+K={lhs} but n_A_free+n_alpha={rhs} "
             f"(M={n_targets}, K={n_constraints}, n_A_free={n_free})"
         )
 
@@ -159,7 +163,8 @@ def solve_inverse(
     A = np.concatenate([prob.A0_upper, prob.A0_lower]).astype(float)
     n_free = len(prob.free_idx)
     n_t, n_k = len(prob.station_idx), prob.G.shape[0]
-    assert_square(n_free, n_t, n_k)
+    assert_square(n_free, n_t, n_k, prob.alpha_free)
+    n_alpha = 1 if prob.alpha_free else 0
 
     diag = diag or NewtonDiagnostics(config=cfg)
     diag.record_static(
@@ -203,13 +208,14 @@ def solve_inverse(
             prob.free_idx, cfg.newton.fd_step,
         )  # (4Nsys, n_free)
 
-        n_total = n_flow + 1 + n_free
+        n_total = n_flow + n_alpha + n_free
         j = sparse.lil_matrix((n_flow + n_t + n_k, n_total))
         j[:n_flow, :n_flow] = j_uu
-        j[:n_flow, n_flow] = j_ualpha.reshape(-1, 1)
-        j[:n_flow, n_flow + 1 :] = j_ua_full
+        if prob.alpha_free:
+            j[:n_flow, n_flow] = j_ualpha.reshape(-1, 1)
+        j[:n_flow, n_flow + n_alpha :] = j_ua_full
         j[n_flow : n_flow + n_t, :n_flow] = t_u
-        j[n_flow + n_t :, n_flow + 1 :] = g_free
+        j[n_flow + n_t :, n_flow + n_alpha :] = g_free
         j = j.tocsc()
 
         diag.record_iteration(
@@ -226,18 +232,31 @@ def solve_inverse(
         # --- solve ---------------------------------------------------------
         dv = -splu(j).solve(r_full)
         d_u = dv[:n_flow].reshape(nsys, 4).T  # mfoil layout (4, Nsys)
-        d_alpha = float(dv[n_flow])
-        d_a = dv[n_flow + 1 :]
+        d_alpha = float(dv[n_flow]) if prob.alpha_free else 0.0
+        d_a = dv[n_flow + n_alpha :]
 
         # --- limit + apply -------------------------------------------------
-        # U block: reuse mfoil's under-relaxation machinery
+        # U block: reuse mfoil's under-relaxation machinery, then recover the ω
+        # it actually applied (from the α change — α is applied as ω·dα and is
+        # untouched by the post-update Hk/ctau repairs; θ-row fallback if dα≈0).
+        # The SAME ω must scale the A block: under-relaxing (U, α) while stepping
+        # A fully breaks the Newton direction and produces a period-2 residual
+        # oscillation (observed empirically on the first T7 attempt).
+        alpha_before = float(m.oper.alpha)
+        u_before = m.glob.U[0].copy()
         m.glob.dU = d_u
         m.glob.dalpha = d_alpha
         mod.update_state(m)
+        if abs(d_alpha) > 1e-14:
+            omega = (float(m.oper.alpha) - alpha_before) / d_alpha
+        else:
+            k = int(np.argmax(np.abs(d_u[0])))
+            omega = (m.glob.U[0, k] - u_before[k]) / d_u[0, k] if d_u[0, k] != 0 else 1.0
+        omega = float(np.clip(omega, 0.0, 1.0))
 
-        # A block: separate, more permissive trust region (dossier §7.6)
+        # A block: mfoil's ω, further capped by the A trust region (dossier §7.6)
         amax = float(np.max(np.abs(d_a))) if len(d_a) else 0.0
-        scale = min(1.0, cfg.newton.a_trust_radius / amax) if amax > 0 else 1.0
+        scale = min(omega, cfg.newton.a_trust_radius / amax) if amax > 0 else omega
         A[prob.free_idx] += scale * d_a
         diag_extra_omega = scale
 

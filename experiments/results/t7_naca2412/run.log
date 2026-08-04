@@ -1,0 +1,22 @@
+fit_cst: n=8 N1=0.500 N2=1.000 rms=3.987e-05 cond(GtG)=1.085e+05 chord=1.000000 x0=0.000000
+A* fitted: n=8, rms=3.99e-05
+target generated: cl=0.4410 cd=0.01125 (tripped)
+perturbed offset ||A0-A*||_inf = 2.322e-02
+build_sensitivity_matrix: n_A=18 n_stations=200 fd_step=1.000e-03
+presolve: n_A=18 n_constraints=0 realisability=0.0008 (threshold 0.0500) kkt_cond=1.410e+04 realisable=True
+presolve pass 1: ||A-A*||_inf = 9.160e-03 realisability=0.0008
+build_sensitivity_matrix: n_A=18 n_stations=200 fd_step=1.000e-03
+presolve: n_A=18 n_constraints=0 realisability=0.0004 (threshold 0.0500) kkt_cond=1.044e+04 realisable=True
+presolve pass 2: ||A-A*||_inf = 4.668e-03 realisability=0.0004
+build_sensitivity_matrix: n_A=18 n_stations=200 fd_step=1.000e-03
+station selection: cond(submap) = 9.026e+01 (QR-pivoted)
+DOF accounting: M=16 K=0 n_A_free=16 (+0 alpha)
+DOF accounting: M=16 K=0 n_A_free=16 (+0 alpha)
+it=0 |R|=9.475e-13 |T|=5.851e-04 |G|=0.000e+00 omega_A=1.00
+it=1 |R|=3.135e-06 |T|=4.543e-08 |G|=0.000e+00 omega_A=1.00
+it=2 |R|=1.037e-10 |T|=3.331e-16 |G|=0.000e+00 omega_A=1.00
+NewtonDiagnostics.finalize: wrote experiments/results/t7_naca2412/diagnostics.json
+RESULT: converged=True iters=4 ||A-A*||_inf=1.079e-11 order=0.047563685107602824
+residual history: ['5.85e-04', '3.14e-06', '1.04e-10', '6.35e-11']
+T7 GATE: PASS
+EXIT=0
