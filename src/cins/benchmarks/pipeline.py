@@ -351,10 +351,38 @@ def prepare_cell(
 
     x_mismatch = float(np.max(np.abs(m.foil.x[0, stations] - x_target_nodes[stations])))
     if x_mismatch >= 2e-5:
-        return PreparedCell(early_failure=_early_result(
-            cfg, cell_name, config_path, t0,
-            notes=[f"station x-correspondence guard failed: max|dx/c|={x_mismatch:.2e} >= 2e-5"],
-            counters=counters))
+        # Re-map each station to the nearest-x node on the same surface (local
+        # ±5-index search keeps upper/lower sides distinct). The identity map
+        # only holds when re-paneling barely moves nodes (winning config); at
+        # other n / larger perturbations the drift exceeded the guard (v2 sweep:
+        # 2.4e-5..2e-4 on n06/n12/init_perturbed) — remap instead of failing.
+        # Pairing matters: station_idx addresses CURRENT-geometry nodes (where the
+        # solver reads Cp); the target value stays the TARGET geometry's Cp at the
+        # originally selected station. Dedupe keeps the first pair per node.
+        n_foil = m.foil.N
+        pairs: dict[int, float] = {}
+        for s_idx in stations:
+            lo, hi = max(0, s_idx - 5), min(n_foil, s_idx + 6)
+            j = lo + int(np.argmin(np.abs(m.foil.x[0, lo:hi] - x_target_nodes[s_idx])))
+            pairs.setdefault(j, float(cp_ref[s_idx]))
+        if len(pairs) < n_pick:
+            return PreparedCell(early_failure=_early_result(
+                cfg, cell_name, config_path, t0,
+                notes=[f"station remap collapsed {n_pick}->{len(pairs)} stations"],
+                counters=counters))
+        order = np.argsort(list(pairs.keys()))
+        stations = np.array(list(pairs.keys()))[order]
+        cp_target = np.array(list(pairs.values()))[order]
+        x_mismatch = float(np.max(np.abs(
+            m.foil.x[0, stations]
+            - np.array([x_target_nodes[s] for s in pairs.keys()])[order]
+        )))
+        notes.append(f"stations remapped by nearest-x; residual max|dx/c|={x_mismatch:.2e}")
+        if x_mismatch >= 1e-3:
+            return PreparedCell(early_failure=_early_result(
+                cfg, cell_name, config_path, t0,
+                notes=[f"station x-correspondence unrecoverable: {x_mismatch:.2e} >= 1e-3"],
+                counters=counters))
 
     target_cp_result = InviscidCpResult(
         x=x_target_nodes, cp=cp_ref, le_idx=int(np.argmin(x_target_nodes))

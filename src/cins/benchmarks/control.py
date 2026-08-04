@@ -108,7 +108,9 @@ def _viscous_cp_at_A(
         if not m.glob.conv:
             return None
     x = np.array(m.foil.x[0], dtype=float)
-    cp = np.array(m.post.cp, dtype=float)
+    # post.cp covers airfoil+wake in viscous mode; keep airfoil-only to match x
+    # (fp/xp length mismatch crashed the v2 control run otherwise)
+    cp = np.array(m.post.cp, dtype=float)[: m.foil.N]
     return InviscidCpResult(x=x, cp=cp, le_idx=int(np.argmin(x)))
 
 
