@@ -57,6 +57,17 @@ class NewtonConfig(BaseModel):
 
 class PresolveConfig(BaseModel):
     realisability_threshold: float = Field(gt=0.0, lt=1.0)
+    fd_step: float = Field(
+        gt=0.0,
+        description=(
+            "Central-difference step on a CST coefficient A_i when building "
+            "the T4 sensitivity matrix M (dossier §7.5). Separate from "
+            "newton.fd_step: T4 perturbs CST coefficients feeding a single "
+            "*inviscid* (non-iterative) solve, so there is no Newton-noise "
+            "floor forcing a tiny step; O(1e-3) balances FD truncation error "
+            "against the nonlinearity of Cp(A) over the step."
+        ),
+    )
 
 
 class GatesConfig(BaseModel):
@@ -74,6 +85,13 @@ class ExperimentConfig(BaseModel):
     results_dir: str
 
 
+class DiagnosticsConfig(BaseModel):
+    """T6 diagnostics instrumentation (dossier §7.7 / SPEC.md §6)."""
+
+    compute_expensive: bool = True
+    dense_rank_max_dim: int = Field(ge=1, le=100_000)
+
+
 class CinsConfig(BaseModel):
     cst: CSTConfig
     paneling: PanelingConfig
@@ -83,6 +101,7 @@ class CinsConfig(BaseModel):
     presolve: PresolveConfig
     gates: GatesConfig
     experiment: ExperimentConfig
+    diagnostics: DiagnosticsConfig
 
     @model_validator(mode="after")
     def _check_dof_feasible(self) -> "CinsConfig":

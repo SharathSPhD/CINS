@@ -38,6 +38,7 @@ newton:
 
 presolve:
   realisability_threshold: 0.05   # ||M A* - Cp_t|| / ||Cp_t|| above this => warn infeasible
+  fd_step: 1.0e-3        # central-FD step on a CST coefficient when building M (dossier §7.5)
 
 gates:                   # numeric gate criteria (dossier §7); tests read these
   t0_cl_range: [0.1, 0.9]        # sanity band for NACA 2412 alpha=2 Re=1e6 cl
@@ -49,3 +50,7 @@ gates:                   # numeric gate criteria (dossier §7); tests read these
 experiment:
   seed: 42
   results_dir: experiments/results
+
+diagnostics:              # T6 instrumentation (dossier §7.7 / SPEC.md §6)
+  compute_expensive: true       # gate D-2 (rank/cond) and D-4 (row-norm profile) computation
+  dense_rank_max_dim: 5000      # dense SVD for rank/cond below this dim; norm-estimate above it
