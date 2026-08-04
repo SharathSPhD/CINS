@@ -1,0 +1,53 @@
+% P1 — Monolithic CST–Newton Inverse Airfoil Design
+% Target: AIAA Journal (or AIAA SciTech). Grown at every gate closure; figures
+% auto-generated from experiments/results/ manifests (never hand-drawn numbers).
+\documentclass[journal]{new-aiaa} % fallback: article + aiaa style
+\usepackage{amsmath,amssymb,graphicx,booktabs,siunitx}
+
+\title{Inverse Airfoil Design as Constrained Root-Finding:\\
+A Monolithic CST--Newton Formulation}
+
+\author{S. Sathish\thanks{PhD, sCO$_2$ turbomachinery.} }
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% Filled at T7 closure. Headline: two to three orders of magnitude fewer flow
+% solves plus determinism and uniqueness — NOT a closed form (dossier §1.3, §11).
+\end{abstract}
+
+\section{Introduction}
+% Novelty positioning (dossier §10): the contribution is NOT geometry unknowns in
+% a Newton system (Drela 1986/1990), NOT CST in inverse design (Morris, Allen &
+% Rendall 2010 — CST as smoother). It is the combination: a complete analytic
+% basis whose linearity makes the geometric Jacobian exact and constant, and
+% whose geometric functionals make constraints linear rows — converting
+% constrained shape optimization into constrained root-finding.
+% TODO before submission: confirm §5.6 negative result via AIAA/ASME digital
+% collection search (no prior CST–MISES-inverse coupling).
+
+\section{Formulation}
+\subsection{CST parameterization and its linearity}   % <- from docs/SPEC.md at T2
+\subsection{Constraints as linear rows}               % <- T3
+\subsection{The extended Newton system and DOF accounting} % <- T5, FM-1
+\subsection{Analytic pre-solve and realisability}     % <- T4
+
+\section{Failure-mode instrumentation}
+% FM-1 rank/DOF, FM-2 Bernstein conditioning, FM-3 LE-singular rows, FM-4 C0
+% viscous closure; diagnostics D-1..D-6.                % <- T6
+
+\section{Results}
+\subsection{Self-consistent recovery (the falsifiable test)} % <- T7; D-6 is the headline figure
+\subsection{Ablations}                                % <- T8
+\subsection{Flow-solve count vs nested optimization}  % <- T8 control; H2 of STATS_PROTOCOL
+
+\section{Discussion}
+% TRIZ contradiction-resolution thread (docs/triz/); honest limits (dossier §11):
+% no closed form claimed; semi-analytical architecture with no outer optimization loop.
+
+\section{Conclusions}
+
+\bibliographystyle{aiaa}
+\bibliography{p1_refs}
+\end{document}
