@@ -1,0 +1,16 @@
+# T8 ablation cell: Bernstein order n=10/side (FM-2).
+# One factor away from t8_n08_baseline.yaml unless noted.
+cst:
+  n_upper: 10
+  n_lower: 10
+  le_treatment: prescribed
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "2412"
+  station_selection: qr_pivot
+  init: presolve
+  alpha_free: false
+  dof_offset: 0

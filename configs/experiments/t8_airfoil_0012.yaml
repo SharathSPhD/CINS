@@ -1,0 +1,16 @@
+# T8 ablation cell: Additional airfoil at the WINNING configuration: NACA 0012 (symmetric).
+# One factor away from t8_n08_baseline.yaml unless noted.
+cst:
+  n_upper: 8
+  n_lower: 8
+  le_treatment: prescribed
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "0012"
+  station_selection: qr_pivot
+  init: presolve
+  alpha_free: false
+  dof_offset: 0

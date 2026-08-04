@@ -54,3 +54,12 @@ experiment:
 diagnostics:              # T6 instrumentation (dossier §7.7 / SPEC.md §6)
   compute_expensive: true       # gate D-2 (rank/cond) and D-4 (row-norm profile) computation
   dense_rank_max_dim: 5000      # dense SVD for rank/cond below this dim; norm-estimate above it
+
+t8:                        # T8 ablation-cell factors (STATS_PROTOCOL §4); n/le_treatment/
+                            # transition.mode are ablated via cst:/transition: overlays instead
+  airfoil: "2412"                # NACA code for the T7-style self-consistency target
+  station_selection: qr_pivot    # qr_pivot | even
+  init: presolve                 # presolve | perturbed | random
+  alpha_free: false
+  dof_offset: 0                  # -1 | 0 | +1 (FM-1 deliberate mis-squaring)
+  n_perturb_frac: 0.05

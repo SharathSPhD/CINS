@@ -1,0 +1,16 @@
+# T8 ablation cell: Transition = free (natural e^n), not forced trip (FM-4).
+# One factor away from t8_n08_baseline.yaml unless noted.
+cst:
+  n_upper: 8
+  n_lower: 8
+  le_treatment: prescribed
+
+transition:
+  mode: free
+
+t8:
+  airfoil: "2412"
+  station_selection: qr_pivot
+  init: presolve
+  alpha_free: false
+  dof_offset: 0

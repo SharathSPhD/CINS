@@ -1,0 +1,16 @@
+# T8 ablation cell: LE treatment = none (FM-3). le_treatment=lem is SKIPPED from this matrix: the Kulfan LEM additive term (cst/basis.py::le_modification) exists but is not wired into newton.py's free-coefficient vector or geometry_update.py's Jacobian assembly -- doing so correctly needs a new free parameter a_lem, a new dsurface_dA column, and (per src/cins/CLAUDE.md) an ADR, which is out of T8-infrastructure scope. Logged explicitly per task instruction 'skip-if-unimplemented with explicit note' rather than silently omitted.
+# One factor away from t8_n08_baseline.yaml unless noted.
+cst:
+  n_upper: 8
+  n_lower: 8
+  le_treatment: none
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "2412"
+  station_selection: qr_pivot
+  init: presolve
+  alpha_free: false
+  dof_offset: 0

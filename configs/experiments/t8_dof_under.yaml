@@ -1,0 +1,16 @@
+# T8 ablation cell: FM-1: deliberately UNDER-determined (-1 target station). Same clean-failure contract as t8_dof_over.yaml. n=8 only.
+# One factor away from t8_n08_baseline.yaml unless noted.
+cst:
+  n_upper: 8
+  n_lower: 8
+  le_treatment: prescribed
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "2412"
+  station_selection: qr_pivot
+  init: presolve
+  alpha_free: false
+  dof_offset: -1

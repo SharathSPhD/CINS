@@ -2,11 +2,11 @@
   "manifest": {
     "git_sha": "dcb7695b0459ed4cdf7be9934b4abdbbee05c949",
     "config_hash": "ce63e9af3c3b54a7",
-    "timestamp_utc": "2026-08-04T12:50:47.066968+00:00",
-    "cell_name": "t7_naca2412_selfconsistent",
-    "config_path": null,
+    "timestamp_utc": "2026-08-04T12:45:21.666547+00:00",
+    "cell_name": "t8_n08_baseline",
+    "config_path": "configs/experiments/t8_n08_baseline.yaml",
     "seed": 42,
-    "timestamp": "2026-08-04T12:48:54.756215+00:00",
+    "timestamp": "2026-08-04T12:43:30.462328+00:00",
     "t8_factors": {
       "airfoil": "2412",
       "station_selection": "qr_pivot",

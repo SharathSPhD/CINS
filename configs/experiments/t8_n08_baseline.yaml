@@ -1,0 +1,27 @@
+# T8 ablation cell: WINNING CONFIGURATION (STATS_PROTOCOL, dossier §7.9).
+#
+# n=8/side, le_treatment=prescribed, transition=forced, station_selection=qr_pivot,
+# init=presolve, dof_offset=0, alpha_free=false, airfoil=NACA 2412. This is the
+# T7 falsifiable-test configuration verbatim (experiments/run_t7.py) — every
+# other ablation cell in this directory varies exactly ONE factor away from
+# this baseline. Also the reference cell for the H2 control baseline
+# (control.py) and the two additional-airfoil cells (t8_airfoil_0012,
+# t8_airfoil_4415).
+#
+# All fields below already equal configs/default.yaml's defaults; listed
+# explicitly for readability of the ablation matrix, not because they differ.
+
+cst:
+  n_upper: 8
+  n_lower: 8
+  le_treatment: prescribed
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "2412"
+  station_selection: qr_pivot
+  init: presolve
+  alpha_free: false
+  dof_offset: 0

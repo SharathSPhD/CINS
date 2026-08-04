@@ -1,0 +1,16 @@
+# T8 ablation cell: FM-1: deliberately OVER-determined (+1 target station beyond M+K=n_A_free). Must fail cleanly via newton.assert_square, captured in CellResult.dof_check_error, not crash. n=8 only (STATS_PROTOCOL §4 scoping note).
+# One factor away from t8_n08_baseline.yaml unless noted.
+cst:
+  n_upper: 8
+  n_lower: 8
+  le_treatment: prescribed
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "2412"
+  station_selection: qr_pivot
+  init: presolve
+  alpha_free: false
+  dof_offset: 1

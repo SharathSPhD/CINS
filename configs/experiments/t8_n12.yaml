@@ -1,0 +1,16 @@
+# T8 ablation cell: Bernstein order n=12/side (FM-2). n=16 excluded from this generated matrix per task scoping (parent-orchestrator instruction: n in {4,6,8,10,12}) to keep the total cell count small and runtime bounded; logged here as the explicit STATS_PROTOCOL-required decision, not a silent drop.
+# One factor away from t8_n08_baseline.yaml unless noted.
+cst:
+  n_upper: 12
+  n_lower: 12
+  le_treatment: prescribed
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "2412"
+  station_selection: qr_pivot
+  init: presolve
+  alpha_free: false
+  dof_offset: 0

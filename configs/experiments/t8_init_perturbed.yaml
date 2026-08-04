@@ -1,0 +1,16 @@
+# T8 ablation cell: Init = perturbed (+/-5% of A*, T4 pre-solve SKIPPED), validates the pre-solve's necessity. init=random is supported by the runner (cins.config.T8Config.init) but not included in this generated matrix -- task instruction 2 narrows the generated cells to {presolve, perturbed} only; logged as a scoping note, not a silent capability gap.
+# One factor away from t8_n08_baseline.yaml unless noted.
+cst:
+  n_upper: 8
+  n_lower: 8
+  le_treatment: prescribed
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "2412"
+  station_selection: qr_pivot
+  init: perturbed
+  alpha_free: false
+  dof_offset: 0

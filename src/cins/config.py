@@ -92,6 +92,35 @@ class DiagnosticsConfig(BaseModel):
     dense_rank_max_dim: int = Field(ge=1, le=100_000)
 
 
+class T8Config(BaseModel):
+    """T8 ablation-cell factors (STATS_PROTOCOL §4, dossier §7.9).
+
+    Only the factors with **no existing config home** live here — Bernstein
+    order (``cst.n_upper``/``cst.n_lower``), LE treatment (``cst.le_treatment``)
+    and transition mode (``transition.mode``) are already first-class config
+    fields, so a cell YAML ablates them by overlaying those sections directly
+    rather than duplicating a second knob here (see
+    ``configs/experiments/*.yaml`` comments and the T8 runner report for this
+    design note).
+    """
+
+    airfoil: str = "2412"  # NACA 4/5-digit code, no leading zeros stripped
+    station_selection: Literal["qr_pivot", "even"] = "qr_pivot"
+    init: Literal["presolve", "perturbed", "random"] = "presolve"
+    alpha_free: bool = False
+    dof_offset: Literal[-1, 0, 1] = Field(
+        default=0,
+        description=(
+            "FM-1 ablation (dossier §7.9): deliberately mis-square the extended "
+            "system by +/-1 target station relative to the M+K=n_A_free(+alpha) "
+            "requirement. Must fail cleanly via assert_square, not crash."
+        ),
+    )
+    n_perturb_frac: float = Field(
+        default=0.05, gt=0.0, lt=1.0, description="init=perturbed: |dA/A| fraction"
+    )
+
+
 class CinsConfig(BaseModel):
     cst: CSTConfig
     paneling: PanelingConfig
@@ -102,6 +131,7 @@ class CinsConfig(BaseModel):
     gates: GatesConfig
     experiment: ExperimentConfig
     diagnostics: DiagnosticsConfig
+    t8: T8Config = Field(default_factory=T8Config)
 
     @model_validator(mode="after")
     def _check_dof_feasible(self) -> "CinsConfig":
