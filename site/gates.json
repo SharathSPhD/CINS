@@ -38,39 +38,39 @@
     {
       "id": "T4",
       "title": "Linear pre-solve + realisability",
-      "status": "in_progress",
-      "date": null,
-      "evidence": null,
+      "status": "closed",
+      "date": "2026-08-04",
+      "evidence": "Presolve: realisability discriminates 0.0008 (realisable) vs 0.185 (spiked) at 0.05; initializer ratio 0.256; KKT cond 2.4e4. Review pending->clean (batched with T5/T7)",
       "commit": null
     },
     {
       "id": "T5",
       "title": "Extended Newton system",
-      "status": "pending",
-      "date": null,
-      "evidence": null,
+      "status": "closed",
+      "date": "2026-08-04",
+      "evidence": "Extended Newton: square system, analytic flow Jacobian + FD-over-A; joint under-relaxation; viscous-stag-preserving geometry hook; converges quadratically",
       "commit": null
     },
     {
       "id": "T6",
       "title": "Diagnostics D1\u2013D6",
-      "status": "pending",
-      "date": null,
-      "evidence": null,
+      "status": "closed",
+      "date": "2026-08-04",
+      "evidence": "D1-D6 recorder + plots, 20 tests; D-2 caught the identifiability bound; D-6 order estimator per STATS_PROTOCOL H3",
       "commit": null
     },
     {
       "id": "T7",
       "title": "Falsifiable test \u2014 recover A*",
-      "status": "pending",
-      "date": null,
-      "evidence": null,
+      "status": "closed",
+      "date": "2026-08-04",
+      "evidence": "PASS: ||A-A*||inf = 1.1e-11 in 4 iterations, quadratic tail 5.9e-4->3.1e-6->1.0e-10. Key: QR-pivoted station selection (submap cond 1e7->90). Four findings beyond dossier documented",
       "commit": null
     },
     {
       "id": "T8",
       "title": "Ablations + statistical benchmark",
-      "status": "pending",
+      "status": "in_progress",
       "date": null,
       "evidence": null,
       "commit": null

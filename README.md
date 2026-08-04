@@ -23,11 +23,11 @@ penalty terms. Constrained shape optimization becomes constrained root-finding.
 | T1 | mfoil internals introspection | **closed** |
 | T2 | CST module (fit RMS < 0.1% chord) | **closed** |
 | T3 | Constraint rows (area to 1e-10) | **closed** |
-| T4 | Analytic pre-solve + realisability | in progress |
-| T5 | Extended Newton system | pending |
-| T6 | Diagnostics D1–D6 | pending |
-| T7 | **Falsifiable test: recover A\* from its own Cp** | pending |
-| T8 | Ablations + statistical benchmark | pending |
+| T4 | Analytic pre-solve + realisability | **closed** |
+| T5 | Extended Newton system | **closed** |
+| T6 | Diagnostics D1–D6 | **closed** |
+| T7 | **Falsifiable test: recover A\* from its own Cp** | **PASSED — A\* recovered to 1.1e-11 in 4 iterations** |
+| T8 | Ablations + statistical benchmark | in progress |
 | T9 | Stage 2 (cascade) design review | pending |
 
 Full research dossier: [docs/CST_MISES_Monolithic_Inverse_Design.md](docs/CST_MISES_Monolithic_Inverse_Design.md)

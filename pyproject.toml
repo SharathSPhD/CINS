@@ -34,7 +34,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --tb=short"
+addopts = "-q --tb=short -m 'not slow'"
+markers = ["slow: long-running gate pipelines (opt in with -m slow)"]
 
 [tool.ruff]
 line-length = 100
