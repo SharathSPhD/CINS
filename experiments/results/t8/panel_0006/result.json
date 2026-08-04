@@ -1,0 +1,42 @@
+{
+  "cell_name": "panel_0006",
+  "converged": false,
+  "convergence_order": null,
+  "dof_check_error": null,
+  "err_all_inf": null,
+  "err_free_inf": null,
+  "iterations": 0,
+  "manifest": {
+    "cell_name": "panel_0006",
+    "config_hash": "d79eb591afdd5caf",
+    "config_path": "configs/experiments/panel_naca/panel_0006.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "46a3920df88f8799a5f15f325b72a1bb61e2ce4b",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "0006",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-04T15:04:47.338344+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": null,
+  "n_flow_solves_equivalent": 3,
+  "n_residual_evaluations": 0,
+  "notes": [
+    "forced-trip target solve failed to converge"
+  ],
+  "realisability": null,
+  "release_verify": null,
+  "residual_history": [],
+  "submap_cond": null,
+  "wall_time_s": 15.227384542115033
+}

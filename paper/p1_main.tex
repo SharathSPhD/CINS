@@ -1,53 +1,1098 @@
 % P1 — Monolithic CST–Newton Inverse Airfoil Design
 % Target: AIAA Journal (or AIAA SciTech). Grown at every gate closure; figures
 % auto-generated from experiments/results/ manifests (never hand-drawn numbers).
-\documentclass[journal]{new-aiaa} % fallback: article + aiaa style
-\usepackage{amsmath,amssymb,graphicx,booktabs,siunitx}
+%
+% TOOLCHAIN NOTE (do not delete before submission prep): this environment has
+% tectonic but no `new-aiaa.cls`/`aiaa.bst` (AIAA distributes these directly to
+% authors, not via CTAN/TeXLive). Falling back to `article` + natbib/plainnat so
+% the draft is syntax-clean and compiles end-to-end now. Swap back to
+% `\documentclass[journal]{new-aiaa}` and `\bibliographystyle{aiaa}` once the
+% AIAA class/bib files are obtained from the journal's author kit — no content
+% changes needed, only the preamble below.
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,graphicx,booktabs,siunitx,natbib}
+\usepackage{hyperref}
+
+\graphicspath{{../experiments/results/t8/figures/}}
 
 \title{Inverse Airfoil Design as Constrained Root-Finding:\\
 A Monolithic CST--Newton Formulation}
 
-\author{S. Sathish\thanks{PhD, sCO$_2$ turbomachinery.} }
+\author{S. Sathish\thanks{PhD, sCO$_2$ turbomachinery.}}
+\date{}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-% Filled at T7 closure. Headline: two to three orders of magnitude fewer flow
-% solves plus determinism and uniqueness — NOT a closed form (dossier §1.3, §11).
+% Filled at T7/T8 closure. Corrected headline (results_digest.md "Suggested
+% abstract-level correction"): do NOT claim two-to-three orders of magnitude
+% fewer flow solves (that was the a priori dossier hypothesis, docs/
+% CST_MISES_Monolithic_Inverse_Design.md \S1.3/\S1.4, never measured). The
+% measured, fair-paired result is 3-8x -- report that, plus determinism and
+% uniqueness, which are in fact BETTER supported post-T8 via the
+% station-selection identifiability finding (\S5.2 of results_digest.md).
+We recast inverse airfoil design -- recovering a geometry that produces a
+prescribed surface pressure or edge-velocity distribution -- as a single
+determined nonlinear root-find rather than an objective-function search.
+Parameterising the surface with Class-Shape-Transformation (CST) coefficients
+that enter the geometry \emph{linearly} makes the geometric Jacobian block
+exact, constant, and design-independent, and makes geometric design
+constraints (leading-edge radius, trailing-edge thickness, inscribed area)
+linear algebraic rows rather than nonlinear predicates. Appending the CST
+coefficients as unknowns to a coupled viscous/inviscid Newton solver (mfoil)
+therefore converts constrained shape \emph{optimization} into constrained
+\emph{root-finding}: one square system, no outer loop, no surrogate. We
+validate the architecture with a falsifiable self-consistency test --
+recovering a known CST coefficient vector from its own self-generated target
+-- to $\|A-A^\ast\|_\infty = 1.079\times10^{-11}$ in 4 Newton iterations with
+a visible quadratic tail, and confirm the recovered geometry reproduces the
+target in fully released (natural-transition) direct mode to
+$\Delta c_l = 8.0\times10^{-13}$. An ablation matrix identifies the primary
+uniqueness guard for the resulting square system: sensitivity-optimal
+(QR-pivoted) selection of target stations, not initial-guess quality, is what
+separates recovering the true design from converging cleanly to a spurious
+but residual-zeroing root. Measured against a competently-tuned nested
+Levenberg--Marquardt baseline under two independent fair-paired controls, the
+monolithic architecture requires 3.1--8.1x fewer flow-residual evaluations --
+a real but modest reduction, not the two-to-three-orders-of-magnitude
+headline hypothesised a priori -- while retaining determinism, guaranteed
+local quadratic convergence, exact analytic constraint-row Jacobians, and
+per-iteration failure-mode diagnostics that the nested baseline has no
+analogue for.
 \end{abstract}
 
 \section{Introduction}
-% Novelty positioning (dossier §10): the contribution is NOT geometry unknowns in
+% Novelty positioning (dossier \S10): the contribution is NOT geometry unknowns in
 % a Newton system (Drela 1986/1990), NOT CST in inverse design (Morris, Allen &
-% Rendall 2010 — CST as smoother). It is the combination: a complete analytic
+% Rendall 2010 -- CST as smoother). It is the combination: a complete analytic
 % basis whose linearity makes the geometric Jacobian exact and constant, and
-% whose geometric functionals make constraints linear rows — converting
+% whose geometric functionals make constraints linear rows -- converting
 % constrained shape optimization into constrained root-finding.
-% TODO before submission: confirm §5.6 negative result via AIAA/ASME digital
-% collection search (no prior CST–MISES-inverse coupling).
+% TODO before submission: confirm \S5.6 negative result via AIAA/ASME digital
+% collection search (no prior CST--MISES-inverse coupling). Source:
+% docs/CST_MISES_Monolithic_Inverse_Design.md \S5.6, \S10, \S11.
+
+Inverse aerodynamic design -- given a target surface pressure or isentropic
+Mach distribution, recover the geometry that produces it -- is classically
+posed either as a well-posed but restrictive conformal-mapping problem
+\citep{lighthill1945new,volpe1986design}, or as an outer optimization loop
+wrapped around a converged forward flow solve. The latter is the practical
+default in industry: a geometry parameterisation, a surrogate or
+gradient-based optimizer, and hundreds to thousands of fully converged flow
+solves per design. The present paper's motivation is autobiographical: the
+author's own doctoral work on sCO$_2$ axial-turbine blading used exactly this
+pattern -- Class-Shape-Transformation (CST) geometry, a B-spline control-point
+wrapper, and a Dakota/Kriging surrogate loop against MISES -- and its future
+work section named the open problem verbatim: integrating CST directly with a
+Newton-based flow solver to escape the nested loop
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S1.4).
+
+That escape route already exists in one solver. MISES's Modal-Inverse mode
+\citep{drela1990viscous} appends mode-shape amplitudes directly to its global
+Newton system and drives them so that computed surface speed matches a
+target -- a determined root-find, not a search. This is not new; Drela
+described it in 1986--1990. What MISES's built-in mode shapes are
+\emph{not}, however, is a complete, geometrically meaningful, analytic
+design basis: they are heuristic bump functions, not a family whose
+coefficients double as leading-edge radius, trailing-edge thickness, or
+inscribed area. Kulfan's CST parameterisation \citep{kulfan2008universal} is
+such a basis, and Masters et al.\ \citep{masters2017geometric} showed it is
+among the most efficient analytic families across a 2000-airfoil comparison.
+CST has also already been coupled to inverse design once, by
+Morris, Allen \& Rendall \citep{morris2010inverse}: there, CST is used to
+\emph{smooth} a pressure-residual-driven normal-direction shape correction
+inside an outer iterative loop -- CST is the smoother, not an unknown in a
+Newton system. The present work does not repeat either of these; it combines
+a property of CST that neither prior use exploits.
+
+\paragraph{The precise novelty claim.} CST's surface parameterisation
+\begin{equation}
+  \zeta(\psi) = C(\psi)\sum_i A_i S_i(\psi) + \psi\,\zeta_T
+  \label{eq:cst-intro}
+\end{equation}
+is \emph{linear} in the coefficient vector $A$. Two consequences follow, and
+neither is available to a generic (e.g.\ B-spline-with-wrapper) geometry
+representation once local-frame perturbations, LE tangent-angle
+displacements, or re-fitting are introduced to reach the same design freedom
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S1.5): (1) the geometric
+Jacobian block $\partial\zeta/\partial A_i = C(\psi)S_i(\psi)$ is exact,
+constant, and design-independent -- assembled once, never re-derived inside
+a Newton loop; and (2) the geometric functionals that matter for
+manufacturability (LE radius, TE thickness, wedge angle, inscribed area,
+even leading-order curvature continuity) are \emph{linear} in $A$, so they
+enter the Newton system as constant-coefficient algebraic rows rather than
+non-smooth predicates or penalty terms. The contribution of this paper is
+\textbf{not} ``geometry unknowns in a Newton system'' (that is Drela,
+1986/1990) and \textbf{not} ``CST used somewhere inside inverse design''
+(that is Morris, Allen \& Rendall, 2010). It is the combination: an analytic
+basis whose linearity makes the geometric Jacobian exact and constant,
+\emph{and} whose geometric functionals make design constraints linear rows,
+together converting \emph{constrained shape optimization} into
+\emph{constrained root-finding} -- one square Newton system, solved once, no
+outer loop.
+% TODO before submission: no published work is known to couple a Newton-
+% coupled *inverse* solver directly to CST-as-Newton-unknowns (as opposed to
+% CST-as-post-hoc-smoother, Morris 2010). This negative result is currently
+% based on web search only, not an AIAA/ASME Digital Collection search.
+% Confirm before claiming novelty in the submitted version.
+% Source: docs/CST_MISES_Monolithic_Inverse_Design.md \S5.6, \S11.
+
+\paragraph{The honest headline.} A priori, the architecture was hypothesised
+to require ``two to three orders of magnitude fewer flow solves, plus
+determinism and uniqueness'' relative to a nested-optimization baseline
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S1.3). That number was
+never measured against a competent baseline; it is not repeated here. What
+we report instead, from a controlled ablation study (\S\ref{sec:results})
+against a modern, properly-scaled, tightly-tolerance Levenberg--Marquardt
+solver \citep{virtanen2020scipy}: \textbf{3--8x fewer flow-residual
+evaluations, depending on initialization strategy}, under two independent
+fair-paired controls (paper/results\_digest.md~\S5.3), plus qualitative
+properties the flow-solve ratio does not capture -- determinism (no
+stochastic restarts), guaranteed local quadratic convergence, exact analytic
+constraint-row Jacobians (no finite-difference noise in the constraint
+block), and a battery of per-iteration failure-mode diagnostics
+(\S\ref{sec:fm}) the nested baseline has no equivalent of. We regard the
+identification and correction of the a priori $\geq$100x claim, together
+with the discovery of a station-selection identifiability mechanism that the
+original hypothesis did not anticipate (\S\ref{sec:ablations}), as evidence
+that the falsifiable-test discipline (\S\ref{sec:falsifiable}) this paper
+follows throughout is doing real epistemic work, not merely validating a
+foregone conclusion.
+
+The remainder of the paper: \S\ref{sec:formulation} states the CST
+mathematics, the constraint rows, the extended Newton system and its degree-
+of-freedom accounting, the derivative strategy actually forced by the target
+solver's exposed interface, and the two solver-specific closures (forced
+transition, pre-solve/realisability) needed to make the Newton iteration
+well-posed. \S\ref{sec:fm} catalogues the four failure modes the
+architecture is vulnerable to and the diagnostics built to discriminate
+between them. \S\ref{sec:falsifiable} describes the self-consistency test
+that falsifies or confirms the hypothesis outright. \S\ref{sec:results}
+reports the T8 ablation matrix: the identifiability finding, the
+Bernstein-conditioning cliff, the corrected flow-solve comparison, and the
+quadratic-convergence evidence. \S\ref{sec:discussion} places the four
+solver-specific mitigations in a common TRIZ separation-principle frame,
+states the study's honest scope limits, and discusses the outdated-baseline
+finding. \S\ref{sec:conclusions} closes with the Stage 2 (cascade) and
+Stage 3 (MISES) extensions this architecture was designed to scale into.
 
 \section{Formulation}
-\subsection{CST parameterization and its linearity}   % <- from docs/SPEC.md at T2
-\subsection{Constraints as linear rows}               % <- T3
-\subsection{The extended Newton system and DOF accounting} % <- T5, FM-1
-\subsection{Analytic pre-solve and realisability}     % <- T4
+\label{sec:formulation}
+
+\subsection{CST parameterization and its linearity}
+\label{sec:cst-linearity}
+% <- from docs/SPEC.md \S2 at T2; math source docs/CST_MISES_Monolithic_Inverse_Design.md \S3.1-3.4
+
+Let $\psi = x/c \in [0,1]$ and $\zeta = z/c$. The CST class function for a
+round-nose, sharp-tail family is
+\begin{equation}
+  C_{N_1}^{N_2}(\psi) = \psi^{N_1}(1-\psi)^{N_2}, \qquad N_1 = 0.5,\; N_2 = 1.0,
+\end{equation}
+and the shape function is a Bernstein-polynomial expansion of order $n$ per
+surface,
+\begin{equation}
+  S_i(\psi) = K_i\,\psi^i(1-\psi)^{n-i}, \quad K_i = \binom{n}{i}, \qquad
+  S_{u}(\psi) = \sum_{i=0}^{n} A_{u,i} S_i(\psi), \quad
+  S_{l}(\psi) = \sum_{i=0}^{n} A_{l,i} S_i(\psi).
+\end{equation}
+The upper and lower surfaces are
+\begin{equation}
+  \zeta_{u}(\psi) = C(\psi)\,S_u(\psi) + \psi\,\zeta_{T,u}, \qquad
+  \zeta_{l}(\psi) = C(\psi)\,S_l(\psi) + \psi\,\zeta_{T,l},
+  \label{eq:surfaces}
+\end{equation}
+with $\zeta_{T,u} = +t_{TE}/2$, $\zeta_{T,l} = -t_{TE}/2$ (sign convention
+binding in \texttt{src/cins/CLAUDE.md}; SPEC.md~\S2.1).
+
+The property this paper exploits is that Eq.~\eqref{eq:surfaces} is
+\emph{linear} in $A$: the partial derivative
+\begin{equation}
+  \frac{\partial \zeta}{\partial A_i} = C(\psi)\,S_i(\psi)
+  \label{eq:dsurface-dA}
+\end{equation}
+does not depend on $A$. It is a fixed matrix, computed once from the
+chordwise node distribution and cached (SPEC.md~\S2.1; T2 requirement,
+docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S7.3): \emph{``does not
+depend on A. Recomputing it per Newton iteration is the single most common
+way to lose the performance argument.''} This design-independence is what
+makes the $\partial R/\partial A$ Jacobian block of \S\ref{sec:newton-system}
+assemble as a cheap matrix product rather than a re-derived, geometry-
+dependent operator at every Newton step.
+
+Two endpoint identities follow directly from Eq.~\eqref{eq:surfaces} and are
+used as constraint rows in \S\ref{sec:constraints}:
+\begin{equation}
+  A_0 = \sqrt{2R_{LE}/c}, \qquad A_n = \tan\beta + \Delta z_{TE}/c,
+  \label{eq:endpoint}
+\end{equation}
+where $\beta$ is the boat-tail (trailing-edge wedge) angle. Near $\psi\to0$,
+$\zeta \approx A_0\sqrt{\psi}$, so $R_{LE} = A_0^2/2$; $G^2$ curvature
+continuity across the leading edge reduces to matching the leading
+coefficient magnitude on the two surfaces, $A_{u,0} = |A_{l,0}|$ -- under the
+stored-sign convention ($A_{l,i}<0$), the row $A_{u,0} + A_{l,0} = 0$
+(SPEC.md~\S2.3).
+
+\subsection{Constraints as linear rows}
+\label{sec:constraints}
+% <- T3; closed-form source docs/CST_MISES_Monolithic_Inverse_Design.md \S3.4, SPEC.md \S2.4
+
+Because Eq.~\eqref{eq:surfaces} is linear in $A$, every geometric functional
+that is itself linear or integral in $\zeta$ becomes a linear row
+$g\cdot A = b$ rather than a nonlinear predicate evaluated on a rebuilt
+mesh. The leading-edge-radius and trailing-edge-wedge rows follow
+immediately from Eq.~\eqref{eq:endpoint}. The one requiring a closed-form
+integral is inscribed area: the per-surface contribution is
+\begin{equation}
+  \int_0^1 C(\psi)S_i(\psi)\,d\psi
+    = K_i \int_0^1 \psi^{i+N_1}(1-\psi)^{n-i+N_2}\,d\psi
+    = K_i\,B(i+N_1+1,\, n-i+N_2+1),
+  \label{eq:area-beta}
+\end{equation}
+a Beta function, plus the trailing-edge term $\int_0^1 \psi\,\zeta_T\,d\psi =
+\zeta_T/2$. Eq.~\eqref{eq:area-beta} is evaluated with
+\texttt{scipy.special.beta} -- never by numerical quadrature in a production
+constraint row; quadrature is retained only as an independent gate check
+(SPEC.md~\S9, ``Do not''). That gate passed: \texttt{area\_row} matches
+numerical quadrature of the fitted NACA~2412 to $10^{-10}$
+(docs/gates/T3-closure.md; SPEC.md~\S7, T3 row). This closed-form machinery
+is the same Beta-function apparatus Joseph \& Mohan~\citep{joseph2021closed}
+use for thin-airfoil lift/moment integrals against a Bernstein camber basis
+-- not a coincidence, since both integrate Bernstein polynomials against the
+class function, and it is the analytic kernel reused for the linear pre-solve
+of \S\ref{sec:presolve}.
+
+Under a B-spline-with-wrapper representation, by contrast, every row in
+Table~\ref{tab:constraint-comparison} is a nonlinear or non-smooth predicate
+evaluated on a rebuilt mesh -- which is precisely the stack that forced
+surrogate-based search in the author's PhD work
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S1.5).
+
+\begin{table}[h]
+\centering
+\caption{Constraint representation: CST vs.\ a B-spline control-point wrapper. Source: docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S1.5.}
+\label{tab:constraint-comparison}
+\begin{tabular}{lll}
+\toprule
+Constraint & Under CST & Under the B-spline wrapper \\
+\midrule
+LE radius & $A_0=\sqrt{2R_{LE}/c}$ -- linear, exact & implicit, via tangent points \\
+TE thickness & $\zeta_T$ term -- linear & geometric post-check \\
+Boat-tail/wedge angle & $A_n$ -- linear & nonlinear angular DV \\
+Inscribed area & linear functional, Beta-function closed form & numerical, non-smooth \\
+Curvature & rational function of $A$, differentiable & monotonicity predicate, non-smooth \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{The extended Newton system and DOF accounting}
+\label{sec:newton-system}
+% <- T5, FM-1; SPEC.md \S4-\S5, dossier \S7.6
+
+The extended system appends the CST coefficients (and, optionally, angle of
+attack) directly to the flow solver's own global unknown vector. Unknowns:
+\begin{equation}
+  U \;(\text{flow state}, N_{tot}), \qquad
+  A \;(\text{CST coefficients}, n_A), \qquad
+  \alpha \;(\text{angle of attack}, 0\text{ or }1).
+\end{equation}
+Equations:
+\begin{equation}
+  R(U; x(A)) = 0 \;\;(N_{tot}), \qquad
+  T(U) - Cp_{target} = 0 \;\;(M), \qquad
+  G\cdot A - b = 0 \;\;(K),
+\end{equation}
+with the block Jacobian
+\begin{equation}
+  J = \begin{bmatrix}
+    \partial R/\partial U & \partial R/\partial A & \partial R/\partial \alpha \\
+    \partial T/\partial U & 0 & \partial T/\partial \alpha \\
+    0 & \partial G/\partial A & 0
+  \end{bmatrix}.
+  \label{eq:jacobian-blocks}
+\end{equation}
+$\partial R/\partial U$ and $\partial R/\partial\alpha$ are mfoil's own
+analytic, sparsely-assembled blocks, reused unchanged. $\partial T/\partial
+U$ is a near-selection matrix (Cp at a node as a direct function of the
+panel/edge-velocity unknowns). $\partial G/\partial A = G$ is constant --
+free, per \S\ref{sec:constraints}. $\partial R/\partial A =
+(\partial R/\partial x)(\partial x/\partial A)$ is the block that carries the
+architectural claim; its second factor is the cached, design-independent
+matrix of Eq.~\eqref{eq:dsurface-dA}, and its first factor is addressed in
+\S\ref{sec:derivatives}.
+
+\paragraph{DOF accounting.} The dossier's original bookkeeping
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S4~FM-1, \S7.6) is
+\[
+  \mathrm{DOF} = 2(n+1) - 1_{\text{shared LE}} - 1_{\text{TE fixed}}
+  + 3_{\text{scale/rotate/translate}} + 1_{\text{stagger or }\alpha}
+  \quad\stackrel{!}{=}\quad M + K.
+\]
+In the Stage-1 (isolated-airfoil, mfoil) implementation, the three rigid
+overall modes (scale/rotate/translate) are not exposed as free Newton
+unknowns, so the implemented squareness condition is the simpler, equivalent
+statement actually asserted at construction time and logged every run
+(SPEC.md~\S3):
+\begin{equation}
+  M + K = n_{A,\text{free}} + n_{\alpha},
+  \label{eq:dof}
+\end{equation}
+where $n_{A,\text{free}}$ is the count of CST coefficients \emph{not}
+eliminated by a prescribed-LE treatment (\S\ref{sec:falsifiable}) or an
+equality-row elimination, and $n_\alpha\in\{0,1\}$ depending on whether angle
+of attack is a free unknown for the run in question. Violating
+Eq.~\eqref{eq:dof} raises at construction, before any Newton step -- this is
+the FM-1 guard (\S\ref{sec:fm}), and it is exercised directly in the T8
+ablation matrix (\S\ref{sec:ablations}): deliberately over- and under-
+squaring the baseline system (n=8/side, $n_{A,\text{free}}=16$, $n_\alpha=0$)
+produces the exact, actionable diagnostics
+\begin{quote}
+\texttt{"extended system not square: M+K=17 but n\_A\_free+n\_alpha=16 (M=17, K=0, n\_A\_free=16)"} \\
+\texttt{"extended system not square: M+K=15 but n\_A\_free+n\_alpha=16 (M=15, K=0, n\_A\_free=16)"}
+\end{quote}
+with zero Newton iterations spent and no silent wrong answer
+(paper/results\_digest.md~\S5.2 ``Other single-factor ablations'';
+experiments/results/t8/ANALYSIS.md~\S4). Getting Eq.~\eqref{eq:dof} wrong is,
+per the dossier, plausibly what the author's PhD-era divergence was
+misdiagnosed as an LE-singularity problem when it was rank deficiency
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S4, FM-1) -- instrumenting
+for it directly, rather than inferring it from Newton behaviour, is the
+point of Eq.~\eqref{eq:dof} being an assertion rather than a derived
+quantity.
+
+\subsection{Derivative strategy: why finite-difference-over-\texorpdfstring{$A$}{A}, not the analytic chain rule or complex-step}
+\label{sec:derivatives}
+% <- decision tree, SPEC.md \S5; empirical finding docs/mfoil_internals.md \S3-4 (T1)
+
+SPEC.md's derivative-mode decision tree (\S5) prefers, in order: (1) the
+analytic chain rule $\partial R/\partial A = (\partial R/\partial x)(\partial
+x/\partial A)$ if mfoil exposes $\partial R/\partial x$ analytically; (2)
+complex-step over $A$ if the residual-assembly path is free of
+\texttt{abs}/\texttt{max}/\texttt{min}/comparison operators; (3) real
+(central) finite differences over $A$ otherwise. T1 introspection
+(docs/mfoil\_internals.md~\S3--4) resolved both questions empirically, and
+neither resolved in the analytic-chain-rule's favour:
+
+\begin{itemize}
+\item \textbf{The analytic chain rule is incomplete for this solver class.}
+  mfoil exposes \texttt{M.glob.R\_x}, but it is only a \emph{partial}
+  sensitivity -- real and useful for the arc-length ($\xi$) mapping, but
+  missing the geometry-dependent operators that matter most: the
+  inviscid panel/AIC coupling and the stagnation-point formulation
+  (docs/mfoil\_internals.md~\S3, ``KEY QUESTION A''). Using this partial
+  block as if it were the complete $\partial R/\partial x$ would silently
+  drop exactly the rows the leading-edge failure mode (FM-3,
+  \S\ref{sec:fm}) is about.
+\item \textbf{Complex-step is blocked, not merely inconvenient.} A bare
+  \texttt{residual\_station}/\texttt{residual\_transition} call, with fixed
+  panels and a complex-perturbed state, is verified complex-step-safe and
+  reproduces the analytic $R_x$ to float64 machine epsilon
+  (docs/mfoil\_internals.md~\S4.1). But the \emph{full} augmented residual
+  -- which is what a perturbation in $A$ actually varies, since $A$ moves
+  the panel geometry itself -- calls the panel-influence and
+  stagnation-detection code paths, which use \texttt{atan2}, branch
+  selection on real quantities, and a hard \texttt{ValueError} guard for
+  complex node arrays (docs/mfoil\_internals.md~\S4.1--4.2,
+  \texttt{mfoil.py:2713}). These are exactly the operators complex-step
+  cannot tolerate, and they sit in precisely the geometry-dependent block
+  that (1) shows was missing from the analytic path -- i.e.\ complex-step
+  \emph{cannot fill the gap the analytic chain rule leaves}
+  (docs/mfoil\_internals.md~\S8, ``picture \S3.2. Complex-step cannot fill
+  that gap either'').
+\end{itemize}
+
+The implemented and gate-verified strategy is therefore real central finite
+differences with respect to $A$ only -- never with respect to node
+coordinates $x$ (SPEC.md~\S5, ``Hard rule (never violate)''; SPEC.md~\S9).
+This is a deliberate architectural discipline, not a fallback of
+convenience: $A$ has $n_A\approx16$--$36$ columns depending on Bernstein
+order, so a full central-difference Jacobian block costs
+$O(n_A)$ residual \emph{evaluations} per Newton step -- not flow solves --
+against the alternative of finite-differencing over $N_{panel}\gg n_A$ node
+coordinates, which would silently destroy the flow-solve-count argument this
+paper's Results section depends on. T5 gate closure verified the resulting
+Jacobian columns to 5--6 significant figures across a step-size sweep with no
+stencil discontinuities (docs/gates/T4-T7-closure.md, ``T5'').
+
+\subsection{Forced-transition onset closure}
+\label{sec:transition}
+% <- ADR-0003 (revised mechanism); FM-4, docs/triz/FM4-transition-smoothness.md
+
+mfoil's (and XFOIL's) $e^n$ transition closure is only $C^0$ in the design
+variables: the transition-station equation itself performs an internal
+sub-Newton solve for the point $x_t$ where the marched amplification factor
+crosses $n_{crit}$, and that location moves discontinuously as geometry
+changes cross a threshold. A coupled Newton iteration needs a continuous
+residual; a kink stalls or chatters it (dossier~\S4, FM-4). The mitigation
+prescribed by the dossier is to fix (trip) transition during the inverse
+iterations and release it for a verification solve afterward. mfoil exposes
+no forced-trip API, so this is implemented as an adapter-level shim
+(ADR-0003) rather than a vendor-code edit.
+
+The first implementation attempt froze the laminar/turbulent node flags
+(\texttt{M.vsol.turb}) and no-op'd mfoil's own \texttt{update\_transition},
+but left the natural \texttt{residual\_transition} equation untouched at the
+frozen boundary station. This was \emph{insufficient}: empirically (NACA
+2412, $\alpha=2^\circ$, $Re=10^6$, trip 5\%/5\%), the physics moved correctly
+under Newton pressure ($c_d$: 0.00578 $\to$ 0.00741) but the solve never
+converged -- \texttt{Rnorm} stalled at $\approx12.6$ for the full 50-iteration
+budget, because the frozen station equation still solves internally for
+amplification $= n_{crit}$, which has no solution once transition is pinned
+somewhere amplification is nowhere near $n_{crit}$ (ADR-0003, ``Revision'').
+The corrected mechanism, \texttt{\_residual\_transition\_forced}, replaces
+the boundary-station residual with an XFOIL-style turbulence-\emph{onset}
+closure: the momentum and shape-parameter rows use the ordinary turbulent
+\texttt{residual\_station} closure directly across the whole station (no
+laminar sub-leg, no station-local $x_t$), and the shear-lag row is replaced
+with the same onset condition mfoil's own \texttt{update\_transition} uses to
+initialize a newly-turbulent node, $U_2[2] = c_{ttr}(U_2)$, which depends
+only on the downstream state (ADR-0003). With this closure, the shim
+converges cleanly: trip 5\%/5\% reaches \texttt{glob.conv=True},
+$\mathrm{Rnorm}<10^{-10}$, $c_d=0.01125$ (strictly $>$ natural
+$c_d=0.005778$, as physically expected for larger turbulent wetted area);
+trip 30\%/30\% gives $c_d=0.00788$, strictly between the 5\%-trip and natural
+values -- monotonic in trip location. Releasing transition and re-solving
+from the converged forced state reproduces the pinned natural baseline to
+within its stated tolerance ($c_l=0.449351\pm10^{-3}$,
+$c_d=0.005778\pm2\times10^{-4}$), and rebuilding the global system after
+convergence with the shim still active reproduces $\|R\|<10^{-8}$ -- the
+converged state is a genuine fixed point of the forced residual, not an
+artifact of the step sequence (ADR-0003, ``Consequences''). Every T7/T8
+result reported in \S\ref{sec:results} therefore states its transition mode
+explicitly, and release-and-verify in natural-transition direct mode is part
+of the T7 protocol (\S\ref{sec:falsifiable}), not an optional extra.
+
+\subsection{Analytic pre-solve and realisability}
+\label{sec:presolve}
+% <- T4; ADR-0004 realisability semantics
+
+Two jobs are done by a single linear pre-solve before any Newton iteration
+runs, and the distinction between them is load-bearing for how results are
+reported (ADR-0004). Thin-airfoil theory is linear in camber slope and
+thickness, and CST camber/thickness are linear in $A$, so
+$Cp_{target}\approx M\cdot A$ for a sensitivity matrix $M$ built either
+analytically (the Joseph--Mohan Beta-function kernels) or, as implemented,
+numerically from mfoil's own linear-vorticity panel influence coefficients
+at fixed geometry. Solving the constrained least-squares problem with the
+\S\ref{sec:constraints} rows as linear equality constraints,
+\begin{equation}
+  \begin{bmatrix} M^\top M & G^\top \\ G & 0 \end{bmatrix}
+  \begin{bmatrix} A \\ \lambda \end{bmatrix}
+  = \begin{bmatrix} M^\top Cp_{target} \\ b \end{bmatrix},
+  \label{eq:kkt}
+\end{equation}
+gives (1) an initial guess placing Newton inside its basin of attraction --
+important because the LE region is exactly where Newton wanders, and mfoil's
+own documentation warns the coupled solver can fail from a poor initial
+guess -- and (2) a \textbf{realisability} metric,
+$\|M A^\ast - Cp_{target}\|/\|Cp_{target}\|$, that flags targets outside the
+CST-representable manifold \emph{before} a Newton solve is attempted.
+
+An adversarial T4/T5/T7 review found these two jobs' outputs had been
+conflated into one number, and ADR-0004 is the resulting decision, binding
+for every number reported in this paper:
+
+\begin{quote}
+1.\ \textbf{CST-representability} (the realisability guard, above) must be
+answered with \emph{model-consistent} quantities -- inviscid target against
+inviscid linearization. On the T7 winning configuration this is
+$3.90\times10^{-4}$ (paper/results\_digest.md~\S5.1): the target is
+representable. 2.\ \textbf{Model gap} -- how far the inviscid linearization
+sits from the viscous physics the Newton solve actually faces -- is a
+\emph{separate}, diagnostic-only quantity, $0.110$ on the same case
+(paper/results\_digest.md~\S5.1). This is boundary-layer displacement
+effect, which no inviscid model captures; it is \emph{not} target
+unrealisability, and the subsequent monolithic solve converging to
+$1.079\times10^{-11}$ (\S\ref{sec:falsifiable}) is direct proof the target
+was realisable despite the nonzero model gap.
+\end{quote}
+
+\textbf{Reporting rule, enforced throughout this paper:} realisability
+numbers are always labelled with their model (``inviscid-consistent''), and
+the conditioning of the QR-selected station submap ($\mathrm{cond}\approx90$,
+\S\ref{sec:ablations}) is never quoted as the conditioning of the full
+extended Newton system ($\mathrm{cond}\approx1.57\times10^8$ at the first
+iteration of the T8 baseline cell, D-2 diagnostic,
+paper/results\_digest.md~\S5.2 n-sweep table) -- these are different
+matrices answering different questions, and conflating them was one of the
+review's confirmed findings (ADR-0004; docs/gates/T4-T7-closure.md, item 6).
 
 \section{Failure-mode instrumentation}
+\label{sec:fm}
 % FM-1 rank/DOF, FM-2 Bernstein conditioning, FM-3 LE-singular rows, FM-4 C0
-% viscous closure; diagnostics D-1..D-6.                % <- T6
+% viscous closure; diagnostics D-1..D-6.                % <- T6, SPEC.md \S6
 
-\section{Results}
-\subsection{Self-consistent recovery (the falsifiable test)} % <- T7; D-6 is the headline figure
-\subsection{Ablations}                                % <- T8
-\subsection{Flow-solve count vs nested optimization}  % <- T8 control; H2 of STATS_PROTOCOL
+Four failure modes were identified a priori
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S4) as the ways the
+architecture of \S\ref{sec:formulation} can fail without that failure being
+obviously attributable to its true cause. Table~\ref{tab:fm} summarises
+each, its diagnostic, and its mitigation; \S\ref{sec:newton-system}--
+\S\ref{sec:presolve} describe FM-1, FM-4's mechanism and FM-1's realisability
+guard in detail, and \S\ref{sec:ablations} reports the empirical FM-2 cliff.
+
+\begin{table}[h]
+\centering
+\caption{The four failure modes, diagnostics, and mitigations. Source: SPEC.md~\S8, docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S4.}
+\label{tab:fm}
+\begin{tabular}{lllll}
+\toprule
+ID & Name & Mechanism & Diagnostic & Mitigation \\
+\midrule
+FM-1 & DOF/realisability & rank-deficient or over-determined & D-2 (rank/cond $J$) & Eq.~\eqref{eq:dof} assertion; T4 realisability \\
+FM-2 & Bernstein conditioning & Gram matrix $\mathrm{cond}\sim4^n$ & D-3 ($\mathrm{cond}(G^\top G)$ vs $n$) & keep $n\lesssim10$--12/side; orthogonalise \\
+FM-3 & LE-singular Jacobian rows & $\sqrt\psi$ non-analytic at $\psi=0$ & D-4 (row-norm vs station) & row scaling; prescribed-LE (\S\ref{sec:falsifiable}) \\
+FM-4 & $C^0$ viscous closure & transition-station kink & D-5 (transition history) & forced trip, release-and-verify (\S\ref{sec:transition}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The remaining diagnostics -- D-1 (per-block residual norms, discriminates
+\emph{which} block stalls) and D-6 (Newton convergence history, the
+headline figure confirming the quadratic-tail architectural claim) -- are
+not tied to a single failure mode; they are the general-purpose instruments
+used throughout \S\ref{sec:results}. Critically, FM-3's fix targets
+\emph{rows}, not columns: \S\ref{sec:cst-linearity} showed
+$\partial\zeta/\partial A_i$ is perfectly finite as $\psi\to0$ (it tends to
+zero) -- the geometric columns are healthy. What blows up is the flow
+residual's \emph{sensitivity} to geometry near the nose (surface normals,
+metric terms, the stagnation-point mapping all have unbounded derivatives
+there), so a handful of rows near the stagnation point acquire enormous
+magnitude and destroy the coupled matrix's condition number. This is a
+concrete instance of the point made in
+\S\ref{sec:cst-linearity}: CST's linearity keeps the columns exact, but does
+not by itself guarantee the rows are well-conditioned near a genuinely
+non-analytic geometric feature.
+
+\section{The falsifiable test}
+\label{sec:falsifiable}
+% <- T7; D-6 is the headline figure; protocol dossier \S7.8, numbers docs/gates/T4-T7-closure.md
+
+The architecture's central claim -- that appending CST coefficients to
+mfoil's Newton system yields a determined, quadratically convergent
+root-find -- is falsifiable by a single self-consistency experiment with a
+\emph{known} answer, guaranteed realisable by construction: fit CST to a
+known airfoil, run mfoil in direct mode to generate a target Cp/edge-velocity
+distribution from that fit, perturb the coefficients (or use the
+\S\ref{sec:presolve} pre-solve) to obtain a starting guess, and ask whether
+the monolithic inverse Newton iteration recovers the original coefficient
+vector $A^\ast$. Any failure of this test isolates cleanly to one of the
+Table~\ref{tab:fm} failure modes rather than to target infeasibility, which
+is the reason this test -- not a search over independently chosen targets --
+is the load-bearing evidence for the hypothesis
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S7.8, \S7.10).
+
+\paragraph{Winning configuration.} NACA 2412, $n=8$ per side,
+\texttt{le\_treatment=prescribed} (the first $\approx$5\% chord is fixed
+geometrically rather than left inverse -- the ``mixed direct-inverse''
+mitigation for FM-3, the cheapest test of the whole hypothesis since it
+isolates the LE question from the architecture question), transition
+forced (\S\ref{sec:transition}), stations chosen by QR column pivoting
+(\S\ref{sec:ablations}), initialized from the T4 pre-solve, $\alpha$ fixed.
+
+\paragraph{Protocol, including release-and-verify.} Success criterion
+(dossier~\S7.8; SPEC.md~\S7, T7 row): $\|A-A^\ast\|_\infty < 10^{-4}$ within
+$\leq9$ Newton iterations, with a visible quadratic tail in the D-6
+convergence history. Because the inverse solve runs under the forced-
+transition closure of \S\ref{sec:transition}, the protocol additionally
+requires releasing transition and re-solving in fully natural (direct) mode
+at the recovered geometry, verifying that the forced-transition solve did
+not silently converge to an aerodynamically different answer than the
+natural-transition physics would report (ADR-0003 mandate).
+
+\paragraph{Result: PASS, with large margin (Table~\ref{tab:t7}).} Measured
+against a $10^{-4}$/9-iteration gate: $\|A-A^\ast\|_\infty = 1.079\times
+10^{-11}$ in 4 Newton iterations, with the residual history
+$5.9\times10^{-4} \to 3.1\times10^{-6} \to 1.0\times10^{-10}$ showing the
+quadratic tail directly (Figure~\ref{fig:h3}). Release-and-verify against a
+$\Delta c_l<10^{-3}$, $\Delta c_d<2\times10^{-4}$ gate gives
+$\Delta c_l = 8.0\times10^{-13}$, $\Delta c_d = 1.1\times10^{-14}$ -- both
+essentially at floating-point noise, i.e.\ the forced-transition solve and
+the natural-transition physics agree to machine precision at the recovered
+design. Realisability (inviscid-consistent, ADR-0004 metric 1) is
+$3.90\times10^{-4}$; model gap (diagnostic only) is $0.110$
+(\S\ref{sec:presolve}). Framing, per the adversarial review that closed this
+gate: 16 coefficients are \emph{recovered} by the Newton iteration; the two
+LE coefficients $A_{u,0}$, $A_{l,0}$ are \emph{prescribed} by the
+\texttt{le\_treatment=prescribed} configuration, not recovered -- this
+free-16/prescribed-2 split is stated explicitly rather than folded into an
+undifferentiated ``18 coefficients recovered'' claim
+(docs/gates/T4-T7-closure.md).
+
+\begin{table}[h]
+\centering
+\caption{T7 falsifiable test, winning configuration. Source: docs/gates/T4-T7-closure.md; paper/results\_digest.md~\S5.1.}
+\label{tab:t7}
+\begin{tabular}{lll}
+\toprule
+Criterion & Threshold & Measured \\
+\midrule
+$\|A-A^\ast\|_\infty$ over 16 free coefficients & $<10^{-4}$ & $\mathbf{1.079\times10^{-11}}$ \\
+Newton iterations & $\leq9$ & $\mathbf{4}$ \\
+Quadratic tail (D-6) & visible & $5.9\times10^{-4}\to3.1\times10^{-6}\to1.0\times10^{-10}$ \\
+Release-and-verify $\Delta c_l$ & $<10^{-3}$ & $\mathbf{8.0\times10^{-13}}$ \\
+Release-and-verify $\Delta c_d$ & $<2\times10^{-4}$ & $\mathbf{1.1\times10^{-14}}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+An independently-run six-vector adversarial review (docs/gates/T4-T7-
+closure.md) probed circularity, station-index correspondence, the
+pinned-coefficient framing, the absence (at the time) of release-and-verify,
+realisability semantics, and the submap/system conditioning category error;
+every confirmed finding is now reflected in this paper's reporting
+discipline (the free-16/all-18 split above; ADR-0004's two-metric
+realisability rule; the station-index guard $\max|\Delta x/c|=6.1\times10^{-6}$
+asserted $<2\times10^{-5}$ in \texttt{run\_t7.py}).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{h3_convergence_overlay.png}
+\caption{D-6: Newton residual-norm history for the T7 baseline, overlaid
+with the \texttt{t8\_station\_even} wrong-root case (\S\ref{sec:ablations})
+and the \texttt{t8\_n12} conditioning-cliff case (\S\ref{sec:ablations}).
+Source: \texttt{experiments/results/t8/figures/h3\_convergence\_overlay.png}.}
+\label{fig:h3}
+\end{figure}
+
+\section{Ablations and results}
+\label{sec:results}
+% <- T8; ablations from paper/results_digest.md; identifiability LEADS.
+% CAVEAT (state once, applies to every subsection): all T8 numbers are N=1
+% (single seed=42 run per cell); no confidence intervals are statistically
+% defensible at N=1 (STATS_PROTOCOL Stage-1-lite scoping). T8 as executed is
+% a single-airfoil (NACA 2412) ablation matrix plus two extra single-airfoil
+% cells (0012, 4415) -- NOT the pre-registered ~20-section NACA panel
+% (configs/experiments/panel_naca.yaml does not exist). Source:
+% paper/results_digest.md preamble; experiments/results/t8/ANALYSIS.md \S0.
+
+Every number in this section traces to a \texttt{result.json} or
+\texttt{diagnostics.json} artifact under \texttt{experiments/results/t8/}
+(paper/results\_digest.md; per-cell citation in
+\texttt{experiments/results/t8/ANALYSIS.md}). All values are $N{=}1$
+(single \texttt{seed=42} run per cell); no confidence intervals are reported
+because none are statistically defensible at $N{=}1$, per
+\texttt{docs/STATS\_PROTOCOL.md}'s Stage-1-lite scoping. T8 as executed is a
+single-airfoil (NACA 2412) ablation matrix plus two extra single-airfoil
+cells (0012, 4415) -- \textbf{not} the pre-registered $\approx$20-section
+NACA panel (\texttt{configs/experiments/panel\_naca.yaml} does not exist in
+this repository). Panel-level convergence-\emph{fraction} language is
+deliberately avoided throughout this section for that reason.
+
+\subsection{Station-selection identifiability -- the central methodological result}
+\label{sec:ablations}
+
+We lead the ablation discussion with this finding, ahead of the flow-solve
+count, because it is the most novel, most precisely quantified, and most
+consequential result in T8 (benchmarks/REPORT.md, ``Recommendations for
+P1''). The square extended Newton system (\S\ref{sec:newton-system}) demands
+exactly $M$ target-station equations; with evenly-spaced stations, between-
+station Cp information is discarded, and the resulting $16\times16$ station-
+sensitivity submap can be badly ill-conditioned. Table~\ref{tab:identifiability}
+reports the two configurations that isolate this mechanism.
+
+\begin{table}[h]
+\centering
+\caption{Station-selection ablation. Source: paper/results\_digest.md~\S5.2; experiments/results/t8/ANALYSIS.md~\S4.}
+\label{tab:identifiability}
+\begin{tabular}{lccc}
+\toprule
+Selection & $\mathrm{err\_all\_inf}$ & Submap $\mathrm{cond}$ & Newton \texttt{converged} flag \\
+\midrule
+\texttt{qr\_pivot} (winning config) & $\mathbf{1.08\times10^{-11}}$ & 90.3 & \texttt{true} \\
+\texttt{even} (evenly-spaced) & $\mathbf{1.43\times10^{-3}}$ (FAILS $10^{-4}$ gate) & $3.47\times10^{12}$ & \texttt{true} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both cells' Newton loops report their own internal \texttt{converged: true}
+-- the residual reaches the solver's floor in both cases. \textbf{Only
+\texttt{qr\_pivot} recovers the correct design.} ``Converged'' and
+``correct'' are different claims, invisible unless $\mathrm{err\_all\_inf}$
+is checked against the true coefficients rather than the residual norm
+alone (experiments/results/t8/ANALYSIS.md~\S0, Deviation 5). The mechanism:
+with evenly-spaced stations, near-null coefficient directions exist whose
+motion changes the sampled Cp by less than floating-point precision, so
+Newton converges to \emph{any} of several exact roots of the (badly-
+conditioned) discrete system -- a structural non-uniqueness of the sampled
+problem, not a numerical accident. This reproduces and sharpens a pre-T8
+finding (\texttt{docs/triz/T7-identifiability.md}: cond $\sim10^7$, error
+$1.4\times10^{-3}$--$6\times10^{-2}$ with evenly-spaced stations) with a
+controlled ablation cell. Two contributing null-direction families were
+identified and eliminated \emph{before} the station-selection fix, each
+verified empirically (\texttt{docs/triz/T7-identifiability.md}): a
+camber--$\alpha$ equivalence (freeing $\alpha$ lets a slightly different
+camber at a slightly different $\alpha$ interpolate the same samples, so
+$\alpha$ is fixed for self-consistency tests), and a prescribed-LE mismatch
+(excluding LE stations while leaving the LE-dominant coefficients free
+leaves $A_0$ unobservable, which is why \texttt{le\_treatment=prescribed}
+\emph{fixes} $A_{u,0}$/$A_{l,0}$ rather than merely dropping LE-region
+target rows).
+
+The resolution keeps the system square -- no least-squares relaxation, no
+reintroduced optimization -- and instead makes each of the $M$ equations
+maximally informative: the T4 pre-solve (\S\ref{sec:presolve}) already
+builds the full $(200\times n_A)$ sensitivity matrix for initialization;
+reusing it to \emph{select} the $M$ target stations by QR column pivoting
+chooses the rows that maximize the resulting square submap's conditioning.
+The measured effect: submap condition $10^7\to90.3$; recovery error
+$1.4\times10^{-3}\to1.08\times10^{-11}$; full-curve sensitivity information
+enters only through the (already-required) linear pre-solve, and the
+nonlinear Newton solve stays square and determined throughout
+(\texttt{docs/triz/T7-identifiability.md}). We regard
+\textbf{sensitivity-optimal station selection as the identifiability guard
+for determined inverse systems} as a genuine methodological contribution of
+this paper beyond the original dossier hypothesis -- the practical answer to
+the non-uniqueness caveat inverse problems inherit from Lighthill's and
+Volpe \& Melnik's well-posedness constraints
+(\S\ref{sec:presolve}; docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S7.10)
+\emph{without} abandoning the root-finding architecture for a least-squares
+relaxation.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{station_selection.png}
+\caption{Station-selection identifiability at a glance: recovery error, QR-pivoted vs.\ evenly-spaced target stations, annotated with submap conditioning. Source: \texttt{experiments/results/t8/figures/station\_selection.png}.}
+\label{fig:station-selection}
+\end{figure}
+
+\subsection{Bernstein order $n$ -- the FM-2 conditioning cliff}
+
+Table~\ref{tab:n-sweep} sweeps Bernstein order $n$ (per side) from 4 to 12,
+reporting the three ADR-0004-distinct conditioning quantities alongside
+iteration count and recovery error -- distinct matrices, plotted and
+reported separately per \S\ref{sec:presolve}'s reporting rule.
+
+\begin{table}[h]
+\centering
+\caption{Bernstein order sweep. Source: paper/results\_digest.md~\S5.2; experiments/results/t8/ANALYSIS.md~\S4.}
+\label{tab:n-sweep}
+\begin{tabular}{lccccc}
+\toprule
+$n$ & Iterations & $\mathrm{err\_all\_inf}$ & Submap $\mathrm{cond}$ & $\mathrm{cond}(J)$, D-2, it.\,0 & T2 Gram/fit $\mathrm{cond}$ \\
+\midrule
+4  & 3 & $8.08\times10^{-12}$ & 10.6 & $6.46\times10^7$ & 498 \\
+6  & 4 & $1.59\times10^{-10}$ & 20.4 & $8.46\times10^7$ & 7{,}327 \\
+8  & 4 & $1.08\times10^{-11}$ & 90.3 & $1.57\times10^8$ & 108{,}538 \\
+10 & 4 & $1.46\times10^{-10}$ & 592  & $4.52\times10^8$ & 1{,}626{,}188 \\
+\textbf{12} & \textbf{21} (FAILS 9-iter gate) & $6.31\times10^{-10}$ & 1{,}144 & $2.07\times10^9$ & 24{,}579{,}174 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Iteration count is flat at 3--4 through $n=10$, then jumps to 21 at $n=12$ --
+a genuine cliff, not gradual degradation, though it tracks (without being
+identical to) all three independently-measured conditioning series, which
+climb monotonically with $n$ throughout the sweep (roughly $4^n$-like growth
+in the T2 Gram/fit condition, consistent with the a priori FM-2 hypothesis,
+docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S4 FM-2). $n=12$ still
+eventually reaches the accuracy gate ($6.31\times10^{-10}<10^{-4}$) -- it
+fails only the iteration-count budget, which is itself informative: FM-2
+degrades convergence \emph{speed} before it degrades final accuracy.
+Figure~\ref{fig:nsweep}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{n_sweep.png}
+\caption{Iterations and $\mathrm{err\_all\_inf}$ vs.\ Bernstein order $n$, with the three ADR-0004-distinct conditioning series plotted separately. Source: \texttt{experiments/results/t8/figures/n\_sweep.png}.}
+\label{fig:nsweep}
+\end{figure}
+
+\subsection{FM-1, FM-4, and other single-factor ablations}
+
+Table~\ref{tab:other-ablations} reports the remaining single-factor
+ablations against the \texttt{t8\_n08\_baseline} cell.
+
+\begin{table}[h]
+\centering
+\caption{Single-factor ablations vs.\ baseline. Source: paper/results\_digest.md~\S5.2.}
+\label{tab:other-ablations}
+\begin{tabular}{lcccp{5.5cm}}
+\toprule
+Factor & Cell & Iterations & $\mathrm{err\_all\_inf}$ & Notes \\
+\midrule
+Transition free vs.\ forced & \texttt{t8\_transition\_free} & 4 & $1.28\times10^{-11}$ & no material difference (FM-4 mitigation cost is negligible once applied) \\
+$\alpha$ free vs.\ fixed & \texttt{t8\_alpha\_free} & 5 & $2.31\times10^{-9}$ & 1 extra iteration; consistent with the camber--$\alpha$ null direction (\S\ref{sec:ablations}) \\
+Init: perturbed vs.\ presolve & \texttt{t8\_init\_perturbed} & 5 & $2.12\times10^{-11}$ & 43 vs.\ 120 flow-solve-equiv (\S\ref{sec:h2}); presolve buys efficiency, not correctness \\
+LE treatment: none vs.\ prescribed & \texttt{t8\_le\_none} & 4 & $6.50\times10^{-10}$ & submap cond roughly doubles (195.6 vs.\ 90.3), still passes gate by 6 orders of magnitude \\
+DOF over-determined ($+1$) & \texttt{t8\_dof\_over} & 0 (clean fail) & n/a & Eq.~\eqref{eq:dof} violated; \texttt{"M+K=17 but n\_A\_free+n\_alpha=16"} \\
+DOF under-determined ($-1$) & \texttt{t8\_dof\_under} & 0 (clean fail) & n/a & Eq.~\eqref{eq:dof} violated; \texttt{"M+K=15 but n\_A\_free+n\_alpha=16"} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two DOF-mis-squared cells fail at construction time with an explicit,
+correct error string and zero Newton iterations spent -- the FM-1 guard
+(Eq.~\eqref{eq:dof}) catches deliberate over/under-determination cleanly, no
+silent corruption, no wrong answer (experiments/results/t8/ANALYSIS.md~\S4).
+
+\subsection{Airfoil generalization}
+
+Table~\ref{tab:airfoils} adds two additional NACA sections to the 2412
+baseline. This is $N{=}1$ per airfoil and 2 additional airfoils only --
+encouraging, but explicitly \emph{not} a generalization claim
+(paper/results\_digest.md~\S5.2).
+
+\begin{table}[h]
+\centering
+\caption{Airfoil generalization. Source: paper/results\_digest.md~\S5.2.}
+\label{tab:airfoils}
+\begin{tabular}{lcccc}
+\toprule
+Airfoil & Iterations & $\mathrm{err\_all\_inf}$ & Submap $\mathrm{cond}$ & Model gap \\
+\midrule
+2412 (baseline) & 4 & $1.08\times10^{-11}$ & 90.3 & 0.110 \\
+0012 & 4 & $3.15\times10^{-11}$ & 83.9 & 0.083 \\
+4415 & 3 & $4.35\times10^{-11}$ & 117.9 & 0.163 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Flow-solve count vs.\ nested optimization}
+\label{sec:h2}
+
+\paragraph{The corrected headline.} STATS\_PROTOCOL pre-registered a
+$\geq$100x flow-solve-reduction claim; it is \textbf{rejected} under both
+fair-paired controls actually run. Table~\ref{tab:h2} pairs each monolithic
+run against a nested Levenberg--Marquardt control sharing the same
+initialization strategy, so the comparison is apples-to-apples in the same
+currency (\texttt{n\_flow\_solves\_equivalent}, both sides).
+
+\begin{table}[h]
+\centering
+\caption{Flow-solve-count comparison, monolithic vs.\ nested LM control. Source: paper/results\_digest.md~\S5.3; experiments/results/t8/ANALYSIS.md~\S2.}
+\label{tab:h2}
+\begin{tabular}{lccc}
+\toprule
+Pairing (shared init strategy) & Monolithic solves & Nested LM solves & Ratio \\
+\midrule
+Presolve-init & 120 & 373 & $\mathbf{3.1\times}$ \\
+Perturbed-init (cold-start) & 43 & 347 & $\mathbf{8.1\times}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The nested control is \texttt{scipy.optimize.least\_squares(method="lm",
+ftol=xtol=gtol=1e-8, x\_scale="custom"(\allowbreak $|x_0|$ floored at
+$10^{-3}$))} \citep{virtanen2020scipy}, converged both times (\texttt{xtol}
+termination), over the same 16 free coefficients. This is a competent
+modern LM solver, not a weak strawman: it converges the cold-start case in
+\texttt{n\_nfev=6} outer LM iterations, each costing multiple flow solves
+for its own finite-difference Jacobian columns. \textbf{Recommended P1
+sentence} (paper/results\_digest.md~\S5.3): \emph{``The monolithic
+architecture requires 3.1--8.1x fewer flow-residual evaluations than a
+fairly-paired, well-tuned nested Levenberg--Marquardt baseline
+(\texttt{scipy.least\_squares}), depending on initialization strategy --
+substantially less than the order-of-magnitude reduction hypothesised a
+priori, though the qualitative advantages of determinism, guaranteed local
+quadratic convergence, and exact analytic constraint-row Jacobians persist
+independent of this ratio.''} Figure~\ref{fig:h2}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{h2_flow_solves.png}
+\caption{Flow-solve-count comparison, linear non-truncated axis, both fair-paired comparisons, pre-registered 100x line shown for scale. Source: \texttt{experiments/results/t8/figures/h2\_flow\_solves.png}.}
+\label{fig:h2}
+\end{figure}
+
+\subsection{Presolve vs.\ station selection as the uniqueness guard}
+
+\texttt{t8\_init\_perturbed} (no presolve, \texttt{station\_selection=
+qr\_pivot}): 43 flow-solve-equivalents, 5 iterations, error
+$2.12\times10^{-11}$, submap cond 89.8 -- essentially identical to the
+baseline's 90.3, since station selection is a property of the stations
+(computed once from the T4 sensitivity matrix), not of the initial guess.
+\texttt{t8\_n08\_baseline} (presolve, same station selection): 120
+flow-solve-equivalents, 4 iterations, error $1.08\times10^{-11}$, submap
+cond 90.3. Interpretation: skipping the presolve costs one extra Newton
+iteration but \emph{reduces} total flow-solve count ($43<120$) and does not
+cost correctness -- implying the presolve consumes roughly 77 flow-solve-
+equivalents ($\approx$64\% of the baseline total), primarily for iteration
+efficiency and starting-residual quality, not for the uniqueness guarantee,
+which comes from \texttt{station\_selection=qr\_pivot} alone
+(paper/results\_digest.md~\S5.4). This has \emph{not} been verified in the
+sharper crossed form (\texttt{init=perturbed} $\times$
+\texttt{station\_selection=even}) -- flagged explicitly as future work, not
+as tested (experiments/results/t8/ANALYSIS.md~\S5, ``Caveat'').
+
+\subsection{Quadratic convergence tail}
+\label{sec:h3}
+
+STATS\_PROTOCOL's 3-point local order estimator
+($p\approx\log(R_k/R_{k-1})/\log(R_{k-1}/R_{k-2})$) is applied only where
+$\geq3$ residual values exist strictly above the $\approx10^{-9}$
+FD-noise floor -- the raw \texttt{convergence\_order} field stored per cell
+does \emph{not} apply this exclusion and is not quoted directly
+(paper/results\_digest.md~\S5.5).
+
+\begin{table}[h]
+\centering
+\caption{Recomputed convergence order, clean (floor-excluded) tail. Source: paper/results\_digest.md~\S5.5; experiments/results/t8/ANALYSIS.md~\S3.}
+\label{tab:h3}
+\begin{tabular}{lc}
+\toprule
+Cell & Recomputed order (clean tail) \\
+\midrule
+\texttt{t8\_alpha\_free} & 1.09 \\
+\texttt{t8\_init\_perturbed} & 2.08 \\
+\texttt{t8\_n06} & 2.46 \\
+\texttt{t8\_transition\_free} & 2.15 \\
+\texttt{t8\_n12} & 4.24 (late-tail 3-point estimate; read as ``clearly superlinear,'' not literal quartic order) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Median order: 2.15} ($n{=}5$ estimable cells), meeting the pre-
+registered $\geq1.8$ target. The remaining 7/12 converged cells cannot be
+scored by this method because they reach the solver's residual floor in
+only 2 post-initial steps -- too fast for a 3-point estimator to have 3 clean
+points, which is itself consistent with (though it does not formally
+confirm) fast superlinear-to-quadratic convergence: e.g.\ the baseline drops
+from $O(10^{-4})$ to the $\sim10^{-10}$ floor in exactly 2 Newton steps, a
+$\sim$150x-per-step reduction rate not consistent with linear convergence
+(experiments/results/t8/ANALYSIS.md~\S3).
 
 \section{Discussion}
-% TRIZ contradiction-resolution thread (docs/triz/); honest limits (dossier §11):
+\label{sec:discussion}
+% TRIZ contradiction-resolution thread (docs/triz/); honest limits (dossier \S11):
 % no closed form claimed; semi-analytical architecture with no outer optimization loop.
 
-\section{Conclusions}
+\subsection{A common separation-principle pattern across the four mitigations}
 
-\bibliographystyle{aiaa}
+The FM-2/FM-3/FM-4 mitigations used in this paper are not independent
+engineering fixes; they are recognisable instances of a single TRIZ
+contradiction-resolution pattern -- \emph{separation}, applied along
+whichever axis resolves the specific improving/worsening parameter pair in
+tension (\texttt{docs/triz/FM4-transition-smoothness.md};
+\texttt{docs/triz/T7-identifiability.md}):
+
+\begin{itemize}
+\item \textbf{FM-4 (forced trip, then release) is separation in time}
+  (\S\ref{sec:transition}). The contradiction is reliability (a smooth,
+  Newton-tractable residual) vs.\ model accuracy (the true $e^n$ closure).
+  Resolving it by phase -- forced/smooth \emph{during} inverse iterations,
+  natural/accurate \emph{after} convergence, with a feedback verification
+  step -- sacrifices no accuracy in the end while removing the $C^0$ kink
+  exactly when Newton needs it removed.
+\item \textbf{FM-3 (prescribed-LE treatment) is separation in space}. The
+  contradiction is design freedom (invert everywhere) vs.\ Jacobian-row
+  conditioning (rows near the nose blow up). Prescribing the first
+  $\approx$5\% chord geometrically and inverting only aft of it removes the
+  pathological rows entirely, at the cost of design freedom the manufacturing
+  constraints (mechanical, cooling) of a real turbine blade were going to fix
+  anyway.
+\item \textbf{FM-2 (orthogonalised basis over Tikhonov regularization,
+  and in practice, keeping $n$ inside the pre-cliff range identified in
+  \S\ref{sec:ablations}) is TRIZ principle 3, local quality} -- the tension
+  identified in the dossier is that the natural fix for ill-conditioning,
+  Tikhonov regularization, turns a determined solve back into a
+  least-squares problem, i.e.\ back into the optimization this architecture
+  exists to avoid; the discipline instead is to keep the basis order in its
+  well-conditioned regime (or orthogonalise it) rather than regularise a
+  poorly-conditioned one.
+\item The station-selection identifiability guard of \S\ref{sec:ablations}
+  is likewise principle-3/16 in character (local quality, partial/excessive
+  action): rather than adding more target equations (which would
+  over-determine the square system) or accepting whichever stations are
+  convenient, the existing T4 sensitivity matrix is reused (principle 25,
+  self-service) to select which $M$ rows are maximally informative.
+\end{itemize}
+
+This is offered as a methodology thread for the Discussion, not merely a
+post-hoc label: each mitigation was arrived at independently, by direct
+numerical evidence (a stalled residual, a spiked row-norm, a badly-
+conditioned submap), and only afterward recognised as sharing a common
+resolution structure.
+
+\subsection{Limitations}
+
+\begin{itemize}
+\item \textbf{Single-airfoil-family, $N{=}1$ ablations.} T8 as executed is a
+  single-airfoil (NACA 2412) ablation matrix plus two additional single-
+  airfoil cells (0012, 4415), all at \texttt{seed=42}, one run per cell.
+  This is Stage-1-lite evidence, explicitly \emph{not} the pre-registered
+  $\approx$20-section NACA panel plus $\approx$100-section stratified UIUC
+  panel (\texttt{configs/experiments/panel\_naca.yaml} does not exist in
+  this repository). No panel-level convergence-fraction or Wilson-CI claim
+  is made anywhere in this paper for exactly this reason.
+\item \textbf{Subcritical, isolated airfoil.} All results use mfoil's
+  Kármán--Tsien compressibility correction (subcritical only) on an
+  isolated airfoil -- no cascade periodicity, no pitch/stagger, no AVDR
+  streamtube contraction (docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~
+  \S6.2). The hypothesis under test is a claim about solver
+  \emph{architecture}, not turbine aerodynamics, and is answered as well on
+  an isolated airfoil as on a cascade -- but the cascade and transonic
+  regimes are genuinely untested here.
+\item \textbf{Single operating condition.} All cells share one
+  \texttt{operating.*} block (one $Re$, one $\alpha$, one Mach regime); no
+  claim in this paper generalizes across flow regimes.
+\end{itemize}
+
+\subsection{The outdated-baseline finding}
+
+The pre-registered $\geq$100x claim (STATS\_PROTOCOL H2) is not simply
+missed by the measured 3.1--8.1x; the two independent fair-paired controls
+in \S\ref{sec:h2} give a plausible account of \emph{why} it lands where it
+does. \texttt{scipy.optimize.least\_squares(method="lm")}, tightly tolerance
+($\mathrm{ftol}=\mathrm{xtol}=\mathrm{gtol}=10^{-8}$) and properly scaled
+($x\_scale$ from $|x_0|$, floored at $10^{-3}$) over the same 16
+well-conditioned free coefficients, is a genuinely strong comparator --
+converging the cold-start case in 6 outer LM iterations, nothing like the
+Dakota-surrogate/Kriging-in-the-loop nested-optimization baselines that a
+$\geq$100x figure of that magnitude typically describes in the older
+aerodynamic-shape-optimization literature the dossier's original framing
+appears to draw on (benchmarks/REPORT.md). \textbf{The pre-registered
+threshold plausibly encodes an outdated class of nested-optimization
+baseline}, and measuring against a strong modern gradient-based one and
+reporting 3--8x honestly is, we believe, a more informative result than
+either confirming or badly missing the original number -- this is stated
+here explicitly, as the dossier's own falsifiability discipline
+(\S\ref{sec:falsifiable}) requires reporting a rejected pre-registered claim
+plainly rather than reframing it after the fact.
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+Appending CST coefficients as unknowns to a coupled viscous/inviscid Newton
+solver, with geometric design constraints expressed as the linear rows CST's
+own linearity makes available, converts constrained inverse airfoil design
+from a search over an objective function into a single square, determined
+root-find. The falsifiable self-consistency test (\S\ref{sec:falsifiable})
+passes with a wide margin on every criterion, including a release-and-verify
+check the original protocol had not yet required at the time of first
+closure. The T8 ablation matrix (\S\ref{sec:results}) both confirms the
+architecture's basic viability across three NACA sections and Bernstein
+orders up to a conditioning cliff at $n=12$, and \emph{corrects} the a
+priori flow-solve-count hypothesis downward to a measured, honestly-reported
+3.1--8.1x, while surfacing a methodological contribution -- QR-pivoted
+station selection as the identifiability guard for square inverse systems --
+that the original dossier did not anticipate. We regard the combination of a
+falsified numeric hypothesis and a strengthened, unanticipated qualitative
+one as evidence that this line of work is being pursued with the discipline
+it needs to be trustworthy, not merely publishable.
+
+\paragraph{Future work.} Three extensions are pre-planned
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S8--\S9, publication plan
+\S10), none yet built: \textbf{Stage 2}, cascade periodicity, substitutes the
+panel-influence kernel $\ln(z-z_0)\to\ln[\sin(\pi(z-z_0)/s)]$ for pitch $s$
+(reducing to the isolated-airfoil kernel as $s\to\infty$, a free regression
+test), validated against Gostelow's exact cascade solutions before any
+turbine-cascade inverse-design claim is made; \textbf{Stage 3} carries the
+architecture into MISES itself via the Modal-Inverse \texttt{modes.xxx}
+mechanism -- because CST's perturbation modes are identical to its own basis
+functions (a direct consequence of the linearity in \S\ref{sec:cst-linearity}),
+this requires writing $C(\psi)S_i(\psi)$ into MISES's mode-file format, with
+no Fortran modification, and would demonstrate the hypothesis in a
+transonic, viscous, real-cascade solver at near-zero implementation cost if
+Route~A succeeds. Before either extension, the pre-registered NACA/UIUC
+panel evaluation (STATS\_PROTOCOL~\S3) should be run to replace this paper's
+Stage-1-lite, $N{=}1$ ablation evidence with a defensible Wilson-CI
+convergence-fraction claim -- the single largest gap between what this
+paper can currently claim and what was originally pre-registered.
+% TODO before submission: run configs/experiments/panel_naca.yaml (does not
+% yet exist; write per STATS_PROTOCOL \S3.1's frozen list) for an actual H1
+% Wilson-CI result. Source: benchmarks/REPORT.md "Recommendations for P1" #5.
+
+\bibliographystyle{plainnat}
 \bibliography{p1_refs}
 \end{document}
