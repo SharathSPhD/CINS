@@ -1,0 +1,4 @@
+# T8 panel cell (STATS_PROTOCOL §3.3, UIUC stratified panel): tempest1
+# fit_rms=9.793e-05 thickness=0.1451 camber=0.0103 stratum=(t7,c1)
+t8:
+  airfoil: "uiuc:tempest1"

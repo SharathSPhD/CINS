@@ -46,6 +46,9 @@ gates:                   # numeric gate criteria (dossier §7); tests read these
   t3_area_quadrature_tol: 1.0e-10
   t7_a_recovery_inf_norm: 1.0e-4
   t7_max_newton_iters: 9         # "single-digit"
+  io_uiuc_n_files: 123           # expected count of UIUC .dat files under data/airfoils/uiuc
+  io_x_range: [-0.01, 1.1]       # plausibility band on loader-normalized x/c
+  io_min_thickness: 1.0e-4       # minimum positive max(zeta_upper - zeta_lower) for a valid section
 
 experiment:
   seed: 42

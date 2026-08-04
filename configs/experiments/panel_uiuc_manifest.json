@@ -1,0 +1,1013 @@
+{
+  "camber_decile_edges": [
+    0.0,
+    0.0033512680463750016,
+    0.01351366201255078,
+    0.017241071088064632,
+    0.01980182222531784,
+    0.02452784506587353,
+    0.031657771612320154,
+    0.037171016024124155,
+    0.0464637288926382,
+    0.05836027160471342,
+    0.09965450595830044
+  ],
+  "excluded": [
+    {
+      "fit_rms": 0.004199602485314184,
+      "gate": 0.001,
+      "name": "coanda3",
+      "reason": "t2_fit_rms_exceeds_gate"
+    },
+    {
+      "fit_rms": 0.0015041859637944847,
+      "gate": 0.001,
+      "name": "dga1182",
+      "reason": "t2_fit_rms_exceeds_gate"
+    },
+    {
+      "fit_rms": 0.0032373475884002805,
+      "gate": 0.001,
+      "name": "fg1",
+      "reason": "t2_fit_rms_exceeds_gate"
+    },
+    {
+      "fit_rms": 0.0012283454077560605,
+      "gate": 0.001,
+      "name": "goe419",
+      "reason": "t2_fit_rms_exceeds_gate"
+    },
+    {
+      "fit_rms": 0.005773389235679319,
+      "gate": 0.001,
+      "name": "r1145msm",
+      "reason": "t2_fit_rms_exceeds_gate"
+    },
+    {
+      "fit_rms": 0.001133074709914571,
+      "gate": 0.001,
+      "name": "saratov",
+      "reason": "t2_fit_rms_exceeds_gate"
+    }
+  ],
+  "n_excluded_prefilter": 6,
+  "n_files_total": 123,
+  "n_gate": 8,
+  "n_occupied_strata": 77,
+  "n_panel": 117,
+  "protocol": "STATS_PROTOCOL.md \u00a73.3",
+  "rms_gate": 0.001,
+  "sections": [
+    {
+      "camber": 0.07008213470192495,
+      "camber_decile": 9,
+      "fit_rms": 0.000135622609967238,
+      "name": "2032c",
+      "thickness": 0.07980441454170811,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.018686576966596966,
+      "camber_decile": 3,
+      "fit_rms": 0.00010816846738657261,
+      "name": "ag16",
+      "thickness": 0.071022378969673,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.01945734723696815,
+      "camber_decile": 3,
+      "fit_rms": 0.00014463058317425742,
+      "name": "ag44ct02r",
+      "thickness": 0.07282229310256079,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.017610912331527534,
+      "camber_decile": 3,
+      "fit_rms": 2.63082921168023e-05,
+      "name": "ah21-9",
+      "thickness": 0.06997530015921971,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.028202396252361532,
+      "camber_decile": 5,
+      "fit_rms": 0.00017099552792735283,
+      "name": "ah81131",
+      "thickness": 0.13049596945704167,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.03610586166580956,
+      "camber_decile": 6,
+      "fit_rms": 0.0003172507304056372,
+      "name": "ah93k131",
+      "thickness": 0.13082326381786885,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.00548988624533093,
+      "camber_decile": 1,
+      "fit_rms": 0.0005260556585271298,
+      "name": "ames02",
+      "thickness": 0.07700018960623838,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.028485064422962485,
+      "camber_decile": 5,
+      "fit_rms": 0.0001933940296185469,
+      "name": "atr72sm",
+      "thickness": 0.14525310397392271,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.014464327458977725,
+      "camber_decile": 2,
+      "fit_rms": 0.00026340483039861555,
+      "name": "b737c",
+      "thickness": 0.10037929170577206,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.013168071762724921,
+      "camber_decile": 1,
+      "fit_rms": 6.464297060985321e-05,
+      "name": "c141c",
+      "thickness": 0.10980214024330634,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.03268965428033077,
+      "camber_decile": 6,
+      "fit_rms": 0.00023928414507243888,
+      "name": "clarkk",
+      "thickness": 0.11685694220264556,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.03710021020636768,
+      "camber_decile": 6,
+      "fit_rms": 0.00019363525219936038,
+      "name": "davis",
+      "thickness": 0.11285966282160373,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.03222027937420089,
+      "camber_decile": 6,
+      "fit_rms": 0.00019034751523507644,
+      "name": "e1212",
+      "thickness": 0.17735711107848112,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.017264490087171507,
+      "camber_decile": 3,
+      "fit_rms": 0.00040519849222221666,
+      "name": "e182",
+      "thickness": 0.08476485642704613,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.029366192692475604,
+      "camber_decile": 5,
+      "fit_rms": 0.00041905149591073255,
+      "name": "e212",
+      "thickness": 0.10569427096545195,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.01767060477282909,
+      "camber_decile": 3,
+      "fit_rms": 0.00016578721208574366,
+      "name": "e325",
+      "thickness": 0.1266280883014061,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.03745423929515006,
+      "camber_decile": 7,
+      "fit_rms": 0.0002785934425723366,
+      "name": "e338",
+      "thickness": 0.13314852847268124,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.08041263811833463,
+      "camber_decile": 9,
+      "fit_rms": 0.00040892172809554346,
+      "name": "e378",
+      "thickness": 0.04086326136110194,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.031877250340565384,
+      "camber_decile": 6,
+      "fit_rms": 0.0004722932828934999,
+      "name": "e417",
+      "thickness": 0.14227040803928911,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 0.00013843895811022652,
+      "name": "e472",
+      "thickness": 0.12090617633714787,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.01882536150191233,
+      "camber_decile": 3,
+      "fit_rms": 0.00018655705993970647,
+      "name": "e543",
+      "thickness": 0.17231611596798185,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.0313285535199523,
+      "camber_decile": 5,
+      "fit_rms": 0.00016405354261395547,
+      "name": "e556",
+      "thickness": 0.16030941016619857,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.04148851009396888,
+      "camber_decile": 7,
+      "fit_rms": 0.00015802706644055378,
+      "name": "e587",
+      "thickness": 0.1669357766661715,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.03539031077512292,
+      "camber_decile": 6,
+      "fit_rms": 0.0003942657195221283,
+      "name": "e637",
+      "thickness": 0.12112469764843611,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.03983691788569878,
+      "camber_decile": 7,
+      "fit_rms": 0.00016640953797501844,
+      "name": "e668",
+      "thickness": 0.13908993243205003,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 0.00012473769102700627,
+      "name": "e837",
+      "thickness": 0.16120637883308878,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.00014334074794108975,
+      "camber_decile": 0,
+      "fit_rms": 0.00016346216412178047,
+      "name": "e864",
+      "thickness": 0.38889376686193433,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.01995552875756034,
+      "camber_decile": 4,
+      "fit_rms": 0.00011813357110725041,
+      "name": "eh2010",
+      "thickness": 0.10089940497869876,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.02122549060298188,
+      "camber_decile": 4,
+      "fit_rms": 0.00018360862407408961,
+      "name": "fx38153",
+      "thickness": 0.15530455464382437,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.030644467533398157,
+      "camber_decile": 5,
+      "fit_rms": 0.00022857212245872393,
+      "name": "fx61184",
+      "thickness": 0.18391949130493696,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.0367620320815003,
+      "camber_decile": 6,
+      "fit_rms": 0.00030553381563122345,
+      "name": "fx6617ai",
+      "thickness": 0.18838658237029077,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.02452784506587353,
+      "camber_decile": 5,
+      "fit_rms": 0.00013137909974790253,
+      "name": "fx69h083",
+      "thickness": 0.0843474660869249,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.05645373722443516,
+      "camber_decile": 8,
+      "fit_rms": 0.00027564338107250597,
+      "name": "fx73170a",
+      "thickness": 0.17130958542448077,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.03643830485880559,
+      "camber_decile": 6,
+      "fit_rms": 0.0004171019644855058,
+      "name": "fx75193",
+      "thickness": 0.19251182640386816,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.04731983862773826,
+      "camber_decile": 8,
+      "fit_rms": 0.0008833431595778917,
+      "name": "fx77w343",
+      "thickness": 0.34282041539173747,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.04234990987668454,
+      "camber_decile": 7,
+      "fit_rms": 0.00014369809230520327,
+      "name": "fx83w108",
+      "thickness": 0.10853382918282864,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.02850333231091914,
+      "camber_decile": 5,
+      "fit_rms": 0.0002922047212083064,
+      "name": "fxs03182",
+      "thickness": 0.18279220915382952,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.014987539815531371,
+      "camber_decile": 2,
+      "fit_rms": 0.00018388684419998224,
+      "name": "giiik",
+      "thickness": 0.08496567096159412,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.03612177050757404,
+      "camber_decile": 6,
+      "fit_rms": 0.00028087421964405215,
+      "name": "goe100",
+      "thickness": 0.06555068352566808,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.05587268662115977,
+      "camber_decile": 8,
+      "fit_rms": 0.00033390902838231355,
+      "name": "goe124",
+      "thickness": 0.08017041487918787,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.07724545816410225,
+      "camber_decile": 9,
+      "fit_rms": 0.0004542020126607128,
+      "name": "goe15",
+      "thickness": 0.09032617349505419,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.05265342451710295,
+      "camber_decile": 8,
+      "fit_rms": 0.00021938470514762672,
+      "name": "goe182",
+      "thickness": 0.0948935350721647,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.07652327012071913,
+      "camber_decile": 9,
+      "fit_rms": 0.0002877265027799368,
+      "name": "goe225",
+      "thickness": 0.12999890591339752,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.08402753597880497,
+      "camber_decile": 9,
+      "fit_rms": 0.00026878558766808505,
+      "name": "goe243",
+      "thickness": 0.19233287128736293,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.0476359907676048,
+      "camber_decile": 8,
+      "fit_rms": 0.00023525642195882144,
+      "name": "goe279",
+      "thickness": 0.07437624037819703,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.06735208248644556,
+      "camber_decile": 9,
+      "fit_rms": 0.00022494938246607024,
+      "name": "goe300",
+      "thickness": 0.08489079337272877,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.06225611548288222,
+      "camber_decile": 9,
+      "fit_rms": 0.00025499520791091195,
+      "name": "goe320",
+      "thickness": 0.12352596285499723,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.05460756013016731,
+      "camber_decile": 8,
+      "fit_rms": 0.0003650499720916373,
+      "name": "goe336",
+      "thickness": 0.08948864470333326,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.04606928458371001,
+      "camber_decile": 7,
+      "fit_rms": 0.00018008376895188135,
+      "name": "goe367",
+      "thickness": 0.1640331600548055,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.05793689553114022,
+      "camber_decile": 8,
+      "fit_rms": 0.00024073001010116123,
+      "name": "goe381",
+      "thickness": 0.0641979620181997,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.058995335715073226,
+      "camber_decile": 9,
+      "fit_rms": 0.00034053964621172877,
+      "name": "goe394",
+      "thickness": 0.060530017254045006,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.04837993573204451,
+      "camber_decile": 8,
+      "fit_rms": 0.0002707467702725624,
+      "name": "goe407",
+      "thickness": 0.09485920716213311,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.04364880472049789,
+      "camber_decile": 7,
+      "fit_rms": 0.00015339632642423303,
+      "name": "goe432",
+      "thickness": 0.07706341702670408,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 0.00011173116637685186,
+      "name": "goe445",
+      "thickness": 0.06413159635634948,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.09965450595830044,
+      "camber_decile": 9,
+      "fit_rms": 0.0008175413518074722,
+      "name": "goe464",
+      "thickness": 0.07525463093299554,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.03901589008398423,
+      "camber_decile": 7,
+      "fit_rms": 0.0002299625677458045,
+      "name": "goe490",
+      "thickness": 0.08772542835339973,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.06991850641940023,
+      "camber_decile": 9,
+      "fit_rms": 0.0001705644598687386,
+      "name": "goe503",
+      "thickness": 0.15622904088313677,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.04661463342245919,
+      "camber_decile": 8,
+      "fit_rms": 0.00014444982219542792,
+      "name": "goe517",
+      "thickness": 0.07028564622724223,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.052364079783067584,
+      "camber_decile": 8,
+      "fit_rms": 0.00022079297413809805,
+      "name": "goe534",
+      "thickness": 0.14112695903894157,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.022518442789222055,
+      "camber_decile": 4,
+      "fit_rms": 9.253737495230014e-05,
+      "name": "goe563",
+      "thickness": 0.0889841989809446,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.033670012233071256,
+      "camber_decile": 6,
+      "fit_rms": 0.00011406067990389913,
+      "name": "goe585",
+      "thickness": 0.0820655115772556,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.038069915045272094,
+      "camber_decile": 7,
+      "fit_rms": 0.000260426327826104,
+      "name": "goe602m",
+      "thickness": 0.09645148533459773,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.024531408445891918,
+      "camber_decile": 5,
+      "fit_rms": 0.0001534509692322853,
+      "name": "goe622",
+      "thickness": 0.08028045707810594,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.0449366353397022,
+      "camber_decile": 7,
+      "fit_rms": 0.00019455689643253785,
+      "name": "goe646",
+      "thickness": 0.18418927251660372,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.043566901481094336,
+      "camber_decile": 7,
+      "fit_rms": 0.0002540974867425323,
+      "name": "goe681",
+      "thickness": 0.16990702434515134,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.021238663536089362,
+      "camber_decile": 4,
+      "fit_rms": 0.00013960027694603165,
+      "name": "goe738",
+      "thickness": 0.15442318175157857,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.010138004599582147,
+      "camber_decile": 1,
+      "fit_rms": 0.000249685269751303,
+      "name": "goe780",
+      "thickness": 0.12002001158701542,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.06393705496174128,
+      "camber_decile": 9,
+      "fit_rms": 0.0003282374123925388,
+      "name": "goe81",
+      "thickness": 0.07403715713426709,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 0.00014317177985980303,
+      "name": "hq010",
+      "thickness": 0.09960268546810698,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.014986092928005438,
+      "camber_decile": 2,
+      "fit_rms": 0.00012070989980501263,
+      "name": "hq159b",
+      "thickness": 0.08948879048660864,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.025299511124755137,
+      "camber_decile": 5,
+      "fit_rms": 7.383206698492671e-05,
+      "name": "hq259b",
+      "thickness": 0.0903637571932427,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.03473896007111826,
+      "camber_decile": 6,
+      "fit_rms": 0.00026611837306466046,
+      "name": "hq3514",
+      "thickness": 0.13980086275203335,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 8.264794667356239e-06,
+      "camber_decile": 0,
+      "fit_rms": 6.448613551849622e-05,
+      "name": "ht33",
+      "thickness": 0.05951618531764083,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.03258366152233234,
+      "camber_decile": 6,
+      "fit_rms": 0.00014371715896643108,
+      "name": "k3311",
+      "thickness": 0.11021550369630678,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.014686353885186718,
+      "camber_decile": 2,
+      "fit_rms": 0.0001232022936587581,
+      "name": "lg10sc",
+      "thickness": 0.09998675047523566,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 0.00014502211532935812,
+      "name": "lwk80120k25",
+      "thickness": 0.12070277125526631,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 9.620920144838003e-05,
+      "name": "m2",
+      "thickness": 0.08112326848278427,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.014482102174719878,
+      "camber_decile": 2,
+      "fit_rms": 0.00014268886547837682,
+      "name": "m665",
+      "thickness": 0.07834567903366714,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.028195777396605153,
+      "camber_decile": 5,
+      "fit_rms": 0.00018098925362754927,
+      "name": "marske7",
+      "thickness": 0.12066186402230991,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.0274096648405018,
+      "camber_decile": 5,
+      "fit_rms": 0.00015535890097508016,
+      "name": "mh120",
+      "thickness": 0.08071964522559456,
+      "thickness_decile": 2
+    },
+    {
+      "camber": 0.015172731148517773,
+      "camber_decile": 2,
+      "fit_rms": 0.00014749248054341966,
+      "name": "mh26",
+      "thickness": 0.10993783052448113,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.016483844404251095,
+      "camber_decile": 2,
+      "fit_rms": 0.00016765995397607114,
+      "name": "mh62",
+      "thickness": 0.09292679157750242,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.014442864451886354,
+      "camber_decile": 2,
+      "fit_rms": 0.00027399480818115834,
+      "name": "mh95",
+      "thickness": 0.15856894620014161,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 0.0001671456238298556,
+      "name": "n0009sm",
+      "thickness": 0.09030638714125004,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.020002482453257694,
+      "camber_decile": 4,
+      "fit_rms": 0.00022770172978820886,
+      "name": "n2415",
+      "thickness": 0.15004617419041968,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.022131262401602653,
+      "camber_decile": 4,
+      "fit_rms": 0.00023255532162281712,
+      "name": "n63415",
+      "thickness": 0.14982455846136827,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.022131957826758333,
+      "camber_decile": 4,
+      "fit_rms": 0.00027877249225910386,
+      "name": "n642415",
+      "thickness": 0.1497479857544572,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 2.7537264248820095e-05,
+      "name": "naca001035",
+      "thickness": 0.10007039901787958,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.009697909913303625,
+      "camber_decile": 1,
+      "fit_rms": 0.00010514393194029549,
+      "name": "naca1410",
+      "thickness": 0.10029392188686329,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.020009928099283765,
+      "camber_decile": 4,
+      "fit_rms": 5.1804097888186625e-05,
+      "name": "naca2408",
+      "thickness": 0.08003581373071658,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.011004426900715075,
+      "camber_decile": 1,
+      "fit_rms": 0.00037075803741170227,
+      "name": "naca63206",
+      "thickness": 0.060049973637275336,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.011019844942541683,
+      "camber_decile": 1,
+      "fit_rms": 5.197641797928166e-05,
+      "name": "naca64206",
+      "thickness": 0.05984518139392009,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.026600297069887043,
+      "camber_decile": 5,
+      "fit_rms": 0.00020264479834784704,
+      "name": "naca64a410",
+      "thickness": 0.0998810374892137,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.011096487239430249,
+      "camber_decile": 1,
+      "fit_rms": 0.00027693027663706665,
+      "name": "naca654221",
+      "thickness": 0.20991928842335406,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.011062678236496232,
+      "camber_decile": 1,
+      "fit_rms": 0.00018043740181617984,
+      "name": "naca671215",
+      "thickness": 0.15004236372329638,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.018531187305071865,
+      "camber_decile": 3,
+      "fit_rms": 0.00023168848922369912,
+      "name": "nlf0115",
+      "thickness": 0.15018619896352808,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.010068019589566973,
+      "camber_decile": 1,
+      "fit_rms": 0.00020018353599814056,
+      "name": "npl9660",
+      "thickness": 0.11281325019818923,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.013339608495596747,
+      "camber_decile": 1,
+      "fit_rms": 0.00027869976781571675,
+      "name": "p51hroot",
+      "thickness": 0.15519809713159008,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.012613523127086024,
+      "camber_decile": 1,
+      "fit_rms": 3.83132976840827e-05,
+      "name": "rae69ck",
+      "thickness": 0.12101046070421789,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.020009323098977426,
+      "camber_decile": 4,
+      "fit_rms": 0.00011076213579170636,
+      "name": "raf34",
+      "thickness": 0.12674685901688537,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.02225836154854046,
+      "camber_decile": 4,
+      "fit_rms": 7.978037406595307e-05,
+      "name": "rc12b3",
+      "thickness": 0.12000832499374015,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.017622846325098068,
+      "camber_decile": 3,
+      "fit_rms": 0.00012092165783300159,
+      "name": "rg15",
+      "thickness": 0.08935303602871046,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 0.0001701534980072748,
+      "name": "s1046",
+      "thickness": 0.17034677117269034,
+      "thickness_decile": 8
+    },
+    {
+      "camber": 0.0173185079748208,
+      "camber_decile": 3,
+      "fit_rms": 0.00027257330675349264,
+      "name": "s2062",
+      "thickness": 0.07995496597148291,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.04139372551079221,
+      "camber_decile": 7,
+      "fit_rms": 0.0004979262305898062,
+      "name": "s4062",
+      "thickness": 0.09555332188712275,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.0142098760803669,
+      "camber_decile": 2,
+      "fit_rms": 0.00035562339048525476,
+      "name": "s6063",
+      "thickness": 0.06975862640366443,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.0,
+      "camber_decile": 0,
+      "fit_rms": 9.407759783524984e-05,
+      "name": "s9026",
+      "thickness": 0.09504380680993786,
+      "thickness_decile": 3
+    },
+    {
+      "camber": 0.015184656295970328,
+      "camber_decile": 2,
+      "fit_rms": 8.869631904084187e-05,
+      "name": "sc20414",
+      "thickness": 0.13999540083588108,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.019699351203822837,
+      "camber_decile": 3,
+      "fit_rms": 0.00024181694291082817,
+      "name": "sc2110",
+      "thickness": 0.09923549503055351,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.0231565164063888,
+      "camber_decile": 4,
+      "fit_rms": 0.00013450547568313775,
+      "name": "sd7084",
+      "thickness": 0.09632682176270103,
+      "thickness_decile": 4
+    },
+    {
+      "camber": 0.04752468346324353,
+      "camber_decile": 8,
+      "fit_rms": 0.00012760613443232557,
+      "name": "spicasm",
+      "thickness": 0.11730334483211856,
+      "thickness_decile": 5
+    },
+    {
+      "camber": 0.010314177054388293,
+      "camber_decile": 1,
+      "fit_rms": 9.793486007294071e-05,
+      "name": "tempest1",
+      "thickness": 0.14508629363030542,
+      "thickness_decile": 7
+    },
+    {
+      "camber": 0.04656233996987024,
+      "camber_decile": 8,
+      "fit_rms": 0.00033930511642271146,
+      "name": "ui1720",
+      "thickness": 0.1370331484820067,
+      "thickness_decile": 6
+    },
+    {
+      "camber": 0.07683402845112296,
+      "camber_decile": 9,
+      "fit_rms": 0.0003620472551163071,
+      "name": "usa34",
+      "thickness": 0.18038144274127818,
+      "thickness_decile": 9
+    },
+    {
+      "camber": 0.019326236351285525,
+      "camber_decile": 3,
+      "fit_rms": 0.00020573674310843794,
+      "name": "usa50",
+      "thickness": 0.07080337849561558,
+      "thickness_decile": 0
+    },
+    {
+      "camber": 0.01714739509163713,
+      "camber_decile": 2,
+      "fit_rms": 7.361506695016039e-05,
+      "name": "vr14",
+      "thickness": 0.07944708956546898,
+      "thickness_decile": 1
+    },
+    {
+      "camber": 0.017644316454283854,
+      "camber_decile": 3,
+      "fit_rms": 0.00016408612113806616,
+      "name": "ys915",
+      "thickness": 0.09127069851823386,
+      "thickness_decile": 3
+    }
+  ],
+  "source_dir": "data/airfoils/uiuc",
+  "stratification_rule": "10x10 deciles on thickness/c and camber/c (from n=8 CST fit surfaces), computed marginally over the T2-pre-filter-passing pool; every passing file is included in the panel (no downsampling) since the pool size (~100-123) is already close to the ~100 target and close to uniform one-per-joint-stratum given the deciles are computed on the same pool.",
+  "thickness_decile_edges": [
+    0.04086326136110194,
+    0.07093477878005003,
+    0.08006273396041085,
+    0.08927926861915729,
+    0.09586272183735407,
+    0.10853382918282864,
+    0.12082481430439525,
+    0.1392321184960467,
+    0.15357578519396853,
+    0.1717121976418812,
+    0.38889376686193433
+  ]
+}

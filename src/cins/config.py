@@ -78,6 +78,13 @@ class GatesConfig(BaseModel):
     t3_area_quadrature_tol: float = Field(gt=0.0)
     t7_a_recovery_inf_norm: float = Field(gt=0.0)
     t7_max_newton_iters: int = Field(ge=1, le=9, description="single-digit per dossier")
+    io_uiuc_n_files: int = Field(ge=1, description="expected UIUC .dat file count")
+    io_x_range: tuple[float, float] = Field(
+        description="plausibility band on loader-normalized x/c"
+    )
+    io_min_thickness: float = Field(
+        gt=0.0, description="minimum positive max thickness/c for a valid section"
+    )
 
 
 class ExperimentConfig(BaseModel):
@@ -119,6 +126,20 @@ class T8Config(BaseModel):
     n_perturb_frac: float = Field(
         default=0.05, gt=0.0, lt=1.0, description="init=perturbed: |dA/A| fraction"
     )
+
+    @model_validator(mode="after")
+    def _check_uiuc_airfoil_exists(self) -> "T8Config":
+        # "uiuc:<name>" resolves through cins.cst.io's UIUC .dat loader
+        # (STATS_PROTOCOL §3.3 panel) instead of mfoil's naca_points; fail
+        # fast on a typo'd/missing section name rather than deep in the
+        # pipeline's fit_cst call.
+        if self.airfoil.startswith("uiuc:"):
+            from cins.cst.io import uiuc_dat_path
+
+            path = uiuc_dat_path(self.airfoil[len("uiuc:") :])
+            if not path.exists():
+                raise ValueError(f"t8.airfoil={self.airfoil!r}: no such file {path}")
+        return self
 
 
 class CinsConfig(BaseModel):

@@ -39,6 +39,7 @@ from cins.config import REPO_ROOT, CinsConfig
 from cins.cst.constraints import shared_le_radius_row
 from cins.cst.fit import FitResult, fit_cst
 from cins.cst.geometry import coords_from_A, cosine_spacing
+from cins.cst.io import load_airfoil_dat, uiuc_dat_path
 from cins.diagnostics.recorder import NewtonDiagnostics
 from cins.solver.geometry_update import apply_geometry
 from cins.solver.mfoil_adapter import (
@@ -213,8 +214,13 @@ def prepare_cell(
     psi = cosine_spacing(_PSI_NPOINT)
 
     # --- 1. reference coefficients A* ----------------------------------------
-    m_ref = make_mfoil(naca=cfg.t8.airfoil)
-    X = m_ref.geom.xpoint
+    # airfoil = "uiuc:<name>" resolves through the UIUC .dat loader instead of
+    # mfoil's own naca_points (STATS_PROTOCOL §3.3 panel); otherwise unchanged.
+    if cfg.t8.airfoil.startswith("uiuc:"):
+        X = load_airfoil_dat(uiuc_dat_path(cfg.t8.airfoil[len("uiuc:") :]))
+    else:
+        m_ref = make_mfoil(naca=cfg.t8.airfoil)
+        X = m_ref.geom.xpoint
     fit = fit_cst(X[0], X[1], n)
     a_star = np.concatenate([fit.A_upper, fit.A_lower])
     log.info("A* fitted: airfoil=%s n=%d rms=%.2e", cfg.t8.airfoil, n, fit.rms)

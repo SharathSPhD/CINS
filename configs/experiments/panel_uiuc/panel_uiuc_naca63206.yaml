@@ -1,0 +1,4 @@
+# T8 panel cell (STATS_PROTOCOL §3.3, UIUC stratified panel): naca63206
+# fit_rms=3.708e-04 thickness=0.0600 camber=0.0110 stratum=(t0,c1)
+t8:
+  airfoil: "uiuc:naca63206"

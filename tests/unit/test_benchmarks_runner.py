@@ -220,6 +220,56 @@ def test_dof_offset_zero_passes_the_square_check(monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
+# 3b. "uiuc:<name>" airfoil resolution (STATS_PROTOCOL §3.3 panel)
+# --------------------------------------------------------------------------- #
+
+
+def test_uiuc_prefixed_airfoil_resolves_through_loader_not_naca(monkeypatch):
+    """cfg.t8.airfoil = "uiuc:ag16" must route A* fitting through
+    cins.cst.io.load_airfoil_dat, and must NOT call make_mfoil(naca=...)
+    for the reference-coefficient step (that call is naca-only)."""
+    n = 4
+    sens = _patch_heavy_solve(monkeypatch, n=n)  # noqa: F841 (keeps mocks consistent)
+
+    calls: list[Path] = []
+    real_uiuc_path = pipeline.uiuc_dat_path("ag16")
+
+    def spy_loader(path):
+        calls.append(Path(path))
+        # real load, so downstream fit_cst (mocked) still gets a plausible X
+        from cins.cst.io import load_airfoil_dat as _real_load
+
+        return _real_load(path)
+
+    monkeypatch.setattr(pipeline, "load_airfoil_dat", spy_loader)
+
+    naca_calls: list[tuple] = []
+    orig_make_mfoil = pipeline.make_mfoil
+
+    def spy_make_mfoil(*a, **k):
+        if k.get("naca") is not None or (a and isinstance(a[0], str)):
+            naca_calls.append((a, k))
+        return orig_make_mfoil(*a, **k)
+
+    monkeypatch.setattr(pipeline, "make_mfoil", spy_make_mfoil)
+
+    cfg = load_config(EXPERIMENTS_DIR / "t8_n08_baseline.yaml").model_copy(deep=True)
+    cfg = cfg.model_copy(
+        update={
+            "cst": cfg.cst.model_copy(update={"n_upper": n, "n_lower": n}),
+            "t8": cfg.t8.model_copy(update={"airfoil": "uiuc:ag16"}),
+        }
+    )
+
+    counters = instr.EvalCounters()
+    prep = pipeline.prepare_cell(cfg, counters, cell_name="t8_uiuc_test")
+
+    assert calls == [real_uiuc_path]
+    assert naca_calls == []  # no naca-branch make_mfoil call for A* fitting
+    assert prep.early_failure is None
+
+
+# --------------------------------------------------------------------------- #
 # 4. evaluation-counter accounting (H2 currency) — mocked vendor entry points
 # --------------------------------------------------------------------------- #
 

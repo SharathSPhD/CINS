@@ -1,0 +1,4 @@
+# T8 panel cell (STATS_PROTOCOL §3.3, UIUC stratified panel): lwk80120k25
+# fit_rms=1.450e-04 thickness=0.1207 camber=0.0000 stratum=(t5,c0)
+t8:
+  airfoil: "uiuc:lwk80120k25"

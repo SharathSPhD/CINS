@@ -1,0 +1,4 @@
+# T8 panel cell (STATS_PROTOCOL §3.3, UIUC stratified panel): n63415
+# fit_rms=2.326e-04 thickness=0.1498 camber=0.0221 stratum=(t7,c4)
+t8:
+  airfoil: "uiuc:n63415"

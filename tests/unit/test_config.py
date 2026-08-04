@@ -30,3 +30,17 @@ def test_overlay_deep_merges(tmp_path):
     assert cfg.cst.n_upper == 12
     assert cfg.cst.n_lower == 8  # untouched default
     assert cfg.config_hash() != load_config().config_hash()
+
+
+def test_t8_airfoil_uiuc_prefix_accepted_when_file_exists(tmp_path):
+    p = tmp_path / "overlay.yaml"
+    p.write_text('t8:\n  airfoil: "uiuc:ag16"\n')
+    cfg = load_config(p)
+    assert cfg.t8.airfoil == "uiuc:ag16"
+
+
+def test_t8_airfoil_uiuc_prefix_rejected_when_file_missing(tmp_path):
+    p = tmp_path / "overlay.yaml"
+    p.write_text('t8:\n  airfoil: "uiuc:does_not_exist"\n')
+    with pytest.raises(Exception):
+        load_config(p)
