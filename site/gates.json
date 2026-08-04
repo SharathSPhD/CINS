@@ -70,15 +70,15 @@
     {
       "id": "T8",
       "title": "Ablations + statistical benchmark",
-      "status": "in_progress",
-      "date": null,
-      "evidence": null,
+      "status": "closed",
+      "date": "2026-08-04",
+      "evidence": "Ablation matrix 14/14 + dual controls + pre-registered analysis. Headline: station-selection identifiability (even stations 'converge' to WRONG root 1.4e-3, cond 3.5e12; QR-pivot 1e-11, cond 90). H2 honestly REJECTED: 3.1-8.1x fewer flow solves vs modern LM, not >=100x (outdated baseline class in pre-registration). H3 quadratic tail: median order 2.15. H1 panel (UIUC) deferred \u2014 needs loader.",
       "commit": null
     },
     {
       "id": "T9",
       "title": "Stage 2 design review",
-      "status": "pending",
+      "status": "in_progress",
       "date": null,
       "evidence": null,
       "commit": null
