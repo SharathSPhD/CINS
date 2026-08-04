@@ -1,0 +1,17 @@
+{
+  "project": "CINS — CST Inverse Newton Solver",
+  "updated": "2026-08-04",
+  "stage": 1,
+  "gates": [
+    {"id": "T0", "title": "Environment + mfoil baseline", "status": "closed", "date": "2026-08-04", "evidence": "NACA 2412 α=2° Re=1e6 converged; cl=0.4494, cd=0.00578; quadratic tail 1.6e-2→3.7e-3→8.1e-5→8.0e-8→1.0e-11", "commit": "514579f"},
+    {"id": "T1", "title": "mfoil internals introspection", "status": "in_progress", "date": null, "evidence": null, "commit": null},
+    {"id": "T2", "title": "CST module — fit RMS < 0.1% chord", "status": "in_progress", "date": null, "evidence": null, "commit": null},
+    {"id": "T3", "title": "Constraint rows — area to 1e-10", "status": "pending", "date": null, "evidence": null, "commit": null},
+    {"id": "T4", "title": "Linear pre-solve + realisability", "status": "pending", "date": null, "evidence": null, "commit": null},
+    {"id": "T5", "title": "Extended Newton system", "status": "pending", "date": null, "evidence": null, "commit": null},
+    {"id": "T6", "title": "Diagnostics D1–D6", "status": "pending", "date": null, "evidence": null, "commit": null},
+    {"id": "T7", "title": "Falsifiable test — recover A*", "status": "pending", "date": null, "evidence": null, "commit": null},
+    {"id": "T8", "title": "Ablations + statistical benchmark", "status": "pending", "date": null, "evidence": null, "commit": null},
+    {"id": "T9", "title": "Stage 2 design review", "status": "pending", "date": null, "evidence": null, "commit": null}
+  ]
+}

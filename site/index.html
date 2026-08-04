@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CINS — Inverse Airfoil Design Without an Optimizer</title>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #171c24; --text: #e6e9ef; --muted: #9aa4b2;
+    --accent: #4cc9f0; --ok: #2dd4a7; --warn: #f4b842; --pend: #566072; --line: #262d38;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f7f8fa; --panel:#ffffff; --text:#15202b; --muted:#5b6572;
+            --accent:#0077b6; --ok:#0d9b76; --warn:#c07d00; --pend:#a8b0bc; --line:#e3e7ec; }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text);
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  header h1 { font-size: 2rem; letter-spacing: -0.02em; }
+  header p.tag { color: var(--muted); margin-top: .35rem; max-width: 46rem; }
+  .badges { margin-top: .8rem; display: flex; gap: .5rem; flex-wrap: wrap; }
+  .badge { font-size: .78rem; padding: .18rem .6rem; border-radius: 999px;
+           border: 1px solid var(--line); color: var(--muted); }
+  section { margin-top: 2.5rem; }
+  h2 { font-size: 1.25rem; margin-bottom: .8rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.2rem 1.4rem; }
+  .explain p + p { margin-top: .7rem; }
+  .explain .nontech { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--muted); margin-top: 1rem; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  .dot { display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; margin-right: .45rem; }
+  .s-closed .dot { background: var(--ok); } .s-closed td.st { color: var(--ok); }
+  .s-in_progress .dot { background: var(--warn); } .s-in_progress td.st { color: var(--warn); }
+  .s-pending .dot { background: var(--pend); } .s-pending td.st { color: var(--muted); }
+  .ev { color: var(--muted); font-size: .85rem; }
+  footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; }
+  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
+  .scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>CINS</h1>
+    <p class="tag">Inverse airfoil design without an optimizer — geometry recovered from a
+    target pressure distribution as one square Newton root-find, with CST coefficients as
+    first-class unknowns in the flow solver's global system.</p>
+    <div class="badges">
+      <span class="badge">Stage 1 · isolated airfoil · mfoil</span>
+      <span class="badge">Paper P1 → AIAA</span>
+      <span class="badge"><a href="https://github.com/SharathSPhD/CINS">github.com/SharathSPhD/CINS</a></span>
+    </div>
+  </header>
+
+  <section class="explain card">
+    <h2>What is this?</h2>
+    <p><strong>Technical:</strong> Airfoil geometry parameterized by the Class-Shape
+    Transformation is <em>linear</em> in its coefficients <b>A</b>. Appending <b>A</b> to a
+    Newton-coupled viscous/inviscid solver's global system — with target-pressure rows and
+    linear geometric-constraint rows closing the DOF count (M&nbsp;+&nbsp;K&nbsp;=&nbsp;n<sub>A</sub>&nbsp;+&nbsp;1) —
+    turns inverse design into a determined root-find: ~5–15 Newton iterations instead of
+    10²–10³ optimizer-driven flow solves.</p>
+    <p class="nontech"><strong>Plain terms:</strong> Designers usually find a wing shape by
+    trial and error — a computer guesses a shape, simulates the airflow, scores it, and
+    repeats hundreds of times. CINS instead asks for the airflow you <em>want</em> and solves
+    directly for the one shape that produces it, in a handful of steps, with built-in warnings
+    when the wish is physically impossible.</p>
+  </section>
+
+  <section>
+    <h2>Gate board — Stage 1</h2>
+    <div class="card scroll">
+      <table id="gate-table">
+        <thead><tr><th>Gate</th><th>Deliverable</th><th>Status</th><th>Closed</th><th>Evidence</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>The falsifiable test (T7)</h2>
+    <p class="ev">Take a known airfoil, compute its pressure distribution, then hand only that
+    distribution back to CINS. Success = the exact original shape re-emerges
+    (‖A−A*‖<sub>∞</sub> &lt; 10⁻⁴) in single-digit Newton iterations with a quadratic
+    convergence tail. Failure patterns map to four instrumented failure modes (rank
+    deficiency, basis conditioning, leading-edge singularity, non-smooth transition closure).</p>
+  </section>
+
+  <footer>
+    Research dossier, spec, gate contract and statistical pre-registration live in
+    <a href="https://github.com/SharathSPhD/CINS/tree/main/docs">docs/</a>.
+    Every number on this page traces to a git-versioned run manifest.
+  </footer>
+</div>
+<script>
+fetch('gates.json').then(r => r.json()).then(d => {
+  document.querySelector('#gate-table tbody').innerHTML = d.gates.map(g => `
+    <tr class="s-${g.status}">
+      <td><span class="dot"></span><b>${g.id}</b></td>
+      <td>${g.title}</td>
+      <td class="st">${g.status.replace('_',' ')}</td>
+      <td>${g.date ?? '—'}</td>
+      <td class="ev">${g.evidence ?? '—'}</td>
+    </tr>`).join('');
+});
+</script>
+</body>
+</html>
