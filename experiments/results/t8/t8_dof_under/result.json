@@ -2,7 +2,7 @@
   "cell_name": "t8_dof_under",
   "converged": false,
   "convergence_order": null,
-  "dof_check_error": null,
+  "dof_check_error": "extended system not square: M+K=15 but n_A_free+n_alpha=16 (M=15, K=0, n_A_free=16)",
   "err_all_inf": null,
   "err_free_inf": null,
   "iterations": 0,
@@ -15,7 +15,7 @@
       "n_lower": 8,
       "n_upper": 8
     },
-    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "git_sha": "4fa6002deb2abbefa2a2ed7ebdaaec1035537e44",
     "seed": 42,
     "t8_factors": {
       "airfoil": "2412",
@@ -25,18 +25,18 @@
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-04T13:09:05.556178+00:00",
+    "timestamp": "2026-08-04T13:29:24.334478+00:00",
     "transition_mode": "forced"
   },
   "model_gap": null,
-  "n_flow_solves_equivalent": 2,
+  "n_flow_solves_equivalent": 117,
   "n_residual_evaluations": 0,
   "notes": [
-    "direct (natural) target solve failed to converge"
+    "FM-1 ablation: dof_offset=-1 deliberately mis-squares the extended system; caught cleanly per STATS_PROTOCOL \u00a74"
   ],
   "realisability": null,
   "release_verify": null,
   "residual_history": [],
   "submap_cond": null,
-  "wall_time_s": 10.740054749883711
+  "wall_time_s": 44.496403499972075
 }

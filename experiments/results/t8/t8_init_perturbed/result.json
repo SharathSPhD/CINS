@@ -1,11 +1,11 @@
 {
   "cell_name": "t8_init_perturbed",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": 0.07636963050543316,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 2.11992368104319e-11,
+  "err_free_inf": 2.11992368104319e-11,
+  "iterations": 5,
   "manifest": {
     "cell_name": "t8_init_perturbed",
     "config_hash": "7320dfb88e7279a0",
@@ -15,7 +15,7 @@
       "n_lower": 8,
       "n_upper": 8
     },
-    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "git_sha": "d97468dcb2ed11e45e09ba636aa02edcf4cbafd6",
     "seed": 42,
     "t8_factors": {
       "airfoil": "2412",
@@ -25,18 +25,34 @@
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-04T13:09:16.087904+00:00",
+    "timestamp": "2026-08-04T14:12:27.248459+00:00",
     "transition_mode": "forced"
   },
   "model_gap": null,
-  "n_flow_solves_equivalent": 2,
-  "n_residual_evaluations": 0,
+  "n_flow_solves_equivalent": 43,
+  "n_residual_evaluations": 133,
   "notes": [
-    "direct (natural) target solve failed to converge"
+    "init=perturbed: T4 pre-solve skipped by design (ablation factor)",
+    "stations remapped by nearest-x; residual max|dx/c|=2.03e-04"
   ],
   "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 10.529311958001927
+  "release_verify": {
+    "cd": 0.005773599365524447,
+    "cd_target": 0.005773599365534451,
+    "cl": 0.4490912705266364,
+    "cl_target": 0.4490912705271837,
+    "converged": true,
+    "dcd": 1.0004150285958247e-14,
+    "dcl": 5.472844399889709e-13,
+    "ok": true
+  },
+  "residual_history": [
+    0.035489593494235444,
+    0.002132587129373805,
+    6.1751989955995905e-06,
+    1.2002155606794987e-10,
+    5.241456793683659e-11
+  ],
+  "submap_cond": 89.83274204927822,
+  "wall_time_s": 170.44995304197073
 }

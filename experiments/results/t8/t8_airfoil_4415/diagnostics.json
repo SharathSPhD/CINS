@@ -1,12 +1,12 @@
 {
   "manifest": {
-    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "git_sha": "4fa6002deb2abbefa2a2ed7ebdaaec1035537e44",
     "config_hash": "ae931f8961935bff",
-    "timestamp_utc": "2026-08-04T13:04:48.633083+00:00",
+    "timestamp_utc": "2026-08-04T13:24:26.841693+00:00",
     "cell_name": "t8_airfoil_4415",
     "config_path": "configs/experiments/t8_airfoil_4415.yaml",
     "seed": 42,
-    "timestamp": "2026-08-04T13:03:33.623005+00:00",
+    "timestamp": "2026-08-04T13:23:08.291194+00:00",
     "t8_factors": {
       "airfoil": "4415",
       "station_selection": "qr_pivot",

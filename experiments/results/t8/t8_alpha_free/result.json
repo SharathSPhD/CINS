@@ -15,7 +15,7 @@
       "n_lower": 8,
       "n_upper": 8
     },
-    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "git_sha": "4fa6002deb2abbefa2a2ed7ebdaaec1035537e44",
     "seed": 42,
     "t8_factors": {
       "airfoil": "2412",
@@ -25,7 +25,7 @@
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-04T13:05:37.870482+00:00",
+    "timestamp": "2026-08-04T13:25:18.425265+00:00",
     "transition_mode": "forced"
   },
   "model_gap": 0.10995022271106457,
@@ -51,5 +51,5 @@
     9.781577829864283e-11
   ],
   "submap_cond": 88.97690037264597,
-  "wall_time_s": 198.32630400010385
+  "wall_time_s": 202.43329245806672
 }

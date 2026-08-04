@@ -1,11 +1,11 @@
 {
   "cell_name": "t8_transition_free",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": 0.9305333770486391,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 1.2795934450915425e-11,
+  "err_free_inf": 1.2795934450915425e-11,
+  "iterations": 4,
   "manifest": {
     "cell_name": "t8_transition_free",
     "config_hash": "c39fd59ac04db637",
@@ -15,7 +15,7 @@
       "n_lower": 8,
       "n_upper": 8
     },
-    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "git_sha": "a894fbc30b9d9436717099e9ef6fc97da4981adf",
     "seed": 42,
     "t8_factors": {
       "airfoil": "2412",
@@ -25,18 +25,30 @@
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-04T13:10:40.329474+00:00",
+    "timestamp": "2026-08-04T13:45:34.811999+00:00",
     "transition_mode": "free"
   },
-  "model_gap": null,
-  "n_flow_solves_equivalent": 2,
-  "n_residual_evaluations": 0,
-  "notes": [
-    "direct (natural) target solve failed to converge"
+  "model_gap": 0.09415024534640354,
+  "n_flow_solves_equivalent": 119,
+  "n_residual_evaluations": 100,
+  "notes": [],
+  "realisability": 0.0003896196124540824,
+  "release_verify": {
+    "cd": 0.005773599365540255,
+    "cd_target": 0.005773599365534451,
+    "cl": 0.4490912705272763,
+    "cl_target": 0.4490912705271837,
+    "converged": true,
+    "dcd": 5.8043847506183965e-15,
+    "dcl": 9.264811140496931e-14,
+    "ok": true
+  },
+  "residual_history": [
+    0.00045884178580306485,
+    2.1336825378752484e-05,
+    2.9308936953627128e-08,
+    6.36345472643436e-11
   ],
-  "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 10.542527166893706
+  "submap_cond": 90.26414500286232,
+  "wall_time_s": 155.14935391605832
 }

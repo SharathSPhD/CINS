@@ -1,10 +1,10 @@
 {
   "cell_name": "t8_n08_baseline_control",
-  "converged": false,
-  "err_all_inf": 0.004667740371034044,
-  "err_free_inf": 0.004667740371034044,
-  "final_cost": 20000.0,
-  "final_residual_inf": 50.0,
+  "converged": true,
+  "err_all_inf": 2.294625600640643e-11,
+  "err_free_inf": 2.294625600640643e-11,
+  "final_cost": 1.4830301111921425e-23,
+  "final_residual_inf": 4.797384711707764e-12,
   "manifest": {
     "cell_name": "t8_n08_baseline_control",
     "config_hash": "ce63e9af3c3b54a7",
@@ -15,7 +15,7 @@
       "n_lower": 8,
       "n_upper": 8
     },
-    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "git_sha": "d97468dcb2ed11e45e09ba636aa02edcf4cbafd6",
     "scipy_call_signature": {
       "ftol": 1e-08,
       "gtol": 1e-08,
@@ -33,11 +33,11 @@
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-04T13:14:29.335184+00:00",
+    "timestamp": "2026-08-04T14:23:58.504450+00:00",
     "transition_mode": "forced"
   },
-  "n_flow_solves_equivalent": 152,
-  "n_nfev": 1,
+  "n_flow_solves_equivalent": 373,
+  "n_nfev": 5,
   "notes": [],
   "scipy_call_signature": {
     "ftol": 1e-08,
@@ -47,8 +47,8 @@
     "x_scale": "custom(|x0| floor 1e-3)",
     "xtol": 1e-08
   },
-  "scipy_message": "`gtol` termination condition is satisfied.",
-  "scipy_status": 1,
+  "scipy_message": "`xtol` termination condition is satisfied.",
+  "scipy_status": 3,
   "scipy_success": true,
-  "wall_time_s": 228.57097916700877
+  "wall_time_s": 540.0289018750191
 }

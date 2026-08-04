@@ -1,11 +1,11 @@
 {
   "cell_name": "t8_n12",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": 0.2803821026872735,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 6.31305452358788e-10,
+  "err_free_inf": 6.31305452358788e-10,
+  "iterations": 21,
   "manifest": {
     "cell_name": "t8_n12",
     "config_hash": "a55ee6da1929e93c",
@@ -15,7 +15,7 @@
       "n_lower": 12,
       "n_upper": 12
     },
-    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "git_sha": "d97468dcb2ed11e45e09ba636aa02edcf4cbafd6",
     "seed": 42,
     "t8_factors": {
       "airfoil": "2412",
@@ -25,18 +25,49 @@
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-04T13:10:19.165210+00:00",
+    "timestamp": "2026-08-04T13:53:53.589426+00:00",
     "transition_mode": "forced"
   },
-  "model_gap": null,
-  "n_flow_solves_equivalent": 2,
-  "n_residual_evaluations": 0,
+  "model_gap": 0.09988663422694506,
+  "n_flow_solves_equivalent": 168,
+  "n_residual_evaluations": 981,
   "notes": [
-    "direct (natural) target solve failed to converge"
+    "stations remapped by nearest-x; residual max|dx/c|=4.08e-05"
   ],
-  "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 10.451679083053023
+  "realisability": 0.015746502489066772,
+  "release_verify": {
+    "cd": 0.005777534081692107,
+    "cd_target": 0.0057775340816894815,
+    "cl": 0.4486338602601322,
+    "cl_target": 0.44863386025179114,
+    "converged": true,
+    "dcd": 2.6255039808908975e-15,
+    "dcl": 8.34105007285757e-12,
+    "ok": true
+  },
+  "residual_history": [
+    0.015534617332952907,
+    0.03263377789185002,
+    0.030763734207952486,
+    0.028756977232338398,
+    0.026740217448422733,
+    0.024730939332594685,
+    0.02271952140680262,
+    0.020713696254645923,
+    0.018716167799009843,
+    0.016704062375983278,
+    0.014702929256603476,
+    0.012708866912426975,
+    0.01070515478355673,
+    0.008710862549165902,
+    0.006714382404350947,
+    0.004720357046470213,
+    0.002726523176979457,
+    0.0007340632139133484,
+    2.8181651741652863e-06,
+    6.185727764733519e-10,
+    5.828968006480342e-11
+  ],
+  "submap_cond": 1144.115644977426,
+  "wall_time_s": 1153.3384112499189
 }
