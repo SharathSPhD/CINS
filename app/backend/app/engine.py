@@ -45,8 +45,8 @@ from cins.solver.presolve import (
     InviscidCpResult,
     build_sensitivity_matrix,
     interpolate_cp_to_stations,
-    presolve as engine_presolve,
 )
+from cins.solver.presolve import presolve as engine_presolve
 
 # Process-global: guards mfoil's process-global forced-transition shim
 # (ADR-0003) AND enforces "one inverse at a time" (docs/PRD.md phase-1 spec).

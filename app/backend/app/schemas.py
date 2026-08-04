@@ -50,7 +50,9 @@ class AnalyzeRequest(BaseModel):
     )
     alpha: float = Field(..., ge=-20.0, le=20.0, description="angle of attack, degrees")
     Re: float | None = Field(None, gt=1e3, lt=1e9, description="Reynolds number; omit for inviscid")
-    Ma: float = Field(0.0, ge=0.0, lt=0.7, description="Mach number (Karman-Tsien, subcritical only)")
+    Ma: float = Field(
+        0.0, ge=0.0, lt=0.7, description="Mach number (Karman-Tsien, subcritical only)"
+    )
     transition: TransitionSpec | None = None
 
     @model_validator(mode="after")
