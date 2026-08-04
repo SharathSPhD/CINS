@@ -19,11 +19,11 @@ penalty terms. Constrained shape optimization becomes constrained root-finding.
 
 | Gate | Description | Status |
 |------|-------------|--------|
-| T0 | Environment + mfoil baseline solve | in progress |
-| T1 | mfoil internals introspection | pending |
-| T2 | CST module (fit RMS < 0.1% chord) | pending |
-| T3 | Constraint rows (area to 1e-10) | pending |
-| T4 | Analytic pre-solve + realisability | pending |
+| T0 | Environment + mfoil baseline solve | **closed** |
+| T1 | mfoil internals introspection | **closed** |
+| T2 | CST module (fit RMS < 0.1% chord) | **closed** |
+| T3 | Constraint rows (area to 1e-10) | **closed** |
+| T4 | Analytic pre-solve + realisability | in progress |
 | T5 | Extended Newton system | pending |
 | T6 | Diagnostics D1–D6 | pending |
 | T7 | **Falsifiable test: recover A\* from its own Cp** | pending |
