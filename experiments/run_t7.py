@@ -51,6 +51,8 @@ def main() -> int:
     m.setoper(alpha=cfg.operating.alpha_deg, Re=cfg.operating.Re)
     m.solve()
     assert m.glob.conv, "direct solve (natural) failed"
+    nat_cl, nat_cd = float(m.post.cl), float(m.post.cd)  # release-verify reference
+    x_target_nodes = m.foil.x[0].copy()  # for the station-correspondence guard
     set_forced_transition(m, cfg.transition.xtr_upper, cfg.transition.xtr_lower)
     mod.solve_coupled(m)
     assert m.glob.conv, "direct tripped solve failed"
@@ -106,8 +108,18 @@ def main() -> int:
         a0 = np.asarray(ps.A, dtype=float)
         # keep prescribed coefficients pinned
         a0[0], a0[n + 1] = a_star[0], a_star[n + 1]
-        log.info("presolve pass %d: ||A-A*||_inf = %.3e realisability=%.4f",
-                 it_ps + 1, np.max(np.abs(a0 - a_star)), ps.realisability)
+        # ADR-0004: realisability above is INVISCID-CONSISTENT (representability).
+        # Also log the viscous model gap — diagnostic, not gating.
+        # Same-paneling-family index correspondence (guarded in step 4c below);
+        # per-surface interp would be needed if that guard ever loosens.
+        cp_visc_at_ps = np.asarray(cp_ref[: len(ps.sensitivity.x_stations)])
+        gap = float(
+            np.linalg.norm(ps.sensitivity.M @ ps.delta_A - (cp_visc_at_ps - ps.sensitivity.Cp0))
+            / np.linalg.norm(cp_visc_at_ps)
+        )
+        log.info("presolve pass %d: ||A-A*||_inf = %.3e realisability(inviscid)=%.4f "
+                 "model_gap(viscous)=%.4f", it_ps + 1, np.max(np.abs(a0 - a_star)),
+                 ps.realisability, gap)
 
     # --- 4c. sensitivity-optimal station selection ------------------------
     # Evenly-spaced stations leave near-null directions in the 16x16 station
@@ -136,6 +148,13 @@ def main() -> int:
     mod.solve_coupled(m)  # converge flow at the perturbed geometry (still tripped)
     assert m.glob.conv, "flow solve at perturbed start failed"
 
+    # Review finding (b): "same node index == same station" holds only because m
+    # is mutated in place (apply_geometry inherits the arc-length distribution).
+    # Guard the implementation dependency explicitly rather than relying on it.
+    x_mismatch = float(np.max(np.abs(m.foil.x[0, stations] - x_target_nodes[stations])))
+    log.info("station x-correspondence: max |dx/c| = %.2e (guard 2e-5)", x_mismatch)
+    assert x_mismatch < 2e-5, "station-index correspondence broken; re-map stations by x"
+
     # --- 5. monolithic inverse -------------------------------------------
     prob = InverseProblem(
         cp_target=cp_target,
@@ -159,14 +178,40 @@ def main() -> int:
                         run_manifest={"case": "t7_naca2412_selfconsistent"})
 
     # --- 6. verdict --------------------------------------------------------
+    # Review finding (a): report recovery over the FREE coefficients — the two
+    # prescribed-LE coefficients are pinned by construction, not recovered.
     a_final = np.concatenate([res.A_upper, res.A_lower])
-    err = float(np.max(np.abs(a_final - a_star)))
-    log.info("RESULT: converged=%s iters=%d ||A-A*||_inf=%.3e order=%s",
-             res.converged, res.iterations, err, res.convergence_order)
+    err_free = float(np.max(np.abs(a_final[free_idx] - a_star[free_idx])))
+    err_all = float(np.max(np.abs(a_final - a_star)))
+    log.info("RESULT: converged=%s iters=%d ||A-A*||_inf(free16)=%.3e (all18=%.3e, "
+             "2 prescribed) order=%s",
+             res.converged, res.iterations, err_free, err_all, res.convergence_order)
     log.info("residual history: %s", ["%.2e" % r for r in res.residual_norms])
-    ok = res.converged and err < cfg.gates.t7_a_recovery_inf_norm \
-        and res.iterations <= cfg.gates.t7_max_newton_iters
-    log.info("T7 GATE: %s", "PASS" if ok else "FAIL")
+
+    # --- 7. release-and-verify (dossier FM-4 protocol; review finding c) ----
+    # Restore natural transition and direct-solve the RECOVERED geometry; its
+    # free-transition aerodynamics must match the TARGET geometry's natural
+    # solution (computed in step 2 before tripping) to fit-residual tolerance.
+    from cins.solver.mfoil_adapter import release_transition
+
+    release_transition()
+    m_ver = make_mfoil(coords=coords_from_A(
+        res.A_upper, res.A_lower, fit.zeta_T_upper, fit.zeta_T_lower, psi))
+    m_ver.setoper(alpha=cfg.operating.alpha_deg, Re=cfg.operating.Re)
+    m_ver.solve()
+    dcl = abs(m_ver.post.cl - nat_cl)
+    dcd = abs(m_ver.post.cd - nat_cd)
+    log.info("release-and-verify (natural transition): cl=%.6f (target %.6f, d=%.1e) "
+             "cd=%.6f (target %.6f, d=%.1e) conv=%s",
+             m_ver.post.cl, nat_cl, dcl, m_ver.post.cd, nat_cd, dcd, m_ver.glob.conv)
+    verify_ok = m_ver.glob.conv and dcl < 1e-3 and dcd < 2e-4
+
+    ok = (res.converged and err_free < cfg.gates.t7_a_recovery_inf_norm
+          and res.iterations <= cfg.gates.t7_max_newton_iters and verify_ok)
+    log.info("T7 GATE: %s (recovery %s, release-verify %s)",
+             "PASS" if ok else "FAIL",
+             "ok" if err_free < cfg.gates.t7_a_recovery_inf_norm else "FAIL",
+             "ok" if verify_ok else "FAIL")
     return 0 if ok else 1
 
 

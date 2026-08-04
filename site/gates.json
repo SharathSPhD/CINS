@@ -40,7 +40,7 @@
       "title": "Linear pre-solve + realisability",
       "status": "closed",
       "date": "2026-08-04",
-      "evidence": "Presolve: realisability discriminates 0.0008 (realisable) vs 0.185 (spiked) at 0.05; initializer ratio 0.256; KKT cond 2.4e4. Review pending->clean (batched with T5/T7)",
+      "evidence": "Presolve closed w/ ADR-0004 semantics: inviscid-consistent realisability 0.0004 (representability), viscous model gap 0.11 logged as diagnostic; initializer ratio 0.256; review-verified no masking",
       "commit": null
     },
     {
@@ -64,7 +64,7 @@
       "title": "Falsifiable test \u2014 recover A*",
       "status": "closed",
       "date": "2026-08-04",
-      "evidence": "PASS: ||A-A*||inf = 1.1e-11 in 4 iterations, quadratic tail 5.9e-4->3.1e-6->1.0e-10. Key: QR-pivoted station selection (submap cond 1e7->90). Four findings beyond dossier documented",
+      "evidence": "PASS + adversarially hardened: 16 free coefficients recovered to 1.1e-11 in 4 iterations (2 LE coeffs prescribed); release-and-verify: natural-transition cl/cd of recovered geometry match target to 8e-13/1e-14; QR-pivoted stations (submap cond 90; full system cond 1.6e8 per D-2 \u2014 distinct quantities, ADR-0004)",
       "commit": null
     },
     {

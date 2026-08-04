@@ -94,6 +94,30 @@ def assert_square(n_free: int, n_targets: int, n_constraints: int, alpha_free: b
         )
 
 
+def recover_omega(
+    alpha_before: float,
+    alpha_after: float,
+    d_alpha: float,
+    th_before: np.ndarray,
+    th_after: np.ndarray,
+    d_th: np.ndarray,
+) -> float:
+    """Recover the under-relaxation ω mfoil's update_state actually applied.
+
+    Primary channel: α (applied as ω·dα, untouched by post-update repairs).
+    Fallback (α fixed): the θ row — update_state's Hk/ctau repairs modify only
+    ds and ctau, never θ (verified against vendor update_state, review batch
+    2026-08-04). Result clipped to [0, 1]; ω=0 (full rejection) propagates so
+    the A step is frozen with the state step — a deliberate design choice.
+    """
+    if abs(d_alpha) > 1e-14:
+        omega = (alpha_after - alpha_before) / d_alpha
+    else:
+        k = int(np.argmax(np.abs(d_th)))
+        omega = (th_after[k] - th_before[k]) / d_th[k] if d_th[k] != 0 else 1.0
+    return float(np.clip(omega, 0.0, 1.0))
+
+
 def _flow_jacobian_blocks(m):
     """Assemble mfoil's analytic 4Nsys flow Jacobian (as solve_glob does) plus
     the analytic alpha column for the ue-closure rows."""
@@ -247,12 +271,9 @@ def solve_inverse(
         m.glob.dU = d_u
         m.glob.dalpha = d_alpha
         mod.update_state(m)
-        if abs(d_alpha) > 1e-14:
-            omega = (float(m.oper.alpha) - alpha_before) / d_alpha
-        else:
-            k = int(np.argmax(np.abs(d_u[0])))
-            omega = (m.glob.U[0, k] - u_before[k]) / d_u[0, k] if d_u[0, k] != 0 else 1.0
-        omega = float(np.clip(omega, 0.0, 1.0))
+        omega = recover_omega(
+            alpha_before, float(m.oper.alpha), d_alpha, u_before, m.glob.U[0], d_u[0]
+        )
 
         # A block: mfoil's ω, further capped by the A trust region (dossier §7.6)
         amax = float(np.max(np.abs(d_a))) if len(d_a) else 0.0

@@ -1,8 +1,8 @@
 {
   "manifest": {
-    "git_sha": "ee2a9f37abe745eba7fb518dd8157c6758522b3a",
+    "git_sha": "442561ae2606cbb46195897852dad21700493fd7",
     "config_hash": "5ea90ddb0b6ca2d5",
-    "timestamp_utc": "2026-08-04T11:55:04.894841+00:00",
+    "timestamp_utc": "2026-08-04T12:13:24.415088+00:00",
     "case": "t7_naca2412_selfconsistent"
   },
   "static": {
