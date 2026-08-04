@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+site/_site/
+site/.jekyll-cache/
+app/frontend/node_modules/
+app/frontend/.next/
+.remember/
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.bbl
+paper/*.blg

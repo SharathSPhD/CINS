@@ -1,0 +1,51 @@
+# CINS default configuration — single source of truth for all run parameters.
+# Nothing in src/ hardcodes a numeric parameter; everything traces here.
+# Validated by src/cins/config.py (pydantic). Gate thresholds included so tests
+# and runtime share one source of truth.
+
+cst:
+  n_upper: 8            # Bernstein order per side (dossier: 10-12 max sensible)
+  n_lower: 8
+  N1: 0.5               # class function exponents (round nose / sharp tail)
+  N2: 1.0
+  te_gap: 0.0           # total TE gap (zeta_T,u - zeta_T,l), in chords
+  le_treatment: prescribed   # none | lem | prescribed  (dossier §3.5 rec: prescribed)
+  prescribed_le_fraction: 0.05  # chord fraction geometrically fixed when le_treatment=prescribed
+
+paneling:
+  npanel: 199
+  spacing: cosine
+
+operating:
+  alpha_deg: 2.0
+  Re: 1.0e6
+  Ma: 0.0
+  viscous: true
+
+transition:
+  mode: forced          # forced (trip) during inverse iterations | free
+  xtr_upper: 0.05       # forced trip locations (x/c)
+  xtr_lower: 0.05
+  ncrit: 9.0            # free-transition amplification factor (mfoil default)
+
+newton:
+  rtol: 1.0e-10
+  max_iter: 50
+  a_trust_radius: 0.1   # max |dA| per iteration on the CST block (more permissive than U)
+  derivative_mode: auto # auto | analytic | complex_step | finite_difference (over A)
+  fd_step: 1.0e-6
+  cs_step: 1.0e-30
+
+presolve:
+  realisability_threshold: 0.05   # ||M A* - Cp_t|| / ||Cp_t|| above this => warn infeasible
+
+gates:                   # numeric gate criteria (dossier §7); tests read these
+  t0_cl_range: [0.1, 0.9]        # sanity band for NACA 2412 alpha=2 Re=1e6 cl
+  t2_fit_rms_max: 1.0e-3         # < 0.1% chord
+  t3_area_quadrature_tol: 1.0e-10
+  t7_a_recovery_inf_norm: 1.0e-4
+  t7_max_newton_iters: 9         # "single-digit"
+
+experiment:
+  seed: 42
+  results_dir: experiments/results
