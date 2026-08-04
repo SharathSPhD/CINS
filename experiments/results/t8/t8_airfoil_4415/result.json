@@ -1,0 +1,53 @@
+{
+  "cell_name": "t8_airfoil_4415",
+  "converged": true,
+  "convergence_order": -0.7273651691405909,
+  "dof_check_error": null,
+  "err_all_inf": 4.346312199032809e-11,
+  "err_free_inf": 4.346312199032809e-11,
+  "iterations": 3,
+  "manifest": {
+    "cell_name": "t8_airfoil_4415",
+    "config_hash": "ae931f8961935bff",
+    "config_path": "configs/experiments/t8_airfoil_4415.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "4415",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-04T13:03:33.623005+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": 0.16284246121360432,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 67,
+  "notes": [],
+  "realisability": 0.0003097620291334313,
+  "release_verify": {
+    "cd": 0.0068265711358879025,
+    "cd_target": 0.006826571135856256,
+    "cl": 0.670509036280481,
+    "cl_target": 0.6705090362789166,
+    "converged": true,
+    "dcd": 3.164656037224489e-14,
+    "dcl": 1.564415263999308e-12,
+    "ok": true
+  },
+  "residual_history": [
+    0.0008610394947337412,
+    3.6174225617916026e-06,
+    7.381360498850648e-11
+  ],
+  "submap_cond": 117.90112033427684,
+  "wall_time_s": 124.56668870919384
+}

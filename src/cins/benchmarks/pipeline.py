@@ -387,6 +387,18 @@ def run_pipeline(
     t0 = time.perf_counter()
     counters = EvalCounters()
 
+    # The forced-transition shims installed inside prepare_cell are PROCESS-GLOBAL
+    # (ADR-0003); every exit path must release them or subsequent cells in the same
+    # process are poisoned (observed: sweep cells after the dof_* early-failures all
+    # died at target generation). Belt: this try/finally. Suspenders: runner.sweep
+    # isolates each cell in a subprocess.
+    try:
+        return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)
+    finally:
+        release_transition()
+
+
+def _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters) -> CellResult:
     with instrument_evaluations(counters):
         prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)
         if prep.early_failure is not None:

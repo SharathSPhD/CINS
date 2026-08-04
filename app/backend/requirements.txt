@@ -1,0 +1,7 @@
+# app/backend — additional dependencies layered on top of the repo's .venv
+# (which already has cins + numpy/scipy/pydantic installed via `pip install -e ".[dev]"`
+# at the repo root). Install with:
+#   .venv/bin/pip install -r app/backend/requirements.txt
+fastapi>=0.115
+uvicorn[standard]>=0.32
+httpx>=0.27

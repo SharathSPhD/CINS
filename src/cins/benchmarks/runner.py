@@ -88,7 +88,7 @@ def sweep(
     for path in paths:
         cell_name = cell_name_from_path(path)
         try:
-            result = run_cell(path, results_root=results_root)
+            result = _run_cell_subprocess(path, results_root=results_root)
         except Exception:  # noqa: BLE001 - operational sweep robustness, see docstring
             tb = traceback.format_exc()
             log.error("T8 cell %s crashed:\n%s", cell_name, tb)
@@ -114,3 +114,28 @@ def sweep(
             _write_result(result, results_root_p / cell_name)
         results.append(result)
     return results
+
+
+def _run_cell_subprocess(path: Path, *, results_root: str | Path | None = None) -> CellResult:
+    """Run one cell in a fresh subprocess (ADR-0003: the forced-transition shims
+    are process-global; in-process sequential cells can poison each other on any
+    missed release path — observed 2026-08-04). Reads back the result JSON."""
+    import subprocess
+    import sys
+
+    if results_root is not None:
+        # CLI has no --results-root flag; only the default root is subprocess-safe
+        return run_cell(path, results_root=results_root)
+    cmd = [sys.executable, "-m", "cins.benchmarks", "run", str(path)]
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+    cell_name = cell_name_from_path(path)
+    root = Path(results_root) if results_root is not None else Path("experiments/results/t8")
+    result_path = root / cell_name / "result.json"
+    if proc.returncode != 0 and not result_path.exists():
+        raise RuntimeError(
+            f"cell subprocess failed (rc={proc.returncode}):\n"
+            f"{proc.stdout[-1500:]}\n{proc.stderr[-1500:]}"
+        )
+    import json
+
+    return CellResult(**json.loads(result_path.read_text()))

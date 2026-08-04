@@ -32,7 +32,12 @@ from scipy.optimize import least_squares
 
 from cins.config import CinsConfig
 from cins.cst.geometry import coords_from_A
-from cins.solver.mfoil_adapter import make_mfoil, mfoil_module, set_forced_transition
+from cins.solver.mfoil_adapter import (
+    make_mfoil,
+    mfoil_module,
+    release_transition,
+    set_forced_transition,
+)
 from cins.solver.presolve import InviscidCpResult, interpolate_cp_to_stations
 
 from .instrumentation import EvalCounters, instrument_evaluations
@@ -84,6 +89,12 @@ def _viscous_cp_at_A(
     Xc = coords_from_A(
         A[: n + 1], A[n + 1 :], prep.fit.zeta_T_upper, prep.fit.zeta_T_lower, prep.psi
     )
+    # prepare_cell leaves the ADR-0003 shims installed process-wide; a fresh
+    # instance's natural cold-start solve is INCONSISTENT under them (no-op
+    # update_transition + onset residual vs a naturally-initialized turb
+    # pattern) — verified empirically: every trial returned None, giving scipy
+    # a constant penalty residual and an instant bogus "gtol success" at nfev=1.
+    release_transition()
     m = make_mfoil(coords=Xc)
     m.setoper(alpha=cfg.operating.alpha_deg, Re=cfg.operating.Re)
     m.solve()
@@ -117,6 +128,13 @@ def run_control(
     t0 = time.perf_counter()
     counters = EvalCounters()
 
+    try:
+        return _run_control_inner(cfg, cell_name, config_path, max_nfev, t0, counters)
+    finally:
+        release_transition()
+
+
+def _run_control_inner(cfg, cell_name, config_path, max_nfev, t0, counters) -> ControlResult:
     with instrument_evaluations(counters):
         prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)
         if prep.early_failure is not None:

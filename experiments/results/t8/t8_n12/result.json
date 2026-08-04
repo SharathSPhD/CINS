@@ -1,42 +1,42 @@
 {
-  "cell_name": "t8_dof_over",
+  "cell_name": "t8_n12",
   "converged": false,
   "convergence_order": null,
-  "dof_check_error": "extended system not square: M+K=17 but n_A_free+n_alpha=16 (M=17, K=0, n_A_free=16)",
+  "dof_check_error": null,
   "err_all_inf": null,
   "err_free_inf": null,
   "iterations": 0,
   "manifest": {
-    "cell_name": "t8_dof_over",
-    "config_hash": "3b832c2c811018ac",
-    "config_path": "configs/experiments/t8_dof_over.yaml",
+    "cell_name": "t8_n12",
+    "config_hash": "a55ee6da1929e93c",
+    "config_path": "configs/experiments/t8_n12.yaml",
     "cst": {
       "le_treatment": "prescribed",
-      "n_lower": 8,
-      "n_upper": 8
+      "n_lower": 12,
+      "n_upper": 12
     },
     "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
     "seed": 42,
     "t8_factors": {
       "airfoil": "2412",
       "alpha_free": false,
-      "dof_offset": 1,
+      "dof_offset": 0,
       "init": "presolve",
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-04T13:08:54.813831+00:00",
+    "timestamp": "2026-08-04T13:10:19.165210+00:00",
     "transition_mode": "forced"
   },
   "model_gap": null,
-  "n_flow_solves_equivalent": 117,
+  "n_flow_solves_equivalent": 2,
   "n_residual_evaluations": 0,
   "notes": [
-    "FM-1 ablation: dof_offset=+1 deliberately mis-squares the extended system; caught cleanly per STATS_PROTOCOL \u00a74"
+    "direct (natural) target solve failed to converge"
   ],
   "realisability": null,
   "release_verify": null,
   "residual_history": [],
   "submap_cond": null,
-  "wall_time_s": 43.7439463341143
+  "wall_time_s": 10.451679083053023
 }

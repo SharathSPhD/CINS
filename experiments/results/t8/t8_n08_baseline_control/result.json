@@ -1,0 +1,54 @@
+{
+  "cell_name": "t8_n08_baseline_control",
+  "converged": false,
+  "err_all_inf": 0.004667740371034044,
+  "err_free_inf": 0.004667740371034044,
+  "final_cost": 20000.0,
+  "final_residual_inf": 50.0,
+  "manifest": {
+    "cell_name": "t8_n08_baseline_control",
+    "config_hash": "ce63e9af3c3b54a7",
+    "config_path": "configs/experiments/t8_n08_baseline.yaml",
+    "control_baseline": true,
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "scipy_call_signature": {
+      "ftol": 1e-08,
+      "gtol": 1e-08,
+      "max_nfev": 300,
+      "method": "lm",
+      "x_scale": "custom(|x0| floor 1e-3)",
+      "xtol": 1e-08
+    },
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "2412",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-04T13:14:29.335184+00:00",
+    "transition_mode": "forced"
+  },
+  "n_flow_solves_equivalent": 152,
+  "n_nfev": 1,
+  "notes": [],
+  "scipy_call_signature": {
+    "ftol": 1e-08,
+    "gtol": 1e-08,
+    "max_nfev": 300,
+    "method": "lm",
+    "x_scale": "custom(|x0| floor 1e-3)",
+    "xtol": 1e-08
+  },
+  "scipy_message": "`gtol` termination condition is satisfied.",
+  "scipy_status": 1,
+  "scipy_success": true,
+  "wall_time_s": 228.57097916700877
+}

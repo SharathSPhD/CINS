@@ -1,0 +1,55 @@
+{
+  "cell_name": "t8_alpha_free",
+  "converged": true,
+  "convergence_order": 0.7186180281940001,
+  "dof_check_error": null,
+  "err_all_inf": 2.3136388915823147e-09,
+  "err_free_inf": 2.3136388915823147e-09,
+  "iterations": 5,
+  "manifest": {
+    "cell_name": "t8_alpha_free",
+    "config_hash": "07091ad16980ffd9",
+    "config_path": "configs/experiments/t8_alpha_free.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "90e71d648a7bc00b48a06fb777b07ff07a58b98b",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "2412",
+      "alpha_free": true,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-04T13:05:37.870482+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": 0.10995022271106457,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 133,
+  "notes": [],
+  "realisability": 0.0003896196124540824,
+  "release_verify": {
+    "cd": 0.0057735993691608685,
+    "cd_target": 0.005773599365534451,
+    "cl": 0.44909127095534696,
+    "cl_target": 0.4490912705271837,
+    "converged": true,
+    "dcd": 3.6264177424860655e-12,
+    "dcl": 4.2816328260641967e-10,
+    "ok": true
+  },
+  "residual_history": [
+    0.0006032557644024297,
+    3.2957122553611297e-06,
+    8.746608173068489e-08,
+    1.6769176366005895e-09,
+    9.781577829864283e-11
+  ],
+  "submap_cond": 88.97690037264597,
+  "wall_time_s": 198.32630400010385
+}
