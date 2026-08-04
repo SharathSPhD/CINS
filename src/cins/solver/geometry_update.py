@@ -37,8 +37,16 @@ def apply_geometry(m, A_upper, A_lower, zeta_T_u, zeta_T_l, psi) -> None:
     m.geom.xpoint = X
     m.geom.chord = float(X[0].max() - X[0].min())
 
-    mod.make_panels(m, m.foil.N - 1, stgt)
+    # make_panels body WITHOUT its clear_solution() call — the whole point of this
+    # hook is that the flow state survives the geometry update (vendor make_panels
+    # wipes glob/vsol/isol, mfoil.py). Ufac/TEfac are the vendor's own constants.
+    m.foil.x, m.foil.s, m.foil.t = mod.spline_curvature(
+        m.geom.xpoint, n_before, 2, 0.1, stgt
+    )
+    m.foil.N = m.foil.x.shape[1]
     assert m.foil.N == n_before, "node count changed; Nsys invariant violated"
+    # spline_curvature returns the provided stgt verbatim -> coerce back to ndarray
+    m.foil.s = np.asarray(m.foil.s, dtype=float)
 
     mod.build_gamma(m, m.oper.alpha)
     mod.build_wake(m)

@@ -107,10 +107,22 @@ def _flow_jacobian_blocks(m):
     j_uu[i_rows, iue] = sparse.identity(nsys) - ue_m @ np.diag(ds)
     j_uu[i_rows, ids] = -ue_m @ np.diag(ue)
 
-    # analytic d(R_ue)/d(alpha): ueinv = uearef cos(a) + ... -> use mfoil's own helper
-    _, ru_alpha, _ = mod.clalpha_residual(m)
+    # analytic d(R_ue)/d(alpha): R_ue = ue - (ueinv + ...) with
+    # ueinv = ueinvref @ [cos(a), sin(a)]  ->  dR_ue/da = -ueinvref @ [-sin, cos] * pi/180
+    # Assembled directly: vendor get_ueinvref's viscous branch is broken as shipped
+    # (mfoil.py:598 builds uearef transposed (2,N) vs the (N,2) lines 601/604 expect),
+    # and clalpha_residual's else-branch has a np.zeros(Nsys,1) bug. ADR-0002 family.
+    alpha = m.oper.alpha
+    uearef = np.asarray(m.isol.gamref) * np.asarray(m.isol.sgnue)[:, None]  # (N,2)
+    uewref = np.asarray(m.isol.uewiref).copy()  # (Nw,2)
+    if uewref.size:
+        uewref[0, :] = uearef[-1, :]  # upper-surface/wake continuity
+        ueinvref = np.vstack([uearef, uewref])
+    else:
+        ueinvref = uearef
+    ru_alpha = -ueinvref @ np.array([-mod.sind(alpha), mod.cosd(alpha)]) * np.pi / 180.0
     j_ualpha = np.zeros(4 * nsys)
-    j_ualpha[3 * nsys : 4 * nsys] = np.asarray(ru_alpha).ravel()
+    j_ualpha[3 * nsys : 4 * nsys] = ru_alpha.ravel()
     return j_uu.tocsr(), j_ualpha
 
 
