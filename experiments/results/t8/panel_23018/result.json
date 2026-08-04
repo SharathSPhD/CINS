@@ -1,0 +1,53 @@
+{
+  "cell_name": "panel_23018",
+  "converged": true,
+  "convergence_order": -0.6544553582462158,
+  "dof_check_error": null,
+  "err_all_inf": 1.510255254189019e-10,
+  "err_free_inf": 1.510255254189019e-10,
+  "iterations": 3,
+  "manifest": {
+    "cell_name": "panel_23018",
+    "config_hash": "6d6d4241a423fc12",
+    "config_path": "configs/experiments/panel_naca/panel_23018.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "d70c1fb6f8284c2d71239cbc8ceaefbc2435ac6c",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "23018",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-04T15:25:57.926048+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": 0.09997891766015794,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 67,
+  "notes": [],
+  "realisability": 0.00015567269618635914,
+  "release_verify": {
+    "cd": 0.007994726349006609,
+    "cd_target": 0.00799472634898335,
+    "cl": 0.3281360642063685,
+    "cl_target": 0.3281360642214907,
+    "converged": true,
+    "dcd": 2.325917236589703e-14,
+    "dcl": 1.5122236796116795e-11,
+    "ok": true
+  },
+  "residual_history": [
+    0.00015264930298341015,
+    1.10782981847044e-07,
+    4.451948047157165e-11
+  ],
+  "submap_cond": 125.93488860567095,
+  "wall_time_s": 127.42255820799619
+}

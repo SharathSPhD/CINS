@@ -343,3 +343,39 @@ hand-entered numbers, per STATS_PROTOCOL §7.
   reaching the pre-registered 100x line.
 - `figures/station_selection.png` — err_all_inf bar chart, qr_pivot vs evenly-spaced,
   annotated with submap conditioning; the identifiability finding at a glance.
+
+
+---
+
+## H1 addendum — NACA panel executed (post-review, 2026-08-04)
+
+The pre-registered 20-section NACA panel (STATS_PROTOCOL §3.1, executable copy
+`configs/experiments/panel_naca/`) ran at the winning configuration, seed 42.
+
+**Result: 18/18 generable sections recovered** (`err_free_inf` ≤ 1.5e-10, 3–7
+Newton iterations each) across 9–25% thickness and 0–6% camber, 4- and 5-digit
+families. Two pre-registered sections did not produce results, both excluded
+under §6-class rules and reported here:
+
+- `panel_0006` — the forced-trip TARGET generation itself fails to converge
+  (6%-thin section, 5% trip): direct-solve non-convergence exclusion, exactly
+  the pre-registered §6 rule's case. Not a solver failure — no inverse problem
+  was ever posed.
+- `panel_44012` — the NACA 5-digit generator (vendor formula family, 2X0XX
+  mean lines) cannot generate the 44XXX mean line; the pre-registered list
+  included a section outside the implemented geometry family. Pre-registration
+  defect, reported as such (Deviation 11).
+
+**Wilson interval honesty (Deviation 12):** at n_eff=18 with 18 successes the
+Wilson 95% lower bound is **0.824** — the pre-registered criterion (LB ≥ 0.9)
+is mathematically unattainable at this panel size even with a perfect record
+(n ≥ 29 all-success is required). The pre-registration committed to a target
+its own panel size could not certify. Achievable statement: point estimate
+1.00 (18/18), Wilson 95% LB 0.82. Treating panel_0006 as a failure instead of
+an exclusion gives 18/19 = 0.947, LB 0.754.
+
+**H1 verdict (revised):** the monolithic architecture converges and recovers
+the true coefficients on every panel section it could be posed on. The formal
+pre-registered criterion FAILS on a technicality of interval arithmetic at
+n=20 — reported faithfully; the UIUC extension (~100 sections) can certify
+LB ≥ 0.9 if the success rate holds.
