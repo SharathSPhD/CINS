@@ -1,0 +1,4 @@
+# H2 realistic (cold-start) control: nested LM WITHOUT the T4 pre-solve —
+# the dossier's 10^2-10^3 comparison is against blind nested optimization.
+t8:
+  init: perturbed

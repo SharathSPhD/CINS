@@ -1,0 +1,57 @@
+{
+  "cell_name": "control_cold_control",
+  "converged": true,
+  "err_all_inf": 2.1339402467290824e-11,
+  "err_free_inf": 2.1339402467290824e-11,
+  "final_cost": 1.3690522653177506e-23,
+  "final_residual_inf": 3.561380357286481e-12,
+  "manifest": {
+    "cell_name": "control_cold_control",
+    "config_hash": "7320dfb88e7279a0",
+    "config_path": "configs/experiments/control_cold.yaml",
+    "control_baseline": true,
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "fb73163fceaf1ed15df27cca916d27d0f2fe3e05",
+    "scipy_call_signature": {
+      "ftol": 1e-08,
+      "gtol": 1e-08,
+      "max_nfev": 500,
+      "method": "lm",
+      "x_scale": "custom(|x0| floor 1e-3)",
+      "xtol": 1e-08
+    },
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "2412",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "perturbed",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-04T14:36:40.695278+00:00",
+    "transition_mode": "forced"
+  },
+  "n_flow_solves_equivalent": 347,
+  "n_nfev": 6,
+  "notes": [
+    "init=perturbed: T4 pre-solve skipped by design (ablation factor)",
+    "stations remapped by nearest-x; residual max|dx/c|=2.03e-04"
+  ],
+  "scipy_call_signature": {
+    "ftol": 1e-08,
+    "gtol": 1e-08,
+    "max_nfev": 500,
+    "method": "lm",
+    "x_scale": "custom(|x0| floor 1e-3)",
+    "xtol": 1e-08
+  },
+  "scipy_message": "`xtol` termination condition is satisfied.",
+  "scipy_status": 3,
+  "scipy_success": true,
+  "wall_time_s": 602.249887707876
+}
