@@ -67,11 +67,11 @@ export default function Home() {
           className="w-full rounded-lg border border-neutral-200 dark:border-neutral-800"
           controls
           preload="none"
-          poster="/demo/poster.jpg"
+          poster="https://sharathsphd.github.io/CINS/assets/demo/poster.jpg"
         >
-          <source src="/demo/cins-demo-wide.mp4" type="video/mp4" />
+          <source src="https://sharathsphd.github.io/CINS/assets/demo/cins-demo-wide.mp4" type="video/mp4" />
           Your browser does not support embedded video. The file is at
-          /demo/cins-demo-wide.mp4.
+          the project site.
         </video>
         <p className="mt-2 text-xs text-neutral-500">
           A target pressure distribution goes in and a geometry comes back. Every frame of
