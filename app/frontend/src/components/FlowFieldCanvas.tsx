@@ -122,7 +122,11 @@ export default function FlowFieldCanvas({
     const img = offCtx.createImageData(field.nx, field.ny);
     for (let j = 0; j < field.ny; j++) {
       for (let i = 0; i < field.nx; i++) {
-        const idx = (j * field.nx + i) * 4;
+        // Image row 0 renders at the TOP of the drawImage target, but data row
+        // j=0 is y_min (bottom) — write rows flipped so the heatmap matches the
+        // silhouette's y-up world transform. (Bug: suction side rendered below
+        // the airfoil at positive alpha; backend data verified correct.)
+        const idx = ((field.ny - 1 - j) * field.nx + i) * 4;
         const v = field2d[j][i];
         if (v == null) {
           img.data[idx + 3] = 0; // transparent inside the body
