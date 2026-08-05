@@ -379,3 +379,76 @@ the true coefficients on every panel section it could be posed on. The formal
 pre-registered criterion FAILS on a technicality of interval arithmetic at
 n=20 — reported faithfully; the UIUC extension (~100 sections) can certify
 LB ≥ 0.9 if the success rate holds.
+
+
+---
+
+## H1 addendum, part 2: UIUC panel executed (2026-08-05)
+
+The UIUC panel specified in STATS_PROTOCOL section 3.3 has been run. Sections
+were drawn from the 123-file UIUC corpus, stratified by thickness and camber
+decile, after a pre-filter removed 6 sections whose n=8 CST fit exceeds the T2
+gate. That leaves 117 cells. Results are in
+`experiments/results/t8/uiuc_panel_summary.json`, regenerable with
+`python -m cins.benchmarks.panel_summary`.
+
+### Stratified outcome
+
+| Population | Definition | Count |
+|---|---|---|
+| Cells | Sections with a generated configuration | 117 |
+| No inverse problem posed | Target solve did not converge, so no target pressure distribution exists | 24 |
+| Attempted | Cells where a target existed and the inverse was run | 93 |
+| Converged | Newton reached the residual tolerance | 83 |
+| Attempt failures | Solver or geometry faults during the attempt | 10 |
+
+| Criterion | Result | Wilson 95 percent lower bound |
+|---|---|---|
+| Coefficient accuracy, err_free_inf below 1e-4, among converged | 83/83 = 1.000 | 0.956 |
+| Iteration budget, 9 or fewer, among converged | 73/83 = 0.880 | 0.792 |
+| Both criteria, among converged | 73/83 = 0.880 | 0.792 |
+| Both criteria, among attempted | 73/93 = 0.785 | 0.691 |
+
+### Interpretation
+
+Coefficient recovery succeeded on every section that converged. All 83
+converged cells recovered the free coefficients to better than 1e-4, and the
+observed errors cluster near 1e-11. The accuracy criterion therefore holds at
+100 percent with a Wilson lower bound of 0.956.
+
+The pre-registered criterion fails on the iteration budget, not on accuracy.
+Ten converged sections required between 10 and 50 Newton iterations while still
+recovering coefficients to between 1e-11 and 3e-10. The single-digit iteration
+expectation in the dossier was calibrated on NACA sections. It does not hold
+across the wider UIUC geometry space, where sections with unusual camber or
+thickness distributions take longer while still reaching the same accuracy.
+
+### Exclusion classes
+
+- `target_natural`: 16
+- `target_forced`: 7
+- `solver_stagnation`: 3
+- `other`: 3
+- `geometry_te_gap`: 3
+- `other:RuntimeError`: 1
+- `init_flow_solve`: 1
+
+The `target_natural` and `target_forced` classes account for 23
+of the 24 not-posed cells. In those cases the flow solver cannot
+produce a converged solution for the section itself, so no target exists and the
+inverse formulation is not exercised.
+
+Three sections still fail with the wake-direction assertion after the minimum
+trailing-edge-gap fix (goe780, mh62, naca64206). Their trailing-edge gap is
+already above the minimum, so the cause differs from the sharp-trailing-edge
+case that fix addressed. This is recorded as an open item rather than resolved.
+
+### Verdict on H1
+
+The hypothesis that the monolithic formulation recovers geometry on realisable
+targets is supported on accuracy across a 117-section panel. The pre-registered
+composite criterion, which also required single-digit iterations with a Wilson
+lower bound of 0.9, is not met: the bound on the composite criterion is
+0.792 among converged cells and
+0.691 among attempted cells. Both the supported
+component and the failed component are reported.

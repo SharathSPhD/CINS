@@ -1,24 +1,54 @@
 {
   "cell_name": "panel_uiuc_goe407",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": 0.15389033395576976,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 3.1258440280623745e-11,
+  "err_free_inf": 3.1258440280623745e-11,
+  "iterations": 4,
   "manifest": {
     "cell_name": "panel_uiuc_goe407",
-    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_goe407.yaml"
+    "config_hash": "24ed2341f7afae77",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_goe407.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "c95b9b2d51691e0c2f3f7ef68d9cfd15b6e19b4c",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:goe407",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T10:42:42.233006+00:00",
+    "transition_mode": "forced"
   },
-  "model_gap": null,
-  "n_flow_solves_equivalent": 0,
-  "n_residual_evaluations": 0,
-  "notes": [
-    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1765, in solve_viscous\n    solve_coupled(M) # solve coupled system\n    ^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/instrumentation.py\", line 91, in counted_solve_coupled\n    return orig_solve_coupled(m)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1826, in solve_coupled\n    stagpoint_move(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1724, in stagpoint_move\n    assert (ues[0] > 0) and (ues[1] > 0), 'stagpoint_move: velocity error'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: stagpoint_move: velocity error\n\n"
+  "model_gap": 0.2688407779513107,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 100,
+  "notes": [],
+  "realisability": 0.00021857574620240863,
+  "release_verify": {
+    "cd": 0.008897286481164115,
+    "cd_target": 0.008897286481179658,
+    "cl": 0.3962211019825334,
+    "cl_target": 0.3962211019795793,
+    "converged": true,
+    "dcd": 1.554312234475219e-14,
+    "dcl": 2.9540814239226165e-12,
+    "ok": true
+  },
+  "residual_history": [
+    0.0003244591300945705,
+    1.0827625274357285e-06,
+    1.7787296966175685e-10,
+    4.652950607946858e-11
   ],
-  "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 0.0
+  "submap_cond": 70.09840108732233,
+  "wall_time_s": 161.42660387512296
 }

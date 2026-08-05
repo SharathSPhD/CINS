@@ -1,24 +1,54 @@
 {
   "cell_name": "panel_uiuc_fxs03182",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": 0.027988922489311847,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 1.8131468548787666e-11,
+  "err_free_inf": 1.8131468548787666e-11,
+  "iterations": 4,
   "manifest": {
     "cell_name": "panel_uiuc_fxs03182",
-    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_fxs03182.yaml"
+    "config_hash": "c292d2f5a5027403",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_fxs03182.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "c95b9b2d51691e0c2f3f7ef68d9cfd15b6e19b4c",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:fxs03182",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T10:39:21.030825+00:00",
+    "transition_mode": "forced"
   },
-  "model_gap": null,
-  "n_flow_solves_equivalent": 0,
-  "n_residual_evaluations": 0,
-  "notes": [
-    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1765, in solve_viscous\n    solve_coupled(M) # solve coupled system\n    ^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/instrumentation.py\", line 91, in counted_solve_coupled\n    return orig_solve_coupled(m)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1826, in solve_coupled\n    stagpoint_move(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1724, in stagpoint_move\n    assert (ues[0] > 0) and (ues[1] > 0), 'stagpoint_move: velocity error'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: stagpoint_move: velocity error\n\n"
+  "model_gap": 0.22119289303471967,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 100,
+  "notes": [],
+  "realisability": 0.00015180086672749834,
+  "release_verify": {
+    "cd": 0.00757710430442223,
+    "cd_target": 0.007577104304415565,
+    "cl": 0.727815058928616,
+    "cl_target": 0.7278150589301342,
+    "converged": true,
+    "dcd": 6.664807594702893e-15,
+    "dcl": 1.5182299861749016e-12,
+    "ok": true
+  },
+  "residual_history": [
+    0.00048768131096916335,
+    1.3935153478660114e-05,
+    1.1123876493313688e-10,
+    8.008897021184507e-11
   ],
-  "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 0.0
+  "submap_cond": 123.55083178189255,
+  "wall_time_s": 159.35565629205666
 }

@@ -1,0 +1,1310 @@
+{
+  "n_cells": 117,
+  "n_not_posed": 24,
+  "n_attempt_failures": 10,
+  "n_attempted": 93,
+  "n_converged": 83,
+  "exclusion_classes": {
+    "target_natural": 16,
+    "target_forced": 7,
+    "solver_stagnation": 3,
+    "other": 3,
+    "geometry_te_gap": 3,
+    "other:RuntimeError": 1,
+    "init_flow_solve": 1
+  },
+  "accuracy_among_converged": {
+    "k": 83,
+    "n": 83,
+    "fraction": 1.0,
+    "wilson_95_lower_bound": 0.9557646903580262
+  },
+  "iteration_budget_among_converged": {
+    "k": 73,
+    "n": 83,
+    "fraction": 0.8795180722891566,
+    "wilson_95_lower_bound": 0.7922368486742836
+  },
+  "dual_gate_among_converged": {
+    "k": 73,
+    "n": 83,
+    "fraction": 0.8795180722891566,
+    "wilson_95_lower_bound": 0.7922368486742836
+  },
+  "dual_gate_among_attempted": {
+    "k": 73,
+    "n": 93,
+    "fraction": 0.7849462365591398,
+    "wilson_95_lower_bound": 0.6910364820218567
+  },
+  "gates": {
+    "err_free_inf_max": 0.0001,
+    "iterations_max": 9
+  },
+  "cells": [
+    {
+      "section": "2032c",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_forced",
+      "wall_time_s": 16.749717250000685,
+      "notes": [
+        "forced-trip target solve failed to converge"
+      ]
+    },
+    {
+      "section": "ag16",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 2.018611666709802e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 125.76981700002216,
+      "notes": []
+    },
+    {
+      "section": "ag44ct02r",
+      "converged": true,
+      "iterations": 8,
+      "err_free_inf": 8.450568370066414e-12,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 315.9614484999329,
+      "notes": []
+    },
+    {
+      "section": "ah21-9",
+      "converged": true,
+      "iterations": 10,
+      "err_free_inf": 7.015210634619962e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 393.75060254195705,
+      "notes": []
+    },
+    {
+      "section": "ah81131",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "solver_stagnation",
+      "wall_time_s": 0.0,
+      "notes": [
+        "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1765, in solve_viscous\n    solve_coupled(M) # solve coupled system\n    ^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/instrumentation.py\", line 91, in counted_solve_coupled\n    return orig_solve_coupled(m)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1826, in solve_coupled\n    stagpoint_move(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1724, in stagpoint_move\n    assert (ues[0] > 0) and (ues[1] > 0), 'stagpoint_move: velocity error'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: stagpoint_move: velocity error\n\n"
+      ]
+    },
+    {
+      "section": "ah93k131",
+      "converged": true,
+      "iterations": 14,
+      "err_free_inf": 1.7183046652213818e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 543.5775811250787,
+      "notes": []
+    },
+    {
+      "section": "ames02",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_forced",
+      "wall_time_s": 14.443727083969861,
+      "notes": [
+        "forced-trip target solve failed to converge"
+      ]
+    },
+    {
+      "section": "atr72sm",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 4.344170856374063e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 126.03304108302109,
+      "notes": []
+    },
+    {
+      "section": "b737c",
+      "converged": false,
+      "iterations": 50,
+      "err_free_inf": 6.433261562355241e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": "other",
+      "wall_time_s": 1970.5229767910205,
+      "notes": []
+    },
+    {
+      "section": "c141c",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.48938639199514e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 124.16011291719042,
+      "notes": []
+    },
+    {
+      "section": "clarkk",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 1.8249401989578473e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 162.99488825001754,
+      "notes": []
+    },
+    {
+      "section": "davis",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_forced",
+      "wall_time_s": 16.377135917078704,
+      "notes": [
+        "forced-trip target solve failed to converge"
+      ]
+    },
+    {
+      "section": "e1212",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 2.6134093153440396e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 125.58296191715635,
+      "notes": []
+    },
+    {
+      "section": "e182",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 9.847437040880322,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "e212",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 3.869354836538719e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 126.56650199997239,
+      "notes": []
+    },
+    {
+      "section": "e325",
+      "converged": true,
+      "iterations": 23,
+      "err_free_inf": 6.287033393892472e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 862.5202522908803,
+      "notes": []
+    },
+    {
+      "section": "e338",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 4.903058514749148e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 159.3218365001958,
+      "notes": []
+    },
+    {
+      "section": "e378",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 13.250254374928772,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "e417",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 5.493601407113857e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 158.855904832948,
+      "notes": []
+    },
+    {
+      "section": "e472",
+      "converged": true,
+      "iterations": 5,
+      "err_free_inf": 2.0760171359768265e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 198.25129533419386,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=1.25e-04"
+      ]
+    },
+    {
+      "section": "e543",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 4.753089588582782e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 122.50103137502447,
+      "notes": []
+    },
+    {
+      "section": "e556",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 2.890548911338442e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 164.35168791702017,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=1.07e-04"
+      ]
+    },
+    {
+      "section": "e587",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 1.267459470710719e-10,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 159.4898817089852,
+      "notes": []
+    },
+    {
+      "section": "e637",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 2.2507051777864717e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 161.64742016699165,
+      "notes": []
+    },
+    {
+      "section": "e668",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 3.6626437993625416e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 158.50173362507485,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=9.20e-05"
+      ]
+    },
+    {
+      "section": "e837",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 7.623252029631544e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 159.6807803751435,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=1.43e-04"
+      ]
+    },
+    {
+      "section": "e864",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 5.63793456365147e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 161.44399562501349,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=9.19e-05"
+      ]
+    },
+    {
+      "section": "eh2010",
+      "converged": true,
+      "iterations": 12,
+      "err_free_inf": 1.7907591381982613e-10,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 458.2606348330155,
+      "notes": []
+    },
+    {
+      "section": "fx38153",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 2.4341584303755326e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 123.6161821661517,
+      "notes": []
+    },
+    {
+      "section": "fx61184",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 1.3579248836492752e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 161.81622570799664,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=7.09e-05"
+      ]
+    },
+    {
+      "section": "fx6617ai",
+      "converged": true,
+      "iterations": 5,
+      "err_free_inf": 1.769476232205136e-10,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 193.58614195813425,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=1.37e-04"
+      ]
+    },
+    {
+      "section": "fx69h083",
+      "converged": false,
+      "iterations": 50,
+      "err_free_inf": 2.9015179148217385e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": "other",
+      "wall_time_s": 1950.7499275831506,
+      "notes": []
+    },
+    {
+      "section": "fx73170a",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 1.4674261805680544e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 158.2148265838623,
+      "notes": []
+    },
+    {
+      "section": "fx75193",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 5.368158695340242e-10,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 159.18661791691557,
+      "notes": []
+    },
+    {
+      "section": "fx77w343",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 10.345511040883139,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "fx83w108",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 1.804248417336396e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 161.1205293328967,
+      "notes": []
+    },
+    {
+      "section": "fxs03182",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 1.8131468548787666e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 159.35565629205666,
+      "notes": []
+    },
+    {
+      "section": "giiik",
+      "converged": true,
+      "iterations": 7,
+      "err_free_inf": 3.365496770157961e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 265.1771048749797,
+      "notes": []
+    },
+    {
+      "section": "goe100",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "solver_stagnation",
+      "wall_time_s": 0.0,
+      "notes": [
+        "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1765, in solve_viscous\n    solve_coupled(M) # solve coupled system\n    ^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/instrumentation.py\", line 91, in counted_solve_coupled\n    return orig_solve_coupled(m)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1826, in solve_coupled\n    stagpoint_move(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1724, in stagpoint_move\n    assert (ues[0] > 0) and (ues[1] > 0), 'stagpoint_move: velocity error'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: stagpoint_move: velocity error\n\n"
+      ]
+    },
+    {
+      "section": "goe124",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 1.4960588323731372e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 164.48758945800364,
+      "notes": []
+    },
+    {
+      "section": "goe15",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 11.157579417107627,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe182",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 2.0215495943887163e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 124.99158941605128,
+      "notes": []
+    },
+    {
+      "section": "goe225",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 7.582767747038588e-12,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 120.48093116702512,
+      "notes": []
+    },
+    {
+      "section": "goe243",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 9.05074366147618e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 119.37484658393078,
+      "notes": []
+    },
+    {
+      "section": "goe279",
+      "converged": true,
+      "iterations": 38,
+      "err_free_inf": 3.49888451545155e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 1392.7577085001394,
+      "notes": []
+    },
+    {
+      "section": "goe300",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.2760320577953621e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 121.87553433398716,
+      "notes": []
+    },
+    {
+      "section": "goe320",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 10.743205625098199,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe336",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_forced",
+      "wall_time_s": 14.656402500113472,
+      "notes": [
+        "forced-trip target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe367",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.813105221515343e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 119.8996953330934,
+      "notes": []
+    },
+    {
+      "section": "goe381",
+      "converged": true,
+      "iterations": 16,
+      "err_free_inf": 3.487105049160277e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 598.0748887909576,
+      "notes": []
+    },
+    {
+      "section": "goe394",
+      "converged": true,
+      "iterations": 16,
+      "err_free_inf": 2.726119469054211e-10,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 595.0725928330794,
+      "notes": []
+    },
+    {
+      "section": "goe407",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 3.1258440280623745e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 161.42660387512296,
+      "notes": []
+    },
+    {
+      "section": "goe432",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 9.790670291986316,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe445",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_forced",
+      "wall_time_s": 17.27423429209739,
+      "notes": [
+        "forced-trip target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe464",
+      "converged": true,
+      "iterations": 50,
+      "err_free_inf": 3.843991791541157e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 1882.3941937920172,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=1.26e-04"
+      ]
+    },
+    {
+      "section": "goe490",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 6.359401893973882e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 124.35637850011699,
+      "notes": []
+    },
+    {
+      "section": "goe503",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 2.737365889515786e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 159.52340108412318,
+      "notes": []
+    },
+    {
+      "section": "goe517",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 10.768036250025034,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe534",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.3339240823029286e-10,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 122.7324799168855,
+      "notes": []
+    },
+    {
+      "section": "goe563",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 9.345023040892556,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe585",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 9.509548166999593,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe602m",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 9.71771812508814,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe622",
+      "converged": true,
+      "iterations": 21,
+      "err_free_inf": 2.64097632651783e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 770.5938929591794,
+      "notes": []
+    },
+    {
+      "section": "goe646",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 10.545683207921684,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "goe681",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 9.766765174390457e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 132.51176750008017,
+      "notes": []
+    },
+    {
+      "section": "goe738",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.656957904216938e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 119.58441379107535,
+      "notes": []
+    },
+    {
+      "section": "goe780",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "geometry_te_gap",
+      "wall_time_s": 0.0,
+      "notes": [
+        "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1758, in solve_viscous\n    build_wake(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 748, in build_wake\n    assert t[0] > 0, 'Wrong wake direction; ensure airfoil points are CCW'\n           ^^^^^^^^\nAssertionError: Wrong wake direction; ensure airfoil points are CCW\n\n"
+      ]
+    },
+    {
+      "section": "goe81",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "other:RuntimeError",
+      "wall_time_s": 0.0,
+      "notes": [
+        "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nLibrary/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 63, in run_cell\n    result = run_pipeline(cfg, cell_name=cell_name, config_path=config_path, run_dir=str(out_dir))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 242, in prepare_cell\n    set_forced_transition(m, cfg.transition.xtr_upper, cfg.transition.xtr_lower)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/solver/mfoil_adapter.py\", line 280, in set_forced_transition\n    raise ValueError(\nValueError: forced trip x/c=0.05 on surface 0 is AFT of the current transition; laminarizing turbulent nodes is not supported (ADR-0003)\n\n"
+      ]
+    },
+    {
+      "section": "hq010",
+      "converged": true,
+      "iterations": 7,
+      "err_free_inf": 2.401614185298939e-10,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 266.4429189590737,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=1.26e-04"
+      ]
+    },
+    {
+      "section": "hq159b",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "init_flow_solve",
+      "wall_time_s": 53.15799312503077,
+      "notes": [
+        "init=presolve: flow solve at A0 failed to converge"
+      ]
+    },
+    {
+      "section": "hq259b",
+      "converged": true,
+      "iterations": 5,
+      "err_free_inf": 1.5592555024923627e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 193.6550054580439,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=3.03e-05"
+      ]
+    },
+    {
+      "section": "hq3514",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 2.633544937680199e-09,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 119.791153667029,
+      "notes": []
+    },
+    {
+      "section": "ht33",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_forced",
+      "wall_time_s": 12.236657416913658,
+      "notes": [
+        "forced-trip target solve failed to converge"
+      ]
+    },
+    {
+      "section": "k3311",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 4.7176595963094314e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 120.28392008296214,
+      "notes": []
+    },
+    {
+      "section": "lg10sc",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 3.5490367589208205e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 161.07800829201005,
+      "notes": []
+    },
+    {
+      "section": "lwk80120k25",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 4.924899377201086e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 159.10255541605875,
+      "notes": []
+    },
+    {
+      "section": "m2",
+      "converged": true,
+      "iterations": 6,
+      "err_free_inf": 1.8766710407902565e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 236.66600395808928,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=3.02e-05"
+      ]
+    },
+    {
+      "section": "m665",
+      "converged": true,
+      "iterations": 5,
+      "err_free_inf": 2.3201607302070215e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 190.27141208411194,
+      "notes": []
+    },
+    {
+      "section": "marske7",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 3.097538892049556e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 156.28286858298816,
+      "notes": []
+    },
+    {
+      "section": "mh120",
+      "converged": true,
+      "iterations": 9,
+      "err_free_inf": 4.120440447175078e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 343.7472013339866,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=7.33e-05"
+      ]
+    },
+    {
+      "section": "mh26",
+      "converged": false,
+      "iterations": 50,
+      "err_free_inf": 4.48190512480906e-11,
+      "dual_gate_pass": false,
+      "exclusion_class": "other",
+      "wall_time_s": 1875.6474147920962,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=3.38e-05"
+      ]
+    },
+    {
+      "section": "mh62",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "geometry_te_gap",
+      "wall_time_s": 0.0,
+      "notes": [
+        "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1758, in solve_viscous\n    build_wake(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 748, in build_wake\n    assert t[0] > 0, 'Wrong wake direction; ensure airfoil points are CCW'\n           ^^^^^^^^\nAssertionError: Wrong wake direction; ensure airfoil points are CCW\n\n"
+      ]
+    },
+    {
+      "section": "mh95",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 6.350883707817445e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 122.77084558294155,
+      "notes": []
+    },
+    {
+      "section": "n0009sm",
+      "converged": true,
+      "iterations": 5,
+      "err_free_inf": 3.8698960702632235e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 210.63223654194735,
+      "notes": []
+    },
+    {
+      "section": "n2415",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 8.739037271610073e-12,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 121.86958925006911,
+      "notes": []
+    },
+    {
+      "section": "n63415",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 8.703593401548915e-12,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 132.0684487922117,
+      "notes": []
+    },
+    {
+      "section": "n642415",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 2.4542645693514942e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 131.9919619159773,
+      "notes": []
+    },
+    {
+      "section": "naca001035",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 10.044126416090876,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "naca1410",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.0161038677125589e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 120.9345681250561,
+      "notes": []
+    },
+    {
+      "section": "naca2408",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 3.4746667348928284e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 119.53279020800255,
+      "notes": []
+    },
+    {
+      "section": "naca63206",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "solver_stagnation",
+      "wall_time_s": 0.0,
+      "notes": [
+        "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1765, in solve_viscous\n    solve_coupled(M) # solve coupled system\n    ^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/instrumentation.py\", line 91, in counted_solve_coupled\n    return orig_solve_coupled(m)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1826, in solve_coupled\n    stagpoint_move(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1724, in stagpoint_move\n    assert (ues[0] > 0) and (ues[1] > 0), 'stagpoint_move: velocity error'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: stagpoint_move: velocity error\n\n"
+      ]
+    },
+    {
+      "section": "naca64206",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "geometry_te_gap",
+      "wall_time_s": 0.0,
+      "notes": [
+        "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1758, in solve_viscous\n    build_wake(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 748, in build_wake\n    assert t[0] > 0, 'Wrong wake direction; ensure airfoil points are CCW'\n           ^^^^^^^^\nAssertionError: Wrong wake direction; ensure airfoil points are CCW\n\n"
+      ]
+    },
+    {
+      "section": "naca64a410",
+      "converged": true,
+      "iterations": 21,
+      "err_free_inf": 1.1377515769794844e-10,
+      "dual_gate_pass": false,
+      "exclusion_class": null,
+      "wall_time_s": 779.4346367500257,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=8.66e-05"
+      ]
+    },
+    {
+      "section": "naca654221",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 2.6725230362067975e-10,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 133.13683058414608,
+      "notes": []
+    },
+    {
+      "section": "naca671215",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.394723225800476e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 127.98355700005777,
+      "notes": []
+    },
+    {
+      "section": "nlf0115",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 2.7541913194539802e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 185.9152900420595,
+      "notes": []
+    },
+    {
+      "section": "npl9660",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 2.1935269572948002e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 118.73975045885891,
+      "notes": []
+    },
+    {
+      "section": "p51hroot",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 1.562905360685818e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 184.0509623750113,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=4.65e-05"
+      ]
+    },
+    {
+      "section": "rae69ck",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 5.158459770449042e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 182.59777945792302,
+      "notes": []
+    },
+    {
+      "section": "raf34",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.8798962386767926e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 136.92457304196432,
+      "notes": []
+    },
+    {
+      "section": "rc12b3",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 2.401098764259757e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 157.37725508399308,
+      "notes": []
+    },
+    {
+      "section": "rg15",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 1.4892115318687615e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 142.73147400002927,
+      "notes": []
+    },
+    {
+      "section": "s1046",
+      "converged": true,
+      "iterations": 4,
+      "err_free_inf": 2.780614627440059e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 183.12132270797156,
+      "notes": []
+    },
+    {
+      "section": "s2062",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 4.0415948365790655e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 130.67571145901456,
+      "notes": []
+    },
+    {
+      "section": "s4062",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 4.645452078566592e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 133.15020766691305,
+      "notes": []
+    },
+    {
+      "section": "s6063",
+      "converged": true,
+      "iterations": 5,
+      "err_free_inf": 8.563005859940631e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 220.48761566611938,
+      "notes": []
+    },
+    {
+      "section": "s9026",
+      "converged": true,
+      "iterations": 8,
+      "err_free_inf": 3.0259350450659306e-10,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 329.1566715419758,
+      "notes": [
+        "stations remapped by nearest-x; residual max|dx/c|=7.24e-05"
+      ]
+    },
+    {
+      "section": "sc20414",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_forced",
+      "wall_time_s": 18.704415042186156,
+      "notes": [
+        "forced-trip target solve failed to converge"
+      ]
+    },
+    {
+      "section": "sc2110",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 7.248590616626416e-12,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 124.2212267499417,
+      "notes": []
+    },
+    {
+      "section": "sd7084",
+      "converged": true,
+      "iterations": 9,
+      "err_free_inf": 2.7916266520655597e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 366.77299095806666,
+      "notes": []
+    },
+    {
+      "section": "spicasm",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 11.598315500188619,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "tempest1",
+      "converged": true,
+      "iterations": 6,
+      "err_free_inf": 2.1114110460018765e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 249.26537645887583,
+      "notes": []
+    },
+    {
+      "section": "ui1720",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 6.884686050423472e-11,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 119.44949333299883,
+      "notes": []
+    },
+    {
+      "section": "usa34",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 10.690054500009865,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "usa50",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 10.103231999790296,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    },
+    {
+      "section": "vr14",
+      "converged": true,
+      "iterations": 3,
+      "err_free_inf": 9.272360657064382e-12,
+      "dual_gate_pass": true,
+      "exclusion_class": null,
+      "wall_time_s": 117.77328483317979,
+      "notes": []
+    },
+    {
+      "section": "ys915",
+      "converged": false,
+      "iterations": 0,
+      "err_free_inf": null,
+      "dual_gate_pass": false,
+      "exclusion_class": "target_natural",
+      "wall_time_s": 9.454592333175242,
+      "notes": [
+        "direct (natural) target solve failed to converge"
+      ]
+    }
+  ]
+}

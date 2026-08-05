@@ -1,24 +1,53 @@
 {
   "cell_name": "panel_uiuc_s4062",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": -0.6018039342598704,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 4.645452078566592e-11,
+  "err_free_inf": 4.645452078566592e-11,
+  "iterations": 3,
   "manifest": {
     "cell_name": "panel_uiuc_s4062",
-    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_s4062.yaml"
+    "config_hash": "11833c5a1abc7df7",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_s4062.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "f985256c16813cd3afb0a2ed4a55340204534405",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:s4062",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T12:58:49.981169+00:00",
+    "transition_mode": "forced"
   },
-  "model_gap": null,
-  "n_flow_solves_equivalent": 0,
-  "n_residual_evaluations": 0,
-  "notes": [
-    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1765, in solve_viscous\n    solve_coupled(M) # solve coupled system\n    ^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/instrumentation.py\", line 91, in counted_solve_coupled\n    return orig_solve_coupled(m)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1826, in solve_coupled\n    stagpoint_move(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1724, in stagpoint_move\n    assert (ues[0] > 0) and (ues[1] > 0), 'stagpoint_move: velocity error'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: stagpoint_move: velocity error\n\n"
+  "model_gap": 0.06949877067591283,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 67,
+  "notes": [],
+  "realisability": 2.5098609696231838e-05,
+  "release_verify": {
+    "cd": 0.004956440323368416,
+    "cd_target": 0.004956440323396648,
+    "cl": 0.6832154738523749,
+    "cl_target": 0.6832154738559566,
+    "converged": true,
+    "dcd": 2.8232624571522535e-14,
+    "dcl": 3.5816904997432175e-12,
+    "ok": true
+  },
+  "residual_history": [
+    2.218180771277032e-05,
+    3.28872501373586e-08,
+    5.277220237085167e-11
   ],
-  "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 0.0
+  "submap_cond": 102.13274957564893,
+  "wall_time_s": 133.15020766691305
 }

@@ -1,24 +1,53 @@
 {
   "cell_name": "panel_uiuc_goe681",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": -0.9545622396174178,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 9.766765174390457e-11,
+  "err_free_inf": 9.766765174390457e-11,
+  "iterations": 3,
   "manifest": {
     "cell_name": "panel_uiuc_goe681",
-    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_goe681.yaml"
+    "config_hash": "17150ad21d57ae78",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_goe681.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "c95b9b2d51691e0c2f3f7ef68d9cfd15b6e19b4c",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:goe681",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T11:24:56.718785+00:00",
+    "transition_mode": "forced"
   },
-  "model_gap": null,
-  "n_flow_solves_equivalent": 0,
-  "n_residual_evaluations": 0,
-  "notes": [
-    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1758, in solve_viscous\n    build_wake(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 748, in build_wake\n    assert t[0] > 0, 'Wrong wake direction; ensure airfoil points are CCW'\n           ^^^^^^^^\nAssertionError: Wrong wake direction; ensure airfoil points are CCW\n\n"
+  "model_gap": 0.1765193450676273,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 67,
+  "notes": [],
+  "realisability": 8.819258402301108e-06,
+  "release_verify": {
+    "cd": 0.008275926262702965,
+    "cd_target": 0.009627145261975108,
+    "cl": 0.4724441182133855,
+    "cl_target": 0.4669258744311241,
+    "converged": false,
+    "dcd": 0.0013512189992721437,
+    "dcl": 0.0055182437822614006,
+    "ok": false
+  },
+  "residual_history": [
+    5.5780345137449414e-05,
+    1.2846875881639293e-06,
+    1.7576597753766274e-11
   ],
-  "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 0.0
+  "submap_cond": 115.90034778545838,
+  "wall_time_s": 132.51176750008017
 }

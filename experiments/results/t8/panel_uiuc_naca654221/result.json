@@ -1,24 +1,53 @@
 {
   "cell_name": "panel_uiuc_naca654221",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": -0.6544051846418792,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 2.6725230362067975e-10,
+  "err_free_inf": 2.6725230362067975e-10,
+  "iterations": 3,
   "manifest": {
     "cell_name": "panel_uiuc_naca654221",
-    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_naca654221.yaml"
+    "config_hash": "7b603e898bf78255",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_naca654221.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "490e3ac3320e1ae6bb11dc1b72d1802deaf2a11a",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:naca654221",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T12:35:17.554195+00:00",
+    "transition_mode": "forced"
   },
-  "model_gap": null,
-  "n_flow_solves_equivalent": 0,
-  "n_residual_evaluations": 0,
-  "notes": [
-    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nname=cell_name, config_path=config_path, run_dir=str(out_dir))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 450, in _run_pipeline_inner\n    res = solve_inverse(prep.m, prob, cfg, diag=diag, run_dir=run_dir, run_manifest=manifest)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/solver/newton.py\", line 284, in solve_inverse\n    apply_geometry(m, A[:n_u], A[n_u:], prob.zeta_T_u, prob.zeta_T_l, prob.psi)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/solver/geometry_update.py\", line 52, in apply_geometry\n    mod.build_wake(m)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 748, in build_wake\n    assert t[0] > 0, 'Wrong wake direction; ensure airfoil points are CCW'\n           ^^^^^^^^\nAssertionError: Wrong wake direction; ensure airfoil points are CCW\n\n"
+  "model_gap": 0.11624409839514036,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 67,
+  "notes": [],
+  "realisability": 3.190417419824416e-05,
+  "release_verify": {
+    "cd": 0.00805191033921604,
+    "cd_target": 0.008051910339159425,
+    "cl": 0.28994067046164657,
+    "cl_target": 0.28994067047569777,
+    "converged": true,
+    "dcd": 5.6614435361979076e-14,
+    "dcl": 1.4051204644260906e-11,
+    "ok": true
+  },
+  "residual_history": [
+    7.283962839613112e-05,
+    2.102162054745447e-08,
+    3.305384304102544e-11
   ],
-  "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 0.0
+  "submap_cond": 87.40887377994687,
+  "wall_time_s": 133.13683058414608
 }

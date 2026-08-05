@@ -1,24 +1,60 @@
 {
   "cell_name": "panel_uiuc_s9026",
-  "converged": false,
-  "convergence_order": null,
+  "converged": true,
+  "convergence_order": 0.30755972944646015,
   "dof_check_error": null,
-  "err_all_inf": null,
-  "err_free_inf": null,
-  "iterations": 0,
+  "err_all_inf": 3.0259350450659306e-10,
+  "err_free_inf": 3.0259350450659306e-10,
+  "iterations": 8,
   "manifest": {
     "cell_name": "panel_uiuc_s9026",
-    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_s9026.yaml"
+    "config_hash": "4576be19c462b9e8",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_s9026.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "03e733767278f535e62a65a5ad278ea44910bd45",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:s9026",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T13:04:44.137746+00:00",
+    "transition_mode": "forced"
   },
-  "model_gap": null,
-  "n_flow_solves_equivalent": 0,
-  "n_residual_evaluations": 0,
+  "model_gap": 0.0695856317902058,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 232,
   "notes": [
-    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1758, in solve_viscous\n    build_wake(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 748, in build_wake\n    assert t[0] > 0, 'Wrong wake direction; ensure airfoil points are CCW'\n           ^^^^^^^^\nAssertionError: Wrong wake direction; ensure airfoil points are CCW\n\n"
+    "stations remapped by nearest-x; residual max|dx/c|=7.24e-05"
   ],
-  "realisability": null,
-  "release_verify": null,
-  "residual_history": [],
-  "submap_cond": null,
-  "wall_time_s": 0.0
+  "realisability": 0.02817464480146145,
+  "release_verify": {
+    "cd": 0.005524029657601202,
+    "cd_target": 0.005524029657674516,
+    "cl": 0.20937192389285705,
+    "cl_target": 0.20937192391437798,
+    "converged": true,
+    "dcd": 7.331375090346981e-14,
+    "dcl": 2.1520923931817038e-11,
+    "ok": true
+  },
+  "residual_history": [
+    0.01098549500407035,
+    0.009411934276664301,
+    0.00012117167366526712,
+    7.185447902962845e-08,
+    7.092772339279266e-10,
+    5.208336306831623e-10,
+    1.131993405398898e-10,
+    7.07907241091996e-11
+  ],
+  "submap_cond": 70.86811666806003,
+  "wall_time_s": 329.1566715419758
 }

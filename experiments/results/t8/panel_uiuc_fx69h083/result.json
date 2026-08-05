@@ -15,7 +15,7 @@
       "n_lower": 8,
       "n_upper": 8
     },
-    "git_sha": "1057059e4f5df8ff2caecb3696b8db84dcafe55f",
+    "git_sha": "4665ffc0a3571b308618c0e44c5b6c5130a35d33",
     "seed": 42,
     "t8_factors": {
       "airfoil": "uiuc:fx69h083",
@@ -25,7 +25,7 @@
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-04T21:26:17.400131+00:00",
+    "timestamp": "2026-08-05T09:58:40.487184+00:00",
     "transition_mode": "forced"
   },
   "model_gap": 0.057864565151035025,
@@ -96,5 +96,5 @@
     3.10064618032586e-10
   ],
   "submap_cond": 70.34555615859942,
-  "wall_time_s": 1856.382371417014
+  "wall_time_s": 1950.7499275831506
 }

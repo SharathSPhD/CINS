@@ -15,7 +15,7 @@
       "n_lower": 8,
       "n_upper": 8
     },
-    "git_sha": "1057059e4f5df8ff2caecb3696b8db84dcafe55f",
+    "git_sha": "8ac0b531ddc7d8ecc8ce0f625eb83d78054c5f5e",
     "seed": 42,
     "t8_factors": {
       "airfoil": "uiuc:sc20414",
@@ -25,7 +25,7 @@
       "n_perturb_frac": 0.05,
       "station_selection": "qr_pivot"
     },
-    "timestamp": "2026-08-05T00:26:49.223592+00:00",
+    "timestamp": "2026-08-05T13:09:44.993046+00:00",
     "transition_mode": "forced"
   },
   "model_gap": null,
@@ -38,5 +38,5 @@
   "release_verify": null,
   "residual_history": [],
   "submap_cond": null,
-  "wall_time_s": 15.8025237089023
+  "wall_time_s": 18.704415042186156
 }

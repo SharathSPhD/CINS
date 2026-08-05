@@ -41,6 +41,11 @@ from typing import Any
 
 ERR_GATE = 1e-4
 ITER_GATE = 9
+
+# Exclusion classes in which no inverse problem was ever posed, so the cell
+# cannot count for or against the method. Every other non-converged class is a
+# failure of the attempt and stays in the attempted denominator.
+NOT_POSED = frozenset({"t2_fit", "target_natural", "target_forced", "init_flow_solve"})
 Z = 1.959963984540054  # two-sided 95 percent normal quantile
 
 
@@ -109,9 +114,20 @@ def summarise(results_dir: Path, prefix: str) -> dict[str, Any]:
         )
 
     excluded = [c for c in cells if not c["converged"]]
-    effective = [c for c in cells if c["converged"]]
-    k = sum(1 for c in effective if c["dual_gate_pass"])
-    n_eff = len(effective)
+    not_posed = [c for c in excluded if c["exclusion_class"] in NOT_POSED]
+    attempt_failures = [c for c in excluded if c["exclusion_class"] not in NOT_POSED]
+    converged = [c for c in cells if c["converged"]]
+
+    n_attempted = len(converged) + len(attempt_failures)
+    k_dual = sum(1 for c in converged if c["dual_gate_pass"])
+    k_acc = sum(
+        1 for c in converged
+        if c["err_free_inf"] is not None and c["err_free_inf"] < ERR_GATE
+    )
+    k_iter = sum(
+        1 for c in converged
+        if c["iterations"] is not None and c["iterations"] <= ITER_GATE
+    )
 
     classes: dict[str, int] = {}
     for c in excluded:
@@ -119,12 +135,33 @@ def summarise(results_dir: Path, prefix: str) -> dict[str, Any]:
 
     return {
         "n_cells": len(cells),
-        "n_excluded": len(excluded),
+        "n_not_posed": len(not_posed),
+        "n_attempt_failures": len(attempt_failures),
+        "n_attempted": n_attempted,
+        "n_converged": len(converged),
         "exclusion_classes": dict(sorted(classes.items(), key=lambda kv: -kv[1])),
-        "n_effective": n_eff,
-        "n_dual_gate_pass": k,
-        "dual_gate_fraction": (k / n_eff) if n_eff else 0.0,
-        "wilson_95_lower_bound": wilson_lower_bound(k, n_eff),
+        # Accuracy and iteration budget are reported separately because they
+        # fail for different reasons and carry different weight.
+        "accuracy_among_converged": {
+            "k": k_acc, "n": len(converged),
+            "fraction": (k_acc / len(converged)) if converged else 0.0,
+            "wilson_95_lower_bound": wilson_lower_bound(k_acc, len(converged)),
+        },
+        "iteration_budget_among_converged": {
+            "k": k_iter, "n": len(converged),
+            "fraction": (k_iter / len(converged)) if converged else 0.0,
+            "wilson_95_lower_bound": wilson_lower_bound(k_iter, len(converged)),
+        },
+        "dual_gate_among_converged": {
+            "k": k_dual, "n": len(converged),
+            "fraction": (k_dual / len(converged)) if converged else 0.0,
+            "wilson_95_lower_bound": wilson_lower_bound(k_dual, len(converged)),
+        },
+        "dual_gate_among_attempted": {
+            "k": k_dual, "n": n_attempted,
+            "fraction": (k_dual / n_attempted) if n_attempted else 0.0,
+            "wilson_95_lower_bound": wilson_lower_bound(k_dual, n_attempted),
+        },
         "gates": {"err_free_inf_max": ERR_GATE, "iterations_max": ITER_GATE},
         "cells": cells,
     }
@@ -136,10 +173,14 @@ def main(argv: list[str]) -> int:
     out = Path(argv[3]) if len(argv) > 3 else results_dir / "uiuc_panel_summary.json"
     summary = summarise(results_dir, prefix)
     out.write_text(json.dumps(summary, indent=2))
-    print(f"cells={summary['n_cells']} effective={summary['n_effective']} "
-          f"dual_gate={summary['n_dual_gate_pass']} "
-          f"fraction={summary['dual_gate_fraction']:.3f} "
-          f"wilson_lb={summary['wilson_95_lower_bound']:.3f}")
+    print(f"cells={summary['n_cells']} not_posed={summary['n_not_posed']} "
+          f"attempt_failures={summary['n_attempt_failures']} "
+          f"attempted={summary['n_attempted']} converged={summary['n_converged']}")
+    for key in ("accuracy_among_converged", "iteration_budget_among_converged",
+                "dual_gate_among_converged", "dual_gate_among_attempted"):
+        b = summary[key]
+        print(f"  {key}: {b['k']}/{b['n']} = {b['fraction']:.3f} "
+              f"(Wilson 95% LB {b['wilson_95_lower_bound']:.3f})")
     for cls, count in summary["exclusion_classes"].items():
         print(f"  excluded[{cls}] = {count}")
     print(f"wrote {out}")

@@ -1,12 +1,12 @@
 {
   "manifest": {
-    "git_sha": "1057059e4f5df8ff2caecb3696b8db84dcafe55f",
+    "git_sha": "4665ffc0a3571b308618c0e44c5b6c5130a35d33",
     "config_hash": "840c51e107ca9cc7",
-    "timestamp_utc": "2026-08-04T21:56:26.286548+00:00",
+    "timestamp_utc": "2026-08-05T10:30:20.780612+00:00",
     "cell_name": "panel_uiuc_fx69h083",
     "config_path": "configs/experiments/panel_uiuc/panel_uiuc_fx69h083.yaml",
     "seed": 42,
-    "timestamp": "2026-08-04T21:26:17.400131+00:00",
+    "timestamp": "2026-08-05T09:58:40.487184+00:00",
     "t8_factors": {
       "airfoil": "uiuc:fx69h083",
       "station_selection": "qr_pivot",

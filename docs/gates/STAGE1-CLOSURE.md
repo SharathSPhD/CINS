@@ -332,3 +332,29 @@ follow-ons that do not gate Stage 1: (a) the UIUC 87-cell rerun completing in th
 background (its summary + ANALYSIS/H1 update land as a follow-up commit — panel
 machinery itself is verified), (b) the paper's pre-submission novelty search
 (TODO-marked in the manuscript, required before submission, not before closure).
+
+
+## UIUC panel closed (2026-08-05)
+
+The follow-on tracked at closure is complete. The 117-section UIUC
+panel ran to completion after the loader trailing-edge-gap fix.
+
+Coefficient accuracy holds on every converged section: 83 of 83,
+Wilson 95 percent lower bound 0.956. The composite
+pre-registered criterion is not met, at 0.880 with lower bound
+0.792, because ten sections needed between 10 and 50
+Newton iterations while still recovering coefficients to between 1e-11 and
+3e-10. The single-digit iteration expectation was calibrated on NACA sections
+and does not transfer to the wider UIUC geometry space.
+
+Full stratification, exclusion classes and per-cell records are in
+`experiments/results/t8/ANALYSIS.md` and
+`experiments/results/t8/uiuc_panel_summary.json`.
+
+Open item carried forward: three sections (goe780, mh62, naca64206) fail the
+vendor wake-direction assertion for a reason unrelated to sharp trailing edges,
+since their gap already exceeds the enforced minimum.
+
+The pre-submission novelty search is also complete, recorded in
+`docs/novelty-search.md`, and corrected a misattribution of the nearest prior
+art that had propagated from the dossier into the manuscript.
