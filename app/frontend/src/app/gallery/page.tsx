@@ -92,9 +92,8 @@ export default function GalleryPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Results Gallery</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-        {data.manifest_note}. The flow fields and airfoil corpus below are solved live on
-        load. The panel sweep, figures and residual history are archived runs replayed for
-        reference.
+        {data.manifest_note}. Everything on this page is stored output, so nothing here waits
+        on a solve. Use Analyze, Inverse or Flow Field to run the solver yourself.
       </p>
       <section className="mt-8">
         <h2 className="text-lg font-medium">Flow field showcase</h2>
@@ -153,7 +152,6 @@ export default function GalleryPage() {
           <table className="w-full">
             <thead className="sticky top-0 bg-neutral-100 dark:bg-neutral-900">
               <tr>
-                <th className="text-left px-3 py-1.5">shape</th>
                 <th className="text-left px-3 py-1.5">cell</th>
                 <th className="text-left px-3 py-1.5">converged</th>
                 <th className="text-left px-3 py-1.5">iterations</th>
