@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import TheaterStage from "@/components/TheaterStage";
 import {
+  airfoilGeometry,
   analyze,
   ApiError,
   pollInverse,
   presolveGateRaw,
+  showcase,
   submitInverse,
   submitInverseRaw,
   type BaselineSpec,
+  type DofAccounting,
   type InverseJobResponse,
   type RawTargetGate,
+  type ShowcaseResponse,
 } from "@/lib/api";
 
 const POLL_INTERVAL_MS = 1500;
@@ -22,28 +27,96 @@ export default function InversePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Inverse Design</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Inverse Design Theater</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         Submits a monolithic CST-Newton inverse solve (dossier §7.6) as a background job, then
-        polls for status and streams the residual history as it arrives.
+        polls for status and animates every Newton iteration live — geometry, Cp vs target, and
+        the R/T/G convergence trace — as they land.
       </p>
 
-      <div className="mt-4 inline-flex rounded-md border border-neutral-300 dark:border-neutral-700 overflow-hidden text-sm">
-        <button
-          className={`px-3 py-1.5 ${mode === "raw_target" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : ""}`}
-          onClick={() => setMode("raw_target")}
-        >
-          Custom target
-        </button>
-        <button
-          className={`px-3 py-1.5 ${mode === "naca_target" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : ""}`}
-          onClick={() => setMode("naca_target")}
-        >
-          Self-consistency (NACA target)
-        </button>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-md border border-neutral-300 dark:border-neutral-700 overflow-hidden text-sm">
+          <button
+            className={`px-3 py-1.5 ${mode === "raw_target" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : ""}`}
+            onClick={() => setMode("raw_target")}
+          >
+            Custom target
+          </button>
+          <button
+            className={`px-3 py-1.5 ${mode === "naca_target" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : ""}`}
+            onClick={() => setMode("naca_target")}
+          >
+            Self-consistency (NACA target)
+          </button>
+        </div>
+        <ReplayArchivedT7 />
       </div>
 
       {mode === "naca_target" ? <NacaTargetPanel /> : <RawTargetPanel />}
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// "Replay archived T7" instant-demo button (item 7) — fed from the archived
+// diagnostics.json residual series, NOT a live solve. Clearly labeled.
+// --------------------------------------------------------------------------- //
+
+function ReplayArchivedT7() {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState<ShowcaseResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function onClick() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    setOpen(true);
+    if (data) return;
+    setLoading(true);
+    setError(null);
+    try {
+      setData(await showcase());
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onClick}
+        className="text-sm rounded-md border border-dashed border-neutral-400 dark:border-neutral-600 px-3 py-1.5"
+      >
+        {open ? "Hide" : "Replay archived T7 run"}
+      </button>
+      {open && (
+        <div className="mt-3 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-1">
+            Archived replay — not a live solve
+          </div>
+          {loading && <div className="text-sm text-neutral-500">loading archived run...</div>}
+          {error && <div className="text-sm text-red-600 dark:text-red-400">{error}</div>}
+          {data && (
+            <>
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-2">
+                T7 self-consistency gate (NACA 2412, forced transition): recovers its own CST
+                coefficients from its target Cp. Manifest:{" "}
+                <code>{JSON.stringify(data.t7.manifest)}</code>
+              </p>
+              <ResidualChart history={(data.t7.residual_history.filter((v) => v != null) as number[])} />
+              <div className="mt-2 text-xs font-mono whitespace-pre-wrap text-neutral-600 dark:text-neutral-400 max-h-40 overflow-auto">
+                {data.t7.log_tail}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -58,6 +131,7 @@ function NacaTargetPanel() {
   const [job, setJob] = useState<InverseJobResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [targetCoords, setTargetCoords] = useState<number[][] | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -75,6 +149,9 @@ function NacaTargetPanel() {
       const res = await submitInverse({ airfoil });
       setJobId(res.job_id);
       startPolling(res.job_id, setJob, setError, timerRef);
+      airfoilGeometry(`naca:${airfoil}`)
+        .then((g) => setTargetCoords(g.coords))
+        .catch(() => setTargetCoords(null));
     } catch (err) {
       setError(err instanceof ApiError ? String(err.detail) : String(err));
     } finally {
@@ -112,7 +189,7 @@ function NacaTargetPanel() {
       </form>
 
       {error && <ErrorBox message={error} />}
-      {jobId && <JobStatus jobId={jobId} job={job} />}
+      {jobId && <JobStatus jobId={jobId} job={job} targetCoords={targetCoords} alphaFree={false} />}
     </div>
   );
 }
@@ -457,7 +534,7 @@ function RawTargetPanel() {
 
       <div className="space-y-6">
         {gate && <GateCard gate={gate} />}
-        {jobId && <JobStatus jobId={jobId} job={job} />}
+        {jobId && <JobStatus jobId={jobId} job={job} alphaFree={alphaFree} />}
         {!gate && !jobId && (
           <div className="text-sm text-neutral-500 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-8 text-center">
             Load a target curve, then check realisability or run the inverse solve.
@@ -512,21 +589,41 @@ function startPolling(
   }, POLL_INTERVAL_MS);
 }
 
-function JobStatus({ jobId, job }: { jobId: string; job: InverseJobResponse | null }) {
-  const history = job?.result?.residual_history ?? [];
+function JobStatus({
+  jobId,
+  job,
+  targetCoords,
+  alphaFree,
+}: {
+  jobId: string;
+  job: InverseJobResponse | null;
+  targetCoords?: number[][] | null;
+  alphaFree?: boolean;
+}) {
+  const stages = job?.result?.stages ?? [];
+  const dof: DofAccounting | null | undefined = job?.result?.dof;
   const gate = job?.result?.presolve_gate as RawTargetGate | undefined;
+  const rv = job?.result?.release_verify as
+    | { cl?: number; cl_target?: number; dcl?: number; cd?: number; cd_target?: number; dcd?: number; converged?: boolean; ok?: boolean; note?: string }
+    | null
+    | undefined;
+
   return (
     <div className="space-y-4">
       <div className="text-sm text-neutral-600 dark:text-neutral-400">
         job <code>{jobId}</code> — status: <span className="font-mono">{job?.status ?? "queued"}</span>
+        {job?.status === "running" && stages.length > 0 && (
+          <span className="ml-2 text-neutral-500">({stages.length} Newton iterations so far)</span>
+        )}
       </div>
 
       {gate && <GateCard gate={gate} />}
 
-      {history.length > 0 && (
-        <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
-          <h2 className="text-sm font-medium mb-2">Residual history (‖R‖, log scale)</h2>
-          <ResidualChart history={history} />
+      {stages.length > 0 ? (
+        <TheaterStage stages={stages} targetCoords={targetCoords} dof={dof} alphaFree={alphaFree} />
+      ) : (
+        <div className="text-sm text-neutral-500 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-6 text-center">
+          Presolving / waiting for the first Newton iteration...
         </div>
       )}
 
@@ -536,15 +633,43 @@ function JobStatus({ jobId, job }: { jobId: string; job: InverseJobResponse | nu
         <ErrorBox message={`DOF check failed: ${job.result.dof_check_error}`} />
       )}
 
-      {job?.status === "done" && job.result?.converged && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Stat label="converged" value="yes" />
-          <Stat label="iterations" value={String(job.result.iterations)} />
-          <Stat label="alpha (deg)" value={job.result.alpha?.toFixed(3) ?? "—"} />
-          <Stat
-            label="convergence order"
-            value={job.result.convergence_order?.toFixed(2) ?? "—"}
-          />
+      {job?.status === "done" && (
+        <div
+          className={`rounded-lg border p-4 ${
+            job.result?.converged
+              ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30"
+              : "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40"
+          }`}
+        >
+          <h2 className="text-sm font-medium mb-2">
+            Verdict: {job.result?.converged ? "converged" : "did not converge"}
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Stat label="iterations" value={String(job.result?.iterations ?? "—")} />
+            <Stat label="alpha (deg)" value={job.result?.alpha?.toFixed(3) ?? "—"} />
+            <Stat
+              label="convergence order"
+              value={job.result?.convergence_order?.toFixed(2) ?? "—"}
+            />
+            <Stat label="realisability" value={job.result?.realisability?.toFixed(4) ?? "—"} />
+          </div>
+          {rv && (
+            <div className="mt-3 text-xs text-neutral-600 dark:text-neutral-400">
+              <div className="font-medium mb-1">
+                release-verify: {rv.ok === undefined ? (rv.converged ? "converged" : "?") : rv.ok ? "PASS" : "FAIL"}
+              </div>
+              {rv.cl !== undefined && (
+                <div className="font-mono">
+                  cl={rv.cl.toFixed(4)}
+                  {rv.cl_target !== undefined && ` (target ${rv.cl_target.toFixed(4)}, d=${rv.dcl?.toExponential(1)})`}
+                  {"  "}
+                  cd={rv.cd?.toFixed(5)}
+                  {rv.cd_target !== undefined && ` (target ${rv.cd_target.toFixed(5)}, d=${rv.dcd?.toExponential(1)})`}
+                </div>
+              )}
+              {rv.note && <div className="mt-1 text-neutral-500">{rv.note}</div>}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -54,14 +54,25 @@ def run_job(job_id: str, fn: Callable[..., dict[str, Any]], *args: Any, **kwargs
     instant BackgroundTasks picks it up, even while it's actually waiting on
     the lock, since the queued->running transition happens in this function,
     not inside the lock. That's a cosmetic imprecision only; the *solve*
-    itself is correctly serialized."""
+    itself is correctly serialized.
+
+    ``fn`` is called with ``on_progress=<callback>`` — ``engine.run_inverse``
+    / ``engine.run_inverse_raw`` invoke it after every Newton iteration with a
+    partial result payload (including the growing ``stages`` list), which is
+    written straight to ``job.result`` here so GET /api/inverse/{job_id}
+    reflects live progress WHILE the background task is still running, not
+    only once it returns."""
     job = get_job(job_id)
     if job is None:
         logger.error("run_job: unknown job_id=%s", job_id)
         return
     job.status = "running"
+
+    def _on_progress(partial: dict[str, Any]) -> None:
+        job.result = partial
+
     try:
-        job.result = fn(*args, **kwargs)
+        job.result = fn(*args, on_progress=_on_progress, **kwargs)
         job.status = "done"
     except Exception as exc:  # noqa: BLE001 - surface every failure to the poller
         logger.exception("inverse job %s failed", job_id)

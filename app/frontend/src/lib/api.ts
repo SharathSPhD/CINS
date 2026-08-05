@@ -22,6 +22,20 @@ export interface AnalyzeRequest {
   transition?: TransitionSpec;
 }
 
+export interface SurfaceSplit {
+  upper: number[];
+  lower: number[];
+}
+
+export interface BLDistributions {
+  x: SurfaceSplit;
+  theta: SurfaceSplit;
+  delta_star: SurfaceSplit;
+  cf: SurfaceSplit;
+  Hk: SurfaceSplit;
+  transition_x: { upper: number; lower: number } | null;
+}
+
 export interface AnalyzeResponse {
   converged: boolean;
   cl: number;
@@ -35,6 +49,7 @@ export interface AnalyzeResponse {
   upper: SurfaceCp;
   lower: SurfaceCp;
   coords: number[][];
+  bl: BLDistributions | null;
 }
 
 export interface InverseRequest {
@@ -80,6 +95,26 @@ export interface IterationDiag {
   dA_norm: number | null;
 }
 
+export interface InverseStage {
+  it: number;
+  coords: number[][];
+  cp_stations_x: number[];
+  cp_current: number[];
+  cp_target: number[];
+  alpha: number;
+  R_norm: number | null;
+  T_norm: number | null;
+  G_norm: number | null;
+  transition: { upper: number; lower: number } | null;
+}
+
+export interface DofAccounting {
+  n_A_free: number;
+  M: number;
+  K: number;
+  squareness_residual: number;
+}
+
 export interface InverseResultPayload {
   converged: boolean;
   iterations: number;
@@ -99,6 +134,8 @@ export interface InverseResultPayload {
   diagnostics: IterationDiag[];
   manifest: Record<string, unknown> | null;
   presolve_gate?: Record<string, unknown> | null;
+  stages: InverseStage[];
+  dof: DofAccounting | null;
 }
 
 export interface InverseJobResponse {
@@ -289,6 +326,64 @@ export function presolveGateRaw(req: RawTargetInverseRequest): Promise<RawTarget
 
 export function submitInverseRaw(req: RawTargetInverseRequest): Promise<InverseSubmitResponse> {
   return postJson("/api/inverse/raw", req);
+}
+
+// --------------------------------------------------------------------------- //
+// /api/airfoils/upload
+// --------------------------------------------------------------------------- //
+
+export interface AirfoilUploadResponse {
+  id: string;
+  name: string;
+  coords: number[][];
+  n_points: number;
+  fit: FitResponse;
+}
+
+export async function uploadAirfoil(file: File): Promise<AirfoilUploadResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/api/airfoils/upload", { method: "POST", body: form });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => res.statusText);
+    throw new ApiError(res.status, detail.detail ?? detail);
+  }
+  return res.json() as Promise<AirfoilUploadResponse>;
+}
+
+// --------------------------------------------------------------------------- //
+// /api/showcase
+// --------------------------------------------------------------------------- //
+
+export interface ShowcaseT7 {
+  manifest: Record<string, unknown> | null;
+  convergence_order: number | null;
+  residual_history: (number | null)[];
+  iterations: Record<string, unknown>[];
+  log_tail: string;
+}
+
+export interface ShowcasePanelEntry {
+  cell_name: string;
+  converged: boolean | null;
+  iterations: number | null;
+  err_all_inf: number | null;
+  wall_time_s: number | null;
+  notes: string[];
+}
+
+export interface ShowcaseResponse {
+  t7: ShowcaseT7;
+  panel: ShowcasePanelEntry[];
+  panel_n_converged: number;
+  panel_n_total: number;
+  figures: string[];
+  gates: Record<string, unknown> | null;
+  manifest_note: string;
+}
+
+export function showcase(): Promise<ShowcaseResponse> {
+  return getJson("/api/showcase");
 }
 
 class ApiError extends Error {

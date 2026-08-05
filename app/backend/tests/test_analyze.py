@@ -30,6 +30,37 @@ def test_analyze_naca2412_viscous_pinned(client):
     assert data["cm"] == pytest.approx(-0.048030, abs=1e-4)
 
 
+@pytest.mark.slow
+def test_analyze_viscous_includes_bl_distributions(client):
+    """Item 5 of the app rich-features brief: a converged viscous solve must
+    surface theta/delta*/cf/Hk per surface (x-ascending, same convention as
+    upper/lower Cp) plus the e^n transition location, for the Analyze page's
+    BL distribution tabs."""
+    r = client.post("/api/analyze", json={"naca": "2412", "alpha": 2.0, "Re": 1.0e6})
+    assert r.status_code == 200
+    data = r.json()
+    bl = data["bl"]
+    assert bl is not None
+    for surf in ("upper", "lower"):
+        n = len(bl["x"][surf])
+        assert n > 5
+        assert len(bl["theta"][surf]) == n
+        assert len(bl["delta_star"][surf]) == n
+        assert len(bl["cf"][surf]) == n
+        assert len(bl["Hk"][surf]) == n
+        xs = bl["x"][surf]
+        assert xs == sorted(xs)  # x-ascending, LE -> TE
+    assert bl["transition_x"] is not None
+    assert 0.0 <= bl["transition_x"]["upper"] <= 1.0
+    assert 0.0 <= bl["transition_x"]["lower"] <= 1.0
+
+
+def test_analyze_inviscid_has_no_bl_distributions(client):
+    r = client.post("/api/analyze", json={"naca": "2412", "alpha": 2.0})
+    assert r.status_code == 200
+    assert r.json()["bl"] is None
+
+
 def test_analyze_naca_code_wrong_length_is_422(client):
     r = client.post("/api/analyze", json={"naca": "999999", "alpha": 2.0})
     assert r.status_code == 422

@@ -71,6 +71,25 @@ class SurfaceCp(BaseModel):
     cp: list[float]
 
 
+class SurfaceSplit(BaseModel):
+    upper: list[float]
+    lower: list[float]
+
+
+class BLDistributions(BaseModel):
+    """Viscous boundary-layer distributions, per surface, x-ascending (mfoil's
+    ``post.{th,ds,cf,Hk}`` — momentum thickness, displacement thickness, skin
+    friction, kinematic shape factor), plus the e^n transition location.
+    Present only for a converged viscous (``Re`` given) solve."""
+
+    x: SurfaceSplit
+    theta: SurfaceSplit
+    delta_star: SurfaceSplit
+    cf: SurfaceSplit
+    Hk: SurfaceSplit
+    transition_x: dict[str, float] | None = None
+
+
 class AnalyzeResponse(BaseModel):
     converged: bool
     cl: float
@@ -86,6 +105,7 @@ class AnalyzeResponse(BaseModel):
     coords: list[list[float]] = Field(
         description="[[x, y], ...] geometry actually solved (mfoil's re-paneled nodes)"
     )
+    bl: BLDistributions | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -160,6 +180,17 @@ class AirfoilListResponse(BaseModel):
 class AirfoilGeometryResponse(BaseModel):
     id: str
     coords: list[list[float]]
+
+
+class AirfoilUploadResponse(BaseModel):
+    """Response for POST /api/airfoils/upload (item 6) — a user-supplied
+    ``.dat`` file, parsed + fitted, ready to drive Analyze/FlowField/Inverse."""
+
+    id: str
+    name: str
+    coords: list[list[float]]
+    n_points: int
+    fit: FitResponse
 
 
 class GeometryFromCSTRequest(BaseModel):
@@ -336,6 +367,26 @@ class InverseSubmitResponse(BaseModel):
     status: str
 
 
+class InverseStage(BaseModel):
+    """One Newton iteration's live snapshot (item 1 of the app rich-features
+    brief) — captured by ``app.engine.StageCapturingDiagnostics``, an app-side
+    subclass of ``cins.diagnostics.recorder.NewtonDiagnostics`` (src/cins
+    itself is never touched). Fed to the frontend Inverse Design Theater via
+    the growing ``stages`` list on ``InverseResultPayload``, polled DURING the
+    run (see ``app.jobs.run_job``'s ``on_progress`` wiring)."""
+
+    it: int
+    coords: list[list[float]] = Field(description="decimated airfoil outline, ~80 [x, y] pairs")
+    cp_stations_x: list[float]
+    cp_current: list[float]
+    cp_target: list[float]
+    alpha: float
+    R_norm: float | None = None
+    T_norm: float | None = None
+    G_norm: float | None = None
+    transition: dict[str, float] | None = None
+
+
 class InverseResultPayload(BaseModel):
     converged: bool
     iterations: int
@@ -356,6 +407,13 @@ class InverseResultPayload(BaseModel):
     manifest: dict[str, Any] | None = None
     presolve_gate: dict[str, Any] | None = Field(
         None, description="raw_target mode only: T4 realisability verdict (ADR-0004)"
+    )
+    stages: list[InverseStage] = Field(
+        default_factory=list,
+        description="per-iteration live snapshots for the Theater view; grows during the run",
+    )
+    dof: dict[str, Any] | None = Field(
+        None, description="DOF card: n_A_free (M), n_targets (M'), n_constraints (K), etc."
     )
 
 
@@ -434,3 +492,18 @@ class RawTargetGate(BaseModel):
 class RawTargetSubmitResponse(BaseModel):
     job_id: str
     status: str
+
+
+# --------------------------------------------------------------------------- #
+# /api/showcase (item 7) — archived T7 run + T8 panel table + paper figures
+# --------------------------------------------------------------------------- #
+
+
+class ShowcaseResponse(BaseModel):
+    t7: dict[str, Any]
+    panel: list[dict[str, Any]]
+    panel_n_converged: int
+    panel_n_total: int
+    figures: list[str]
+    gates: dict[str, Any] | None
+    manifest_note: str

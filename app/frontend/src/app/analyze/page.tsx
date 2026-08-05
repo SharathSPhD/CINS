@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from "react";
 import AirfoilShape from "@/components/AirfoilShape";
+import BLChart from "@/components/BLChart";
 import CpChart from "@/components/CpChart";
+import CstStudio from "@/components/CstStudio";
 import {
   airfoilGeometry,
   analyze,
   ApiError,
   fit,
   listAirfoils,
+  uploadAirfoil,
   type AirfoilListItem,
   type AirfoilListResponse,
   type AnalyzeResponse,
-  type DerivedGeometry,
+  type FitResponse,
 } from "@/lib/api";
 
 export default function AnalyzePage() {
@@ -26,12 +29,15 @@ export default function AnalyzePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
-  const [derived, setDerived] = useState<DerivedGeometry | null>(null);
+  const [fitResult, setFitResult] = useState<FitResponse | null>(null);
 
   const [catalog, setCatalog] = useState<AirfoilListResponse | null>(null);
   const [catalogFilter, setCatalogFilter] = useState("");
   const [customCoords, setCustomCoords] = useState<number[][] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [uploadedName, setUploadedName] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     listAirfoils()
@@ -80,16 +86,34 @@ export default function AnalyzePage() {
       setResult(res);
       try {
         const fitRes = await fit({ coords: res.coords, n: 8 });
-        setDerived(fitRes.derived);
+        setFitResult(fitRes);
       } catch {
-        setDerived(null);
+        setFitResult(null);
       }
     } catch (err) {
       setError(err instanceof ApiError ? String(err.detail) : String(err));
       setResult(null);
-      setDerived(null);
+      setFitResult(null);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const res = await uploadAirfoil(file);
+      setCustomCoords(res.coords);
+      setUploadedName(res.name);
+      setSelectedId(null);
+    } catch (err) {
+      setUploadError(err instanceof ApiError ? String(err.detail) : String(err));
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -124,6 +148,27 @@ export default function AnalyzePage() {
                 <AirfoilRow key={a.id} item={a} selected={selectedId === a.id} onPick={pickAirfoil} />
               ))}
               {!catalog && <div className="text-neutral-400">loading catalog...</div>}
+            </div>
+            <div className="mt-2 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+              <label className="block text-xs text-neutral-500 mb-1">
+                Or upload a .dat file (Selig or Lednicer)
+              </label>
+              <input
+                type="file"
+                accept=".dat,.txt"
+                onChange={onUpload}
+                disabled={uploading}
+                className="w-full text-xs"
+              />
+              {uploading && <div className="mt-1 text-xs text-neutral-400">parsing...</div>}
+              {uploadedName && !uploading && (
+                <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                  loaded: {uploadedName}
+                </div>
+              )}
+              {uploadError && (
+                <div className="mt-1 text-xs text-red-600 dark:text-red-400">{uploadError}</div>
+              )}
             </div>
           </div>
 
@@ -231,25 +276,40 @@ export default function AnalyzePage() {
                 <h2 className="text-sm font-medium mb-2">Airfoil shape</h2>
                 <AirfoilShape coords={result.coords} />
               </div>
-              {derived && (
+              {result.bl && (
+                <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+                  <h2 className="text-sm font-medium mb-2">Boundary-layer distributions</h2>
+                  <BLChart bl={result.bl} />
+                </div>
+              )}
+              {fitResult && (
+                <CstStudio key={fitResult.A_upper.join(",") + "|" + fitResult.A_lower.join(",")} fit={fitResult} />
+              )}
+              {fitResult && (
                 <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
                   <h2 className="text-sm font-medium mb-2">
                     CST-derived engineering parameters (order-8 fit)
                   </h2>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <Stat label="LE radius" value={derived.le_radius.toFixed(5)} />
-                    <Stat label="TE wedge (upper)" value={`${derived.te_wedge_upper_deg.toFixed(2)}°`} />
-                    <Stat label="TE wedge (lower)" value={`${derived.te_wedge_lower_deg.toFixed(2)}°`} />
-                    <Stat label="TE gap" value={derived.te_gap.toFixed(5)} />
+                    <Stat label="LE radius" value={fitResult.derived.le_radius.toFixed(5)} />
+                    <Stat
+                      label="TE wedge (upper)"
+                      value={`${fitResult.derived.te_wedge_upper_deg.toFixed(2)}°`}
+                    />
+                    <Stat
+                      label="TE wedge (lower)"
+                      value={`${fitResult.derived.te_wedge_lower_deg.toFixed(2)}°`}
+                    />
+                    <Stat label="TE gap" value={fitResult.derived.te_gap.toFixed(5)} />
                     <Stat
                       label="max t/c"
-                      value={`${(derived.max_thickness * 100).toFixed(2)}% @ ${derived.max_thickness_x.toFixed(2)}c`}
+                      value={`${(fitResult.derived.max_thickness * 100).toFixed(2)}% @ ${fitResult.derived.max_thickness_x.toFixed(2)}c`}
                     />
                     <Stat
                       label="max camber"
-                      value={`${(derived.max_camber * 100).toFixed(2)}% @ ${derived.max_camber_x.toFixed(2)}c`}
+                      value={`${(fitResult.derived.max_camber * 100).toFixed(2)}% @ ${fitResult.derived.max_camber_x.toFixed(2)}c`}
                     />
-                    <Stat label="inscribed area" value={derived.area.toFixed(4)} />
+                    <Stat label="inscribed area" value={fitResult.derived.area.toFixed(4)} />
                   </div>
                 </div>
               )}

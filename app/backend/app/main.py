@@ -14,8 +14,20 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from app.routers import airfoils, analyze, fit, flowfield, geometry, health, inverse, presolve
+from app.routers import (
+    airfoils,
+    analyze,
+    fit,
+    flowfield,
+    geometry,
+    health,
+    inverse,
+    presolve,
+    showcase,
+)
+from cins.config import REPO_ROOT
 
 app = FastAPI(
     title="CINS API",
@@ -51,3 +63,10 @@ app.include_router(inverse.router)
 app.include_router(airfoils.router)
 app.include_router(geometry.router)
 app.include_router(flowfield.router)
+app.include_router(showcase.router)
+
+# Static assets for the Results Gallery (item 7): paper figures archived under
+# experiments/results/t8/figures/paper, served read-only at /static/figures/**.
+_figures_dir = REPO_ROOT / "experiments" / "results" / "t8" / "figures"
+if _figures_dir.exists():
+    app.mount("/static/figures", StaticFiles(directory=str(_figures_dir)), name="figures")

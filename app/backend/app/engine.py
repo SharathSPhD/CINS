@@ -22,17 +22,19 @@ instances, natural transition only) do not need it.
 from __future__ import annotations
 
 import json
+import logging
+import tempfile
 import threading
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 from scipy.linalg import qr as _qr
 
 from cins.benchmarks.instrumentation import EvalCounters, instrument_evaluations
 from cins.benchmarks.pipeline import prepare_cell
-from cins.config import CinsConfig, load_config
+from cins.config import REPO_ROOT, CinsConfig, load_config
 from cins.cst.basis import surface as cst_surface
 from cins.cst.constraints import area_row, le_radius_row, shared_le_radius_row, te_wedge_row
 from cins.cst.fit import fit_cst
@@ -53,6 +55,8 @@ from cins.solver.presolve import (
     solve_inviscid_cp,
 )
 from cins.solver.presolve import presolve as engine_presolve
+
+logger = logging.getLogger(__name__)
 
 # Process-global: guards mfoil's process-global forced-transition shim
 # (ADR-0003) AND enforces "one inverse at a time" (docs/PRD.md phase-1 spec).
@@ -143,6 +147,38 @@ def run_analyze(req: Any) -> dict[str, Any]:
     x_lo, cp_lo, x_up, cp_up = _split_ascending(x, cp, le_idx)
     geom = np.asarray(m.geom.xpoint, dtype=float)  # (2, N)
 
+    bl = None
+    n_foil = int(getattr(m.foil, "N", x.size))
+    if req.Re is not None and converged and len(getattr(m.post, "th", [])) >= n_foil:
+        chord = float(m.geom.chord) or 1.0
+        # post.{th,ds,cf,Hk} are Nsys-long (foil nodes THEN wake nodes, per
+        # M.glob.Nsys = M.foil.N + M.wake.N) — slice to the foil-only prefix
+        # so these line up 1:1 with m.foil.x / x / cp above.
+        theta = np.asarray(m.post.th, dtype=float)[:n_foil]
+        dstar = np.asarray(m.post.ds, dtype=float)[:n_foil]
+        cf = np.asarray(m.post.cf, dtype=float)[:n_foil]
+        hk = np.asarray(m.post.Hk, dtype=float)[:n_foil]
+
+        def _surface(arr: np.ndarray) -> dict[str, list[float]]:
+            lo, up = arr[: le_idx + 1], arr[le_idx:]
+            lo = lo[::-1] if x[: le_idx + 1][0] > x[: le_idx + 1][-1] else lo
+            up = up[::-1] if x[le_idx:][0] > x[le_idx:][-1] else up
+            return {"lower": lo.tolist(), "upper": up.tolist()}
+
+        xt = m.vsol.Xt if hasattr(m.vsol, "Xt") else None
+        bl = {
+            "x": {"lower": x_lo.tolist(), "upper": x_up.tolist()},
+            "theta": _surface(theta),
+            "delta_star": _surface(dstar),
+            "cf": _surface(cf),
+            "Hk": _surface(hk),
+            "transition_x": (
+                {"upper": float(xt[1, 1]) / chord, "lower": float(xt[0, 1]) / chord}
+                if xt is not None
+                else None
+            ),
+        }
+
     return {
         "converged": converged,
         "cl": float(m.post.cl),
@@ -156,6 +192,7 @@ def run_analyze(req: Any) -> dict[str, Any]:
         "upper": {"x": x_up.tolist(), "cp": cp_up.tolist()},
         "lower": {"x": x_lo.tolist(), "cp": cp_lo.tolist()},
         "coords": geom.T.tolist(),
+        "bl": bl,
     }
 
 
@@ -341,6 +378,55 @@ def get_airfoil_geometry(airfoil_id: str) -> dict[str, Any]:
         coords = np.asarray(m.geom.xpoint, dtype=float)
         return {"id": airfoil_id, "coords": coords.T.tolist()}
     raise EngineError(f"unknown airfoil id {airfoil_id!r}; expected 'uiuc:<name>' or 'naca:<code>'")
+
+
+# --------------------------------------------------------------------------- #
+# /api/airfoils/upload — user-supplied .dat file (Selig or Lednicer, item 6)
+# --------------------------------------------------------------------------- #
+
+
+def run_airfoil_upload(filename: str, content: bytes) -> dict[str, Any]:
+    """Parse an uploaded ``.dat`` file (via ``cins.cst.io.load_airfoil_dat``,
+    same Selig/Lednicer autodetect as the UIUC corpus loader) and return
+    geometry + a CST fit, ready to drive Analyze/FlowField/Inverse from the
+    browser. Writes to a scratch temp file since ``load_airfoil_dat`` reads
+    from a ``Path`` — no ``src/cins`` code is touched or duplicated."""
+    suffix = Path(filename).suffix or ".dat"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(content)
+        tmp_path = Path(tmp.name)
+    try:
+        try:
+            X = load_airfoil_dat(tmp_path)
+        except AirfoilParseError as exc:
+            raise EngineError(f"could not parse {filename!r}: {exc}") from exc
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    stem = Path(filename).stem or "uploaded"
+    fit_result = fit_cst(X[0], X[1], n=8)
+    derived = derived_geometry_quantities(
+        fit_result.A_upper, fit_result.A_lower,
+        fit_result.zeta_T_upper, fit_result.zeta_T_lower,
+    )
+    return {
+        "id": f"upload:{stem}",
+        "name": stem,
+        "coords": X.T.tolist(),
+        "n_points": int(X.shape[1]),
+        "fit": {
+            "A_upper": fit_result.A_upper.tolist(),
+            "A_lower": fit_result.A_lower.tolist(),
+            "zeta_T_upper": fit_result.zeta_T_upper,
+            "zeta_T_lower": fit_result.zeta_T_lower,
+            "n": fit_result.n,
+            "N1": fit_result.N1,
+            "N2": fit_result.N2,
+            "rms": fit_result.rms,
+            "gram_condition": fit_result.gram_condition,
+            "derived": derived,
+        },
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -544,6 +630,96 @@ def run_presolve(req: Any, cfg: CinsConfig | None = None) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- #
+# /api/inverse — stage capture for the frontend "Inverse Design Theater"
+# --------------------------------------------------------------------------- #
+
+_STAGE_DECIMATE = 80  # geometry points snapshotted per stage (item 1 of the brief)
+
+
+class StageCapturingDiagnostics(NewtonDiagnostics):
+    """App-side subclass of ``cins.diagnostics.recorder.NewtonDiagnostics``
+    (src/cins itself is NEVER edited — see CLAUDE.md) that ADDITIONALLY
+    snapshots, on every ``record_iteration`` call ``cins.solver.newton.
+    solve_inverse`` makes, enough state for the frontend to animate the solve
+    live: a decimated airfoil outline, current vs target Cp at the target
+    stations, alpha, and the R/T/G norms already being recorded. Snapshots
+    reflect mfoil's state as of the START of that Newton iteration (i.e. after
+    the PREVIOUS iteration's geometry update, or the initial guess for it=0) —
+    ``solve_inverse`` calls ``record_iteration`` before applying that
+    iteration's update.
+
+    ``get_mfoil`` is a zero-arg closure returning the live ``mfoil`` instance
+    ``solve_inverse`` is mutating in place (the same object passed to it) —
+    the object identity never changes mid-solve, only its internal state, so
+    a closure captured once at construction stays valid for the whole run.
+    """
+
+    def __init__(
+        self,
+        config: CinsConfig,
+        get_mfoil: Callable[[], Any],
+        cp_target: np.ndarray,
+        station_idx: np.ndarray,
+        decimate: int = _STAGE_DECIMATE,
+        on_stage: Callable[[list[dict[str, Any]]], None] | None = None,
+    ) -> None:
+        super().__init__(config=config)
+        self._get_mfoil = get_mfoil
+        self._cp_target = np.asarray(cp_target, dtype=float)
+        self._station_idx = np.asarray(station_idx, dtype=int)
+        self._decimate = decimate
+        self._on_stage = on_stage
+        self.stages: list[dict[str, Any]] = []
+
+    def record_iteration(self, it: int, **kwargs: Any):  # noqa: ANN401 - matches base signature
+        record = super().record_iteration(it, **kwargs)
+        try:
+            m = self._get_mfoil()
+            mod = mfoil_module()
+            x = np.asarray(m.foil.x[0], dtype=float)
+            y = np.asarray(m.foil.x[1], dtype=float)
+            n = x.size
+            pick = (
+                np.unique(np.linspace(0, n - 1, self._decimate).round().astype(int))
+                if n > self._decimate
+                else np.arange(n)
+            )
+            coords = np.stack([x[pick], y[pick]], axis=1).tolist()
+
+            ue_all = np.asarray(m.glob.U[3], dtype=float)
+            cp_all, _ = mod.get_cp(ue_all, m.param)
+            chord = float(m.geom.chord) or 1.0
+
+            xt = m.vsol.Xt if hasattr(m.vsol, "Xt") else None
+            transition = (
+                {"upper": float(xt[1, 1]), "lower": float(xt[0, 1])} if xt is not None else None
+            )
+
+            self.stages.append(
+                {
+                    "it": int(it),
+                    "coords": coords,
+                    "cp_stations_x": (x[self._station_idx] / chord).tolist(),
+                    "cp_current": cp_all[self._station_idx].tolist(),
+                    "cp_target": self._cp_target.tolist(),
+                    "alpha": float(m.oper.alpha),
+                    "R_norm": kwargs.get("R_norm"),
+                    "T_norm": kwargs.get("T_norm"),
+                    "G_norm": kwargs.get("G_norm"),
+                    "transition": transition,
+                }
+            )
+        except Exception:  # noqa: BLE001 - a snapshot failure must never abort the solve
+            logger.exception("StageCapturingDiagnostics: snapshot failed at it=%d", it)
+        if self._on_stage is not None:
+            try:
+                self._on_stage(self.stages)
+            except Exception:  # noqa: BLE001 - progress callback must never abort the solve
+                logger.exception("StageCapturingDiagnostics: on_stage callback failed")
+        return record
+
+
+# --------------------------------------------------------------------------- #
 # /api/inverse
 # --------------------------------------------------------------------------- #
 
@@ -577,7 +753,11 @@ def build_inverse_config(req: Any) -> CinsConfig:
     return CinsConfig.model_validate(merged)
 
 
-def run_inverse(cfg: CinsConfig, cell_name: str = "api-inverse") -> dict[str, Any]:
+def run_inverse(
+    cfg: CinsConfig,
+    cell_name: str = "api-inverse",
+    on_progress: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     """Run the monolithic CST-Newton inverse solve, composed from the same
     "pipeline pieces" ``cins.benchmarks.pipeline.run_pipeline`` uses
     (``prepare_cell`` -> ``InverseProblem`` -> ``solve_inverse``), but also
@@ -611,6 +791,8 @@ def run_inverse(cfg: CinsConfig, cell_name: str = "api-inverse") -> dict[str, An
                     "wall_time_s": time.perf_counter() - t0,
                     "diagnostics": [],
                     "manifest": ef.manifest,
+                    "stages": [],
+                    "dof": None,
                 }
 
             prob = InverseProblem(
@@ -627,7 +809,28 @@ def run_inverse(cfg: CinsConfig, cell_name: str = "api-inverse") -> dict[str, An
                 alpha0=cfg.operating.alpha_deg,
                 alpha_free=cfg.t8.alpha_free,
             )
-            diag = NewtonDiagnostics(config=cfg)
+
+            def _emit_progress(stages: list[dict[str, Any]]) -> None:
+                if on_progress is None:
+                    return
+                on_progress(
+                    {
+                        "converged": False, "iterations": len(stages), "alpha": None,
+                        "A_upper": None, "A_lower": None, "coords": None,
+                        "residual_history": [], "convergence_order": None,
+                        "release_verify": None, "realisability": prep.realisability,
+                        "model_gap": prep.model_gap, "submap_cond": prep.submap_cond,
+                        "notes": ["running"], "dof_check_error": None,
+                        "wall_time_s": time.perf_counter() - t0, "diagnostics": [],
+                        "manifest": None, "stages": stages, "dof": None,
+                        "presolve_gate": None,
+                    }
+                )
+
+            diag = StageCapturingDiagnostics(
+                cfg, get_mfoil=lambda: prep.m, cp_target=prob.cp_target,
+                station_idx=prob.station_idx, on_stage=_emit_progress,
+            )
             res = solve_inverse(prep.m, prob, cfg, diag=diag)
 
             coords = coords_from_A(
@@ -692,6 +895,8 @@ def run_inverse(cfg: CinsConfig, cell_name: str = "api-inverse") -> dict[str, An
             "diagnostics": diag_summary,
             "manifest": manifest,
             "presolve_gate": None,
+            "stages": diag.stages,
+            "dof": diag._dof_accounting,  # noqa: SLF001 - in-process summary, not a public API
         }
 
 
@@ -799,7 +1004,11 @@ def run_presolve_gate_raw(req: Any) -> dict[str, Any]:
     }
 
 
-def run_inverse_raw(req: Any, cell_name: str = "api-inverse-raw") -> dict[str, Any]:
+def run_inverse_raw(
+    req: Any,
+    cell_name: str = "api-inverse-raw",
+    on_progress: Callable[[dict[str, Any]], None] | None = None,
+) -> dict[str, Any]:
     """User-defined-target monolithic CST-Newton inverse solve. Runs the T4
     presolve gate first (``run_presolve_gate_raw``) and ALWAYS returns its
     verdict via ``presolve_gate`` — even on an early failure — so the UI can
@@ -825,6 +1034,8 @@ def run_inverse_raw(req: Any, cell_name: str = "api-inverse-raw") -> dict[str, A
             "wall_time_s": time.perf_counter() - t0, "diagnostics": [],
             "manifest": {"cell_name": cell_name, "config_hash": cfg.config_hash()},
             "presolve_gate": gate,
+            "stages": [],
+            "dof": None,
         }
 
     n_a = n_u + n_l + 2
@@ -898,7 +1109,26 @@ def run_inverse_raw(req: Any, cell_name: str = "api-inverse-raw") -> dict[str, A
             alpha0=cfg.operating.alpha_deg,
             alpha_free=req.alpha_free,
         )
-        diag = NewtonDiagnostics(config=cfg)
+        def _emit_progress(stages: list[dict[str, Any]]) -> None:
+            if on_progress is None:
+                return
+            on_progress(
+                {
+                    "converged": False, "iterations": len(stages), "alpha": None,
+                    "A_upper": None, "A_lower": None, "coords": None,
+                    "residual_history": [], "convergence_order": None,
+                    "release_verify": None, "realisability": gate["realisability"],
+                    "model_gap": None, "submap_cond": None, "notes": ["running"],
+                    "dof_check_error": None, "wall_time_s": time.perf_counter() - t0,
+                    "diagnostics": [], "manifest": None, "presolve_gate": gate,
+                    "stages": stages, "dof": None,
+                }
+            )
+
+        diag = StageCapturingDiagnostics(
+            cfg, get_mfoil=lambda: m, cp_target=prob.cp_target,
+            station_idx=prob.station_idx, on_stage=_emit_progress,
+        )
         res = solve_inverse(m, prob, cfg, diag=diag)
 
         coords = coords_from_A(res.A_upper, res.A_lower, zeta_t_u, zeta_t_l, psi)
@@ -950,4 +1180,87 @@ def run_inverse_raw(req: Any, cell_name: str = "api-inverse-raw") -> dict[str, A
             "transition_mode": "free",
         },
         "presolve_gate": gate,
+        "stages": diag.stages,
+        "dof": diag._dof_accounting,  # noqa: SLF001 - in-process summary, not a public API
     }
+
+
+# --------------------------------------------------------------------------- #
+# /api/showcase — item 7 of the brief: archived T7 run + T8 NACA panel table
+# + paper figures, for the Results Gallery page and Theater's "replay
+# archived T7" instant-demo button. Read-only over experiments/results/ — no
+# solve, no src/cins mutation; the JSON is cached in-process (same one-time-
+# scan pattern as ``_scan_uiuc_cache`` above) since the underlying files never
+# change while the app is running.
+# --------------------------------------------------------------------------- #
+
+_T7_DIR = REPO_ROOT / "experiments" / "results" / "t7_naca2412"
+_T8_DIR = REPO_ROOT / "experiments" / "results" / "t8"
+_GATES_JSON = REPO_ROOT / "site" / "gates.json"
+
+_SHOWCASE_CACHE: dict[str, Any] | None = None
+
+
+def _read_json(path: Path) -> Any | None:
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def run_showcase() -> dict[str, Any]:
+    """Archived evidence for the Results Gallery: T7 self-consistency run
+    (run.log numbers + diagnostics.json residual series, for Theater's replay
+    button), the T8 NACA panel sweep (result.json per cell), and the gate
+    board (site/gates.json) — all read-only, labeled as an archived replay
+    (never conflated with a live solve)."""
+    global _SHOWCASE_CACHE
+    if _SHOWCASE_CACHE is not None:
+        return _SHOWCASE_CACHE
+
+    t7_diag = _read_json(_T7_DIR / "diagnostics.json") or {}
+    t7_log = (_T7_DIR / "run.log").read_text() if (_T7_DIR / "run.log").exists() else ""
+    t7 = {
+        "manifest": t7_diag.get("manifest"),
+        "convergence_order": t7_diag.get("convergence_order"),
+        "residual_history": [r.get("R_norm") for r in t7_diag.get("iterations", [])],
+        "iterations": t7_diag.get("iterations", []),
+        "log_tail": "\n".join(t7_log.splitlines()[-25:]),
+    }
+
+    panel: list[dict[str, Any]] = []
+    if _T8_DIR.exists():
+        for d in sorted(_T8_DIR.glob("panel_*")):
+            r = _read_json(d / "result.json")
+            if r is None:
+                continue
+            panel.append(
+                {
+                    "cell_name": r.get("cell_name", d.name),
+                    "converged": r.get("converged"),
+                    "iterations": r.get("iterations"),
+                    "err_all_inf": r.get("err_all_inf"),
+                    "wall_time_s": r.get("wall_time_s"),
+                    "notes": r.get("notes", []),
+                }
+            )
+
+    figures_dir = _T8_DIR / "figures" / "paper"
+    figures = (
+        sorted(f"/static/figures/paper/{p.name}" for p in figures_dir.glob("*.png"))
+        if figures_dir.exists()
+        else []
+    )
+
+    gates = _read_json(_GATES_JSON)
+
+    _SHOWCASE_CACHE = {
+        "t7": t7,
+        "panel": panel,
+        "panel_n_converged": sum(1 for p in panel if p.get("converged")),
+        "panel_n_total": len(panel),
+        "figures": figures,
+        "gates": gates,
+        "manifest_note": "archived run — see git SHA / date in each entry's own manifest",
+    }
+    return _SHOWCASE_CACHE

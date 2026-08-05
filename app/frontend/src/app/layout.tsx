@@ -38,6 +38,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/inverse" className="hover:text-neutral-900 dark:hover:text-neutral-100">
                 Inverse
               </Link>
+              <Link href="/flowfield" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+                Flow Field
+              </Link>
+              <Link href="/gallery" className="hover:text-neutral-900 dark:hover:text-neutral-100">
+                Gallery
+              </Link>
             </nav>
           </div>
         </header>

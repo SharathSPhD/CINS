@@ -5,3 +5,4 @@
 fastapi>=0.115
 uvicorn[standard]>=0.32
 httpx>=0.27
+python-multipart>=0.0.9  # required for FastAPI's UploadFile (POST /api/airfoils/upload)
