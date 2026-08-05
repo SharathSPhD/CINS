@@ -1175,22 +1175,134 @@ pre-registered panel size are mutually inconsistent, a pre-registration
 defect (experiments/results/t8/ANALYSIS.md, Deviation~12). Treating
 the excluded \texttt{panel\_0006} as a failure rather than an exclusion
 instead gives 18/19 (0.947), Wilson LB 0.754, still short of 0.9, for the
-same $n$-too-small reason. \textbf{H1 verdict:} the architecture converges
-and recovers the true coefficients on every panel section it could be
-legitimately posed on. The formal pre-registered statistical criterion
-fails on interval arithmetic, not on solver performance. The UIUC
-extension to $\approx$100 sections (\S\ref{sec:conclusions}, future work)
-is sized to certify Wilson LB $\geq0.9$ if the observed 100\%
-success rate holds.
-% PLACEHOLDER-UIUC-PANEL: a first-pass 117-section UIUC panel run exists
-% (experiments/results/t8/panel_uiuc_*/), but 87/117 cells are being RERUN
-% after a loader TE-gap fix (uiuc-panel loader) and are NOT yet final.
-% Do NOT quote any UIUC point estimate, Wilson bound, or per-section number
-% in this paper until that rerun is complete and archived with a manifest
-% (docs/GATES.md condition 4). When ready: replace this comment with a UIUC
-% panel paragraph/table mirroring \S\ref{sec:h1-panel}'s NACA-panel format,
-% sourced from the completed experiments/results/t8/panel_uiuc_*/result.json
-% artifacts, and update the H1 verdict above (currently NACA-panel-only).
+same $n$-too-small reason. On the NACA panel alone, the architecture
+converges and recovers the true coefficients on every panel section it
+could be legitimately posed on, and the formal pre-registered statistical
+criterion fails on interval arithmetic, not on solver performance.
+\S\ref{sec:h1-uiuc-panel} reports the pre-registered UIUC extension, sized
+to resolve the interval-arithmetic limit, and gives the combined H1
+verdict across both panels.
+
+\subsection{H1: UIUC panel extension}
+\label{sec:h1-uiuc-panel}
+
+Table~\ref{tab:uiuc-outcome} and Table~\ref{tab:uiuc-criteria} report the
+pre-registered UIUC panel (STATS\_PROTOCOL~\S3.3). Sections were drawn from
+the 123-file UIUC corpus, stratified by thickness and camber decile, after
+a pre-filter removed 6 sections whose $n{=}8$ CST fit exceeds the T2 gate
+(\texttt{configs/experiments/panel\_uiuc/*.yaml}), leaving 117 cells.
+Results are in \texttt{experiments/results/t8/uiuc\_panel\_summary.json},
+regenerable with \texttt{python -m cins.benchmarks.panel\_summary}.
+
+\begin{table}[h]
+\centering
+\caption{UIUC panel outcome by population. Source: experiments/results/t8/uiuc\_panel\_summary.json; experiments/results/t8/ANALYSIS.md, ``H1 addendum, part 2.''}
+\label{tab:uiuc-outcome}
+\begin{tabular}{lp{7.2cm}c}
+\toprule
+Population & Definition & Count \\
+\midrule
+Cells & Sections with a generated configuration & 117 \\
+No inverse problem posed & Target solve did not converge, so no target pressure distribution exists & 24 \\
+Attempted & Cells where a target existed and the inverse was run & 93 \\
+Converged & Newton reached the residual tolerance & 83 \\
+Attempt failures & Solver or geometry faults during the attempt & 10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Result: accuracy holds on every converged section; the composite
+criterion fails on iteration count.} Of the 117 cells, 24 pose no inverse
+problem because the target solve itself does not converge, so no target
+pressure distribution exists to match. Of the remaining 93 attempted
+cells, 83 converge and 10 fail during the attempt. All 83 converged cells
+recover the free coefficients to $\mathrm{err\_free\_inf}<10^{-4}$, a
+1.000 success fraction with Wilson 95\% lower bound 0.956. The
+iteration-budget criterion, $\leq9$ Newton iterations, holds for 73 of the
+83 converged cells (0.880, Wilson LB 0.792). The pre-registered composite
+criterion, both accuracy and iteration budget together, is 73/83 = 0.880
+among converged cells (Wilson LB 0.792) and 73/93 = 0.785 among attempted
+cells (Wilson LB 0.691), both below the pre-registered 0.9 threshold.
+
+\begin{table}[h]
+\centering
+\caption{UIUC panel criteria and Wilson 95\% lower bounds. Source: experiments/results/t8/uiuc\_panel\_summary.json.}
+\label{tab:uiuc-criteria}
+\begin{tabular}{lcc}
+\toprule
+Criterion & Result & Wilson 95\% lower bound \\
+\midrule
+Coefficient accuracy ($\mathrm{err\_free\_inf}<10^{-4}$), among converged & 83/83 = 1.000 & 0.956 \\
+Iteration budget ($\leq9$ iterations), among converged & 73/83 = 0.880 & 0.792 \\
+Both criteria, among converged & 73/83 = 0.880 & 0.792 \\
+Both criteria, among attempted & 73/93 = 0.785 & 0.691 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ten converged sections exceed the iteration budget, requiring between 10
+and 50 Newton iterations while still recovering coefficients to between
+$1\times10^{-11}$ and $3\times10^{-10}$, the same accuracy band as the
+sections that converge within budget. The single-digit iteration
+expectation in the dossier was calibrated on NACA sections
+(\S\ref{sec:h1-panel}). It does not transfer to the wider UIUC geometry
+space, where sections with unusual camber or thickness distributions
+converge more slowly without loss of final accuracy.
+
+\paragraph{Exclusion classes.} Table~\ref{tab:uiuc-exclusions} lists the
+exclusion classes spanning the 24 not-posed and 10 attempt-failure cells.
+
+\begin{table}[h]
+\centering
+\caption{UIUC panel exclusion classes. Source: experiments/results/t8/uiuc\_panel\_summary.json.}
+\label{tab:uiuc-exclusions}
+\begin{tabular}{lc}
+\toprule
+Exclusion class & Count \\
+\midrule
+\texttt{target\_natural} & 16 \\
+\texttt{target\_forced} & 7 \\
+\texttt{solver\_stagnation} & 3 \\
+\texttt{other} & 3 \\
+\texttt{geometry\_te\_gap} & 3 \\
+\texttt{other:RuntimeError} & 1 \\
+\texttt{init\_flow\_solve} & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The \texttt{target\_natural} and \texttt{target\_forced} classes account
+for 23 of the 24 not-posed cells: the flow solver cannot produce a
+converged solution for the section itself, so no target exists and the
+inverse formulation is not exercised. The \texttt{geometry\_te\_gap} class
+covers three sections, \texttt{goe780}, \texttt{mh62}, and
+\texttt{naca64206}, that fail mfoil's wake-direction assertion
+(\texttt{vendor/mfoil/mfoil.py}, \texttt{build\_wake}) after the
+minimum-trailing-edge-gap fix that resolved the sharp-trailing-edge case.
+Their trailing-edge gap is already above the minimum, so the cause is
+distinct from the case the fix addressed. This is recorded as an open item
+in \S\ref{sec:limitations} rather than resolved here.
+
+\paragraph{Combined H1 verdict (NACA + UIUC).} Accuracy holds on every
+section that converged across both panels: 18 of 18 eligible NACA sections
+and 83 of 83 converged UIUC sections recover the free coefficients to
+$\mathrm{err\_free\_inf}<10^{-4}$, with observed errors clustering between
+$10^{-11}$ and $10^{-9}$. The pre-registered composite criterion, which
+also required the solve to complete within 9 Newton iterations, is not met
+on the UIUC panel: the Wilson lower bound on the composite criterion is
+0.792 among converged UIUC cells and 0.691 among attempted UIUC cells,
+both below the pre-registered 0.9 threshold. The cause is the iteration
+budget, not accuracy. The single-digit iteration expectation in the
+dossier was calibrated on NACA sections and does not transfer to the wider
+UIUC geometry space, where sections with unusual camber or thickness
+distributions take longer to converge while still reaching the same
+accuracy. \textbf{H1 verdict:} the hypothesis that the monolithic
+formulation recovers geometry on realisable targets is supported on
+accuracy across both panels, 18/18 NACA sections and 83/83 converged UIUC
+sections out of a 117-section UIUC panel. The pre-registered composite
+criterion, which also required single-digit iterations, is not met on the
+UIUC panel. The failure is isolated to the iteration-count component; the
+accuracy component holds on every converged section in both panels.
 
 \subsection{Flow-solve count vs.\ nested optimization}
 \label{sec:h2}
@@ -1442,6 +1554,7 @@ conditioned submap), and only afterward recognised as sharing a common
 resolution structure.
 
 \subsection{Limitations}
+\label{sec:limitations}
 
 \begin{itemize}
 \item \textbf{Single-airfoil-family, $N{=}1$ \emph{ablations} (the $n$-sweep,
@@ -1450,17 +1563,20 @@ resolution structure.
   \texttt{seed=42}, one run per cell: Stage-1-lite evidence by design, with
   no confidence interval reported for any of them. This caveat does
   \emph{not} extend to the H1 convergence claim itself
-  (\S\ref{sec:h1-panel}), which was subsequently upgraded to genuine
-  panel-level evidence (18/18 generable sections across a 20-section NACA
-  panel, Wilson LB 0.824). The remaining gap against the original
-  pre-registration is the $\approx$117-section stratified UIUC panel. A
-  first-pass run of this panel exists, but at the time of writing 87/117
-  cells are being re-run following a loader trailing-edge-gap fix and are
-  not final and therefore not quoted (see the
-  \texttt{\% PLACEHOLDER-UIUC-PANEL} marker, \S\ref{sec:h1-panel}). Once
-  complete, it would be needed to certify Wilson LB $\geq0.9$ and to
-  extend the ablation-level ($n$-sweep, station-selection, flow-solve-count)
-  findings beyond NACA-family sections.
+  (\S\ref{sec:h1-panel}, \S\ref{sec:h1-uiuc-panel}), which was subsequently
+  upgraded to genuine panel-level evidence across both the 20-section NACA
+  panel (18/18 generable sections, Wilson LB 0.824) and the 117-section
+  UIUC panel (83/83 converged sections meet the accuracy criterion, Wilson
+  LB 0.956). The ablation-level findings ($n$-sweep, station-selection,
+  flow-solve-count) remain NACA-2412-only and are not extended to the UIUC
+  panel by this paper.
+\item \textbf{Vendor wake-direction assertion failures beyond sharp
+  trailing edges.} Three UIUC sections, \texttt{goe780}, \texttt{mh62}, and
+  \texttt{naca64206}, still fail mfoil's wake-direction assertion
+  (\S\ref{sec:h1-uiuc-panel}) after the minimum-trailing-edge-gap fix that
+  resolved the sharp-trailing-edge case. Their trailing-edge gap is
+  already above the minimum, so the cause is distinct from the case the
+  fix addressed. This is recorded as an open item, not resolved here.
 \item \textbf{Subcritical, isolated airfoil.} All results use mfoil's
   Kármán--Tsien compressibility correction (subcritical only) on an
   isolated airfoil: no cascade periodicity, no pitch/stagger, no AVDR
@@ -1526,22 +1642,18 @@ functions (a direct consequence of the linearity in \S\ref{sec:cst-linearity}),
 this requires writing $C(\psi)S_i(\psi)$ into MISES's mode-file format, with
 no Fortran modification, and would demonstrate the hypothesis in a
 transonic, viscous, real-cascade solver at near-zero implementation cost if
-Route~A succeeds. Before either extension, the pre-registered NACA/UIUC
-panel evaluation (STATS\_PROTOCOL~\S3) should be completed to replace the
-remaining Stage-1-lite, $N{=}1$ \emph{ablation} evidence (\S\ref{sec:h2}'s
+Route~A succeeds. The pre-registered NACA/UIUC panel evaluation
+(STATS\_PROTOCOL~\S3) is now complete (\S\ref{sec:h1-panel},
+\S\ref{sec:h1-uiuc-panel}): both panels support the accuracy component of
+H1, and the UIUC panel's composite criterion fails on the iteration-count
+component, not accuracy. The remaining gap between what this paper can
+currently claim and what was originally pre-registered is twofold: the
+Stage-1-lite, $N{=}1$ \emph{ablation} evidence (\S\ref{sec:h2}'s
 flow-solve-count comparison, the $n$-sweep, station-selection ablations)
-with panel-level evidence at the same standard the NACA panel
-(\S\ref{sec:h1-panel}) already met for the core convergence claim. This is
-the single largest remaining gap between what this paper can currently
-claim and what was originally pre-registered.
-% TODO before submission: the NACA half of this panel evaluation is DONE
-% (\S\ref{sec:h1-panel}, 18/18 generable sections). The UIUC half
-% (configs/experiments/panel_uiuc/*.yaml, ~117 sections) has a first-pass
-% run (experiments/results/t8/panel_uiuc_*/) but 87/117 cells are being
-% re-run after a loader trailing-edge-gap fix; do not quote UIUC numbers
-% until that rerun is archived with a manifest. See the
-% \texttt{\% PLACEHOLDER-UIUC-PANEL} marker in \S\ref{sec:h1-panel}.
-% Source: benchmarks/REPORT.md "Recommendations for P1" #5.
+has not been extended to panel level. Second, three UIUC sections
+(\texttt{goe780}, \texttt{mh62}, \texttt{naca64206}) still fail the vendor
+wake-direction assertion for a cause unrelated to sharp trailing edges
+(\S\ref{sec:h1-uiuc-panel}, \S\ref{sec:limitations}).
 
 \appendix
 
