@@ -32,6 +32,7 @@ from typing import Any, Callable
 import numpy as np
 from scipy.linalg import qr as _qr
 
+from app.flowfield import inviscid_velocity_field, points_in_polygon
 from cins.benchmarks.instrumentation import EvalCounters, instrument_evaluations
 from cins.benchmarks.pipeline import prepare_cell
 from cins.config import REPO_ROOT, CinsConfig, load_config
@@ -84,7 +85,7 @@ def _split_ascending(
 
     def _asc(xx: np.ndarray, vv: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         if xx.size >= 2 and xx[0] > xx[-1]:
-            return xx[:-1], vv[:-1]
+            return xx[::-1], vv[::-1]
         return xx, vv
 
     x_lo, v_lo = _asc(x[: le_idx + 1], val[: le_idx + 1])
@@ -181,8 +182,8 @@ def run_analyze(req: Any) -> dict[str, Any]:
 
         def _surface(arr: np.ndarray) -> dict[str, list[float]]:
             lo, up = arr[: le_idx + 1], arr[le_idx:]
-            lo = lo[:-1] if x[: le_idx + 1][0] > x[: le_idx + 1][-1] else lo
-            up = up[:-1] if x[le_idx:][0] > x[le_idx:][-1] else up
+            lo = lo[::-1] if x[: le_idx + 1][0] > x[: le_idx + 1][-1] else lo
+            up = up[::-1] if x[le_idx:][0] > x[le_idx:][-1] else up
             return {"lower": lo.tolist(), "upper": up.tolist()}
 
         xt = m.vsol.Xt if hasattr(m.vsol, "Xt") else None
@@ -223,13 +224,13 @@ def run_analyze(req: Any) -> dict[str, Any]:
             def _surface_xy(xarr: np.ndarray, yarr: np.ndarray) -> list[list[float]]:
                 xs, ys = xarr[: le_idx + 1], yarr[: le_idx + 1]
                 if xs[0] > xs[-1]:
-                    xs, ys = xs[:-1], ys[:-1]
+                    xs, ys = xs[::-1], ys[::-1]
                 return np.stack([xs, ys], axis=1).tolist()
 
             lo_pts = _surface_xy(xd[: le_idx + 1], yd[: le_idx + 1])
             xs_up, ys_up = xd[le_idx:], yd[le_idx:]
             if xs_up[0] > xs_up[-1]:
-                xs_up, ys_up = xs_up[:-1], ys_up[:-1]
+                xs_up, ys_up = xs_up[::-1], ys_up[::-1]
             up_pts = np.stack([xs_up, ys_up], axis=1).tolist()
             bl_offset = {"lower": lo_pts, "upper": up_pts}
 
@@ -519,7 +520,18 @@ def run_geometry_from_cst(req: Any) -> dict[str, Any]:
 # /api/flowfield
 # --------------------------------------------------------------------------- #
 
-_FLOWFIELD_MAX_CELLS = 8000  # guard: inviscid_velocity is a pure-Python O(N) loop per point
+
+# Grid-size guard. With the vectorized evaluator (app.flowfield, see its
+# module docstring) the per-cell cost is no longer the bottleneck: measured
+# locally, `solve_inviscid` (building + factoring the ~199-panel AIC matrix,
+# fixed cost independent of grid size) is ~0.24s, and even a 200x200=40000
+# cell grid (FlowFieldGrid's own per-axis cap) adds only ~0.2s of vectorized
+# field evaluation + ~0.35s round-trip total measured through the FastAPI
+# endpoint. 24000 keeps that round trip (fixed solve cost + grid eval +
+# response serialization) at ~0.4s locally, i.e. ~8s at the Render free
+# tier's documented ~20x-slower-than-local rate, with margin under the ~10s
+# target before the frontend's request timeout should trip.
+_FLOWFIELD_MAX_CELLS = 24000
 
 
 def _point_in_polygon(px: float, py: float, xs: np.ndarray, ys: np.ndarray) -> bool:
@@ -569,21 +581,35 @@ def run_flowfield(req: Any) -> dict[str, Any]:
     alpha = float(m.oper.alpha)
     poly_x, poly_y = X[0], X[1]
 
-    u = [[None] * nx for _ in range(ny)]
-    v = [[None] * nx for _ in range(ny)]
-    speed = [[None] * nx for _ in range(ny)]
-    cp = [[None] * nx for _ in range(ny)]
-    for j, yy in enumerate(ys):
-        for i, xx in enumerate(xs):
-            if _point_in_polygon(float(xx), float(yy), poly_x, poly_y):
-                continue
-            vel = mod.inviscid_velocity(X, gam, Vinf, alpha, np.array([xx, yy]), False)
-            uu, vv = float(vel[0]), float(vel[1])
-            spd = float(np.hypot(uu, vv))
-            u[j][i] = uu
-            v[j][i] = vv
-            speed[j][i] = spd
-            cp[j][i] = 1.0 - (spd / Vinf) ** 2
+    # Vectorized evaluator (app.flowfield, see its module docstring): loops
+    # over the ~200 airfoil panels, evaluating each panel's influence on
+    # every grid point at once with numpy, instead of the old per-point
+    # vendor `inviscid_velocity` call (an O(N) pure-Python loop, called
+    # nx*ny times). Numerically identical: gated by
+    # tests/test_flowfield_vectorized.py against the vendor function
+    # directly, 1e-10 absolute.
+    xg, yg = np.meshgrid(xs, ys)  # (ny, nx), matching the response's row/col layout
+    xq, yq = xg.ravel(), yg.ravel()
+    inside_flat = points_in_polygon(xq, yq, poly_x, poly_y)
+    u_flat, v_flat = inviscid_velocity_field(X, gam, Vinf, alpha, xq, yq)
+    speed_flat = np.hypot(u_flat, v_flat)
+    cp_flat = 1.0 - (speed_flat / Vinf) ** 2
+
+    inside = inside_flat.reshape(ny, nx)
+    u_grid = u_flat.reshape(ny, nx)
+    v_grid = v_flat.reshape(ny, nx)
+    speed_grid = speed_flat.reshape(ny, nx)
+    cp_grid = cp_flat.reshape(ny, nx)
+
+    def _masked(grid: np.ndarray) -> list[list[float | None]]:
+        return [
+            [None if inside[j, i] else float(grid[j, i]) for i in range(nx)] for j in range(ny)
+        ]
+
+    u = _masked(u_grid)
+    v = _masked(v_grid)
+    speed = _masked(speed_grid)
+    cp = _masked(cp_grid)
 
     return {
         "x": xs.tolist(),
