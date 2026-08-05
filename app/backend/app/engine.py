@@ -1223,7 +1223,20 @@ def run_showcase() -> dict[str, Any]:
     t7 = {
         "manifest": t7_diag.get("manifest"),
         "convergence_order": t7_diag.get("convergence_order"),
-        "residual_history": [r.get("R_norm") for r in t7_diag.get("iterations", [])],
+        # Combined extended-system residual sqrt(R^2+T^2+G^2) per iteration —
+        # NOT the flow-block R_norm alone, which is non-monotonic by design
+        # (state re-converges after each geometry step; see the T8 analysis
+        # review's warning about confusing the two series). This reproduces
+        # result.json's residual_history from the archived diagnostics.
+        "residual_history": [
+            (
+                (r.get("R_norm") or 0.0) ** 2
+                + (r.get("T_norm") or 0.0) ** 2
+                + (r.get("G_norm") or 0.0) ** 2
+            )
+            ** 0.5
+            for r in t7_diag.get("iterations", [])
+        ],
         "iterations": t7_diag.get("iterations", []),
         "log_tail": "\n".join(t7_log.splitlines()[-25:]),
     }
