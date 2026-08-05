@@ -1,9 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AirfoilShape from "@/components/AirfoilShape";
 import CpChart from "@/components/CpChart";
-import { analyze, ApiError, type AnalyzeResponse } from "@/lib/api";
+import {
+  airfoilGeometry,
+  analyze,
+  ApiError,
+  fit,
+  listAirfoils,
+  type AirfoilListItem,
+  type AirfoilListResponse,
+  type AnalyzeResponse,
+  type DerivedGeometry,
+} from "@/lib/api";
 
 export default function AnalyzePage() {
   const [naca, setNaca] = useState("2412");
@@ -16,28 +26,75 @@ export default function AnalyzePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [derived, setDerived] = useState<DerivedGeometry | null>(null);
+
+  const [catalog, setCatalog] = useState<AirfoilListResponse | null>(null);
+  const [catalogFilter, setCatalogFilter] = useState("");
+  const [customCoords, setCustomCoords] = useState<number[][] | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    listAirfoils()
+      .then(setCatalog)
+      .catch(() => setCatalog(null));
+  }, []);
+
+  async function pickAirfoil(item: AirfoilListItem) {
+    setSelectedId(item.id);
+    setError(null);
+    try {
+      const geo = await airfoilGeometry(item.id);
+      if (item.source === "naca") {
+        setNaca(item.name.replace("NACA ", ""));
+        setCustomCoords(null);
+      } else {
+        setCustomCoords(geo.coords);
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? String(err.detail) : String(err));
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const res = await analyze({
-        naca,
-        alpha,
-        Re: re === "" ? undefined : re,
-        transition: tripEnabled
-          ? { mode: "forced", xtr_upper: xtrUpper, xtr_lower: xtrLower }
-          : undefined,
-      });
+      const res = customCoords
+        ? await analyze({
+            coords: customCoords,
+            alpha,
+            Re: re === "" ? undefined : re,
+            transition: tripEnabled
+              ? { mode: "forced", xtr_upper: xtrUpper, xtr_lower: xtrLower }
+              : undefined,
+          })
+        : await analyze({
+            naca,
+            alpha,
+            Re: re === "" ? undefined : re,
+            transition: tripEnabled
+              ? { mode: "forced", xtr_upper: xtrUpper, xtr_lower: xtrLower }
+              : undefined,
+          });
       setResult(res);
+      try {
+        const fitRes = await fit({ coords: res.coords, n: 8 });
+        setDerived(fitRes.derived);
+      } catch {
+        setDerived(null);
+      }
     } catch (err) {
       setError(err instanceof ApiError ? String(err.detail) : String(err));
       setResult(null);
+      setDerived(null);
     } finally {
       setLoading(false);
     }
   }
+
+  const filteredUiuc =
+    catalog?.uiuc.filter((a) => a.name.toLowerCase().includes(catalogFilter.toLowerCase())) ?? [];
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
@@ -49,13 +106,39 @@ export default function AnalyzePage() {
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
         <form onSubmit={onSubmit} className="space-y-4">
-          <Field label="NACA code">
+          <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">
+              Airfoil browser
+            </div>
+            <input
+              className={`${inputCls} mb-2`}
+              placeholder="search UIUC sections..."
+              value={catalogFilter}
+              onChange={(e) => setCatalogFilter(e.target.value)}
+            />
+            <div className="max-h-40 overflow-auto text-xs space-y-0.5">
+              {catalog?.naca.map((a) => (
+                <AirfoilRow key={a.id} item={a} selected={selectedId === a.id} onPick={pickAirfoil} />
+              ))}
+              {filteredUiuc.slice(0, 60).map((a) => (
+                <AirfoilRow key={a.id} item={a} selected={selectedId === a.id} onPick={pickAirfoil} />
+              ))}
+              {!catalog && <div className="text-neutral-400">loading catalog...</div>}
+            </div>
+          </div>
+
+          <Field label={customCoords ? "NACA code (unused — custom geometry loaded)" : "NACA code"}>
             <input
               className={inputCls}
               value={naca}
-              onChange={(e) => setNaca(e.target.value)}
+              onChange={(e) => {
+                setNaca(e.target.value);
+                setCustomCoords(null);
+                setSelectedId(null);
+              }}
               placeholder="2412"
               maxLength={5}
+              disabled={!!customCoords}
             />
           </Field>
           <Field label="Angle of attack (deg)">
@@ -148,6 +231,28 @@ export default function AnalyzePage() {
                 <h2 className="text-sm font-medium mb-2">Airfoil shape</h2>
                 <AirfoilShape coords={result.coords} />
               </div>
+              {derived && (
+                <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+                  <h2 className="text-sm font-medium mb-2">
+                    CST-derived engineering parameters (order-8 fit)
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <Stat label="LE radius" value={derived.le_radius.toFixed(5)} />
+                    <Stat label="TE wedge (upper)" value={`${derived.te_wedge_upper_deg.toFixed(2)}°`} />
+                    <Stat label="TE wedge (lower)" value={`${derived.te_wedge_lower_deg.toFixed(2)}°`} />
+                    <Stat label="TE gap" value={derived.te_gap.toFixed(5)} />
+                    <Stat
+                      label="max t/c"
+                      value={`${(derived.max_thickness * 100).toFixed(2)}% @ ${derived.max_thickness_x.toFixed(2)}c`}
+                    />
+                    <Stat
+                      label="max camber"
+                      value={`${(derived.max_camber * 100).toFixed(2)}% @ ${derived.max_camber_x.toFixed(2)}c`}
+                    />
+                    <Stat label="inscribed area" value={derived.area.toFixed(4)} />
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="text-sm text-neutral-500 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-8 text-center">
@@ -180,5 +285,32 @@ function Stat({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-neutral-500">{label}</div>
       <div className="text-lg font-mono">{value}</div>
     </div>
+  );
+}
+
+function AirfoilRow({
+  item,
+  selected,
+  onPick,
+}: {
+  item: AirfoilListItem;
+  selected: boolean;
+  onPick: (item: AirfoilListItem) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(item)}
+      className={`w-full flex justify-between px-2 py-1 rounded text-left ${
+        selected
+          ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+          : "hover:bg-neutral-100 dark:hover:bg-neutral-900"
+      }`}
+    >
+      <span>{item.name}</span>
+      {item.thickness != null && (
+        <span className="text-neutral-400">{(item.thickness * 100).toFixed(1)}%t</span>
+      )}
+    </button>
   );
 }

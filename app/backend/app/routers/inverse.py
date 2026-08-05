@@ -3,7 +3,14 @@ from __future__ import annotations
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app import engine, jobs
-from app.schemas import InverseJobResponse, InverseRequest, InverseSubmitResponse
+from app.schemas import (
+    InverseJobResponse,
+    InverseRequest,
+    InverseSubmitResponse,
+    RawTargetGate,
+    RawTargetInverseRequest,
+    RawTargetSubmitResponse,
+)
 
 router = APIRouter(prefix="/api", tags=["inverse"])
 
@@ -30,3 +37,30 @@ def poll_inverse(job_id: str) -> dict:
     if job is None:
         raise HTTPException(status_code=404, detail=f"unknown job_id {job_id!r}")
     return {"job_id": job.id, "status": job.status, "result": job.result, "error": job.error}
+
+
+@router.post("/inverse/gate", response_model=RawTargetGate)
+def presolve_gate_raw(req: RawTargetInverseRequest) -> dict:
+    """The T4 presolve realisability verdict ONLY (no Newton solve) for a
+    user-defined target — lets the UI show the ADR-0004 warning immediately,
+    before the user commits to a (slower) full inverse run. Always 200; a
+    non-realisable target is a warning, not an error."""
+    try:
+        return engine.run_presolve_gate_raw(req)["gate"]
+    except engine.EngineError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400, detail=f"presolve gate failed: {type(exc).__name__}: {exc}"
+        ) from exc
+
+
+@router.post("/inverse/raw", response_model=RawTargetSubmitResponse, status_code=202)
+def submit_inverse_raw(req: RawTargetInverseRequest, background_tasks: BackgroundTasks) -> dict:
+    """User-defined-target inverse solve (target editor / CSV import — see
+    app/README.md). Shares the same job store/poll route as /api/inverse:
+    poll GET /api/inverse/{job_id}; the result's ``presolve_gate`` field
+    carries the T4 realisability verdict computed first, even on failure."""
+    job = jobs.create_job()
+    background_tasks.add_task(jobs.run_job, job.id, engine.run_inverse_raw, req)
+    return {"job_id": job.id, "status": job.status}

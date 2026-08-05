@@ -64,8 +64,20 @@ cd app/frontend && npm run build && npm run lint
 | `POST /api/analyze` | direct mfoil solve (NACA code or coords) -> cl/cd/cm, Cp(x), converged, geometry |
 | `POST /api/fit` | least-squares CST fit to supplied coordinates -> A_upper/A_lower, zeta_T, rms, gram_condition |
 | `POST /api/presolve` | T4 linear pre-solve + realisability metric (ADR-0004) |
-| `POST /api/inverse` | submit a monolithic CST-Newton inverse solve; returns `job_id` (202) |
-| `GET /api/inverse/{job_id}` | poll job status/result |
+| `POST /api/inverse` | submit a self-consistency (`naca_target`) monolithic CST-Newton inverse solve; returns `job_id` (202) |
+| `POST /api/inverse/gate` | T4 realisability gate only (no solve) for a user-defined target |
+| `POST /api/inverse/raw` | submit a user-defined-target (`raw_target`) inverse solve; returns `job_id` (202) |
+| `GET /api/inverse/{job_id}` | poll job status/result — shared by `/api/inverse` and `/api/inverse/raw` |
+| `GET /api/airfoils` | UIUC corpus (123 sections, cached thickness/camber) + curated NACA presets |
+| `GET /api/airfoils/{id}/geometry` | coordinates for `uiuc:<name>` or `naca:<code>` |
+| `POST /api/geometry/from-cst` | instant CST coefficients -> coordinates + derived engineering parameters |
+| `POST /api/flowfield` | inviscid velocity/Cp field on a grid, for vector/contour rendering |
+
+`/api/fit` and `/api/geometry/from-cst` both return a `derived` block: LE
+radius (`A_u0^2/2`), TE wedge half-angles (upper/lower, from the exact
+TE-slope identity), max thickness/camber + their x-locations, and inscribed
+area (Beta-function row) — all closed-form from the CST coefficients, no
+quadrature (`app.engine.derived_geometry_quantities`).
 
 Request/response shapes: `app/backend/app/schemas.py` (pydantic, mirrors
 `cins` conventions — CST vectors `[A_u0..A_un, A_l0..A_ln]`, Cp in mfoil's
@@ -98,11 +110,52 @@ fit, then recover it via the monolithic Newton solve
 (`cins.benchmarks.pipeline.prepare_cell`). A raw, user-drawn target-Cp mode
 is **not** implemented: it needs target-station correspondence machinery
 (interpolating an arbitrary user curve onto mfoil panel nodes while keeping
-the extended system square, FM-1) that is out of scope for this phase. This
-is exactly why the frontend Inverse view is marked "coming with T8" — the
-backend job API (submit/poll, streamed-looking via polling, residual
-history, release-and-verify) is real and already wired to it, but the target
-input is fixed to "recover this NACA code" until that machinery lands.
+the extended system square, FM-1). **This has since landed** — see
+"`/api/inverse/raw` — user-defined target" below; this paragraph is kept for
+history.
+
+### `/api/inverse/raw` and `/api/inverse/gate` — user-defined target
+
+A second inverse mode that accepts a target the user defines directly,
+rather than one generated from a NACA code's own self-consistency Cp:
+
+- `POST /api/inverse/gate` — runs ONLY the T4 presolve realisability gate
+  (`app.engine.run_presolve_gate_raw`) against a `baseline` (NACA code or
+  explicit CST coefficients) and a `target` (`x`, plus either `cp` or
+  `ue_over_vinf` — converted via `Cp = 1-(u_e/V_inf)^2`, incompressible only).
+  Always 200; a non-realisable target (ADR-0004) is a warning in the
+  response, never an error, exactly like `/api/presolve`.
+- `POST /api/inverse/raw` — submits the full monolithic Newton solve against
+  that target as a background job (202 + `job_id`), reusing the **same**
+  `GET /api/inverse/{job_id}` poll route as `/api/inverse`. The result's
+  `presolve_gate` field always carries the T4 verdict, even on an early
+  failure, so the UI can show the realisability warning regardless of
+  outcome — this is the dossier §7.10 guard made into product UX.
+- Constraint rows (`shared_le_radius`, `le_radius`, `te_wedge`, `area`) are
+  optional in the request; if none is given, the endpoint auto-adds a
+  `shared_le_radius` row with `b = g·A0` (the presolved initial guess) rather
+  than an idealized value — the "target-consistent constraint RHS" lesson
+  from T4 (`.remember/target-consistent-constraint-rhs.md`).
+- `alpha_free` defaults to `true` (dossier FM-1 absorption DOF) — recommended
+  for arbitrary targets since there is no natural alpha to fix against.
+- **Scope cut vs. `/api/inverse`'s `naca_target` mode**: raw-target solves
+  use `le_treatment: none` and **natural** (free) transition, not the
+  dossier's "T7 winning configuration" (`prescribed` LE + forced trip,
+  `.remember/t7-winning-configuration.md`) — there is no natural trip
+  location to match for a user-drawn target. Empirically (manual runs during
+  development, not yet a gate test) this converges correctly for
+  self-consistent identity-case targets but can take many more Newton
+  iterations (small trust-region steps) than the tuned T7 recipe for
+  less-consistent targets; `newton.max_iter` (default 50) bounds the wait,
+  and a non-convergent result is still returned honestly
+  (`converged: false`) rather than fabricated. Retuning the trust-region /
+  omega selection for this mode is deferred — see "Deferred" below.
+- Coordinate import: `load_airfoil_dat` (Selig/Lednicer autodetect) backs
+  `GET /api/airfoils/{id}/geometry` for `uiuc:<name>` ids, so any of the 123
+  UIUC sections can be used as a baseline or as an analyze/fit target;
+  arbitrary user-uploaded `.dat` files are not yet accepted directly (the
+  frontend target editor instead lets you paste/upload a CSV of the target
+  *Cp curve*, not raw coordinates — see "Deferred").
 
 ### Concurrency guard (ADR-0003)
 
@@ -123,22 +176,41 @@ phase-1 local-dev scope, not an oversight.
 
 ## Frontend
 
-- **Analyze view** (`app/frontend/src/app/analyze/page.tsx`): NACA code +
-  alpha + Re + optional forced-trip form -> calls `/api/analyze` -> renders a
-  Cp-vs-x/c chart (inverted y-axis, aero convention; upper/lower surfaces
-  color-distinguished) and the airfoil outline.
-- **Inverse view** (`app/frontend/src/app/inverse/page.tsx`): stub banner
-  ("coming with T8") + a real submit-and-poll flow against
-  `/api/inverse`/`/api/inverse/{job_id}`, showing the residual-history curve
-  and release-and-verify result as the self-consistency solve runs.
+- **Analyze view** (`app/frontend/src/app/analyze/page.tsx`): an airfoil
+  browser panel (searchable UIUC list + curated NACA presets, via
+  `/api/airfoils`) alongside the NACA-code/alpha/Re/forced-trip form -> calls
+  `/api/analyze` -> renders a Cp-vs-x/c chart (inverted y-axis, aero
+  convention), the airfoil outline, and a CST-derived engineering-parameter
+  readout (LE radius, TE wedge, max t/c + location, max camber + location,
+  inscribed area) fitted from the solved geometry via `/api/fit`.
+- **Inverse view** (`app/frontend/src/app/inverse/page.tsx`): two modes.
+  "Self-consistency (NACA target)" is the original submit-and-poll flow
+  against `/api/inverse`/`/api/inverse/{job_id}`. "Custom target" (default)
+  is the target editor: load a template Cp from any NACA code's own solve
+  (via `/api/analyze`), edit it in a numeric table, or upload a CSV of
+  `(x/c, Cp)` or `(x/c, u_e/V_inf)` rows; pick a baseline (NACA code);
+  optionally fix a leading-edge radius constraint; toggle `alpha_free`; then
+  either "Check realisability" (`/api/inverse/gate`, shown as a
+  green/amber verdict card with the ADR-0004 warning text when applicable)
+  or "Run inverse solve" (`/api/inverse/raw`), which polls the same job
+  route and surfaces the realisability card again from the job result.
 - **Charts**: hand-built inline SVG, not a charting library. Justification is
   in a comment at the top of `app/frontend/src/components/CpChart.tsx` —
-  short version: exactly two static XY curves per view, no
-  brushing/zooming/interactive-target-drawing yet (that's deferred to the
-  real Inverse UX, see above), so a charting library's dependency weight and
-  default-axis fighting (aero's inverted Cp axis) buys nothing over a
-  ~150-line SVG scale helper. Revisit (likely visx, lower-level/composable)
-  when target-Cp drawing/brushing lands.
+  short version: static XY curves and simple tables, no
+  brushing/zoom/drag-based curve editing yet (see "Deferred": a drag-based
+  per-surface control-point editor is a larger follow-up over today's
+  template-load + table-edit + CSV-upload editor), so a charting library's
+  dependency weight and default-axis fighting (aero's inverted Cp axis) buys
+  nothing over a ~150-line SVG scale helper.
+- **Deliberately NOT built this pass** (see "Deferred"): a dedicated Flow
+  Field view for `/api/flowfield` (the endpoint is live and tested but has
+  no frontend consumer yet), a full "Airfoil Studio" with live CST-coefficient
+  sliders morphing geometry via `/api/geometry/from-cst` (the endpoint is
+  live; the Analyze page consumes `/api/fit`'s `derived` block but does not
+  yet expose editable sliders), the animated per-iteration "Inverse Design
+  Theater" (geometry/Cp/residual evolving together — the backend records
+  only the final diagnostics summary, not per-iteration geometry snapshots),
+  and a Results Gallery / `/api/showcase` replay of archived T7/T8 runs.
 
 ## Architecture notes
 
@@ -157,20 +229,63 @@ phase-1 local-dev scope, not an oversight.
 - Supabase auth, saved designs, RLS (FR-10, NFR-4) — no database or auth
   exists yet; every endpoint above is unauthenticated and stateless (job
   store aside).
-- Vercel/Render (or any) deployment — this phase is local-dev only.
-- Target-Cp drawing/upload editor and any UI for `station_selection`/
-  `alpha_free`/constraint editing beyond what `/api/presolve`'s JSON contract
-  already exposes.
-- Raw user-drawn Cp target mode for `/api/inverse` (see above).
-- Streaming `/api/inverse` progress over SSE/WebSocket — phase 1 uses polling
-  (`GET /api/inverse/{job_id}`); the PRD's "streams D-1/D-6 diagnostics"
-  requirement (FR-5) is satisfied here by a full diagnostics-summary array
-  returned once the job completes, polled at a fixed interval from the
-  frontend, not a live per-iteration push. Revisit with SSE if/when true
-  per-iteration streaming is needed.
+- Streaming `/api/inverse`/`/api/inverse/raw` progress over SSE/WebSocket —
+  both use polling (`GET /api/inverse/{job_id}`); a full diagnostics-summary
+  array is returned once the job completes, polled at a fixed interval from
+  the frontend, not a live per-iteration push.
+- **Per-iteration inverse "stages"** (geometry/Cp/residual snapshots at every
+  Newton iteration, for an animated "Inverse Design Theater"): NOT
+  implemented. `solve_inverse` (`src/cins/solver/newton.py`) and
+  `NewtonDiagnostics` were deliberately left untouched this pass — the T8
+  117-cell UIUC panel sweep was running against the current pipeline
+  behavior when this work started, and the mission brief for this task
+  explicitly asked to prefer not touching `pipeline.py`/the core solver.
+  `diagnostics[]` in the job result still gives per-iteration scalar norms
+  (`R_norm`, `T_norm`, `G_norm`, `cond_J`, ...), just not geometry/Cp arrays.
+- `/api/showcase` (replay of archived `experiments/results/t7_naca2412` +
+  `t8` panel cells + `figures/paper/*.png` as static, labeled-archived
+  content) and a Results Gallery frontend view — not built.
+- A Flow Field frontend view, live CST-slider morphing UI ("Airfoil Studio"),
+  and a drag-based target-curve editor (control points, not just
+  table/CSV) — the backing endpoints (`/api/flowfield`,
+  `/api/geometry/from-cst`) exist and are tested, but have no dedicated
+  frontend consumer yet beyond what's described above.
+- Direct `.dat` coordinate **upload** (client picks a file, server parses via
+  `load_airfoil_dat`) — the loader is wired up server-side for the UIUC
+  corpus (`GET /api/airfoils/{id}/geometry`) but there is no upload endpoint
+  for a brand-new file the user supplies; only a target-*Cp*-curve CSV
+  upload exists (Inverse view).
+- BL distributions (theta/delta*/cf/Hk vs x, transition marker) added to
+  `/api/analyze`'s response for viscous solves — not implemented; `m.post`
+  already carries these fields internally (`vendor/mfoil/mfoil.py`) but the
+  endpoint/schema/frontend tabs were not built this pass.
+- Newton trust-region/omega tuning for `/api/inverse/raw`'s
+  `le_treatment: none` + free-transition configuration — see "Scope cut"
+  note above; the dossier's tuned "T7 winning configuration" is
+  `prescribed` LE + forced transition, which `naca_target` mode still uses.
 - Cascade (pitch/stagger/periodicity) inputs, MISES-backed transonic solve,
   multi-user collaboration, public gallery — all explicitly "Later" in
   `docs/PRD.md` §3.5.
 - Load testing / multi-worker scaling (NFR-6) — the in-process job store and
   `MFOIL_LOCK` above are single-worker-only by construction; sharding across
   workers needs an external job queue (e.g. Redis/RQ), not attempted here.
+
+## Deploy
+
+- **Backend**: `app/backend/Dockerfile` (build context = repo root, so it
+  can copy `src/`, `vendor/`, `configs/`, `data/airfoils/` alongside the app
+  package). `python:3.12-slim`, `pip install -e .` + `app/backend/requirements.txt`,
+  single-worker `uvicorn` on `$PORT` (default `7860`, the Hugging Face
+  Spaces Docker-SDK convention). Build/run:
+  ```bash
+  docker build -f app/backend/Dockerfile -t cins-backend .
+  docker run -p 7860:7860 -e ALLOWED_ORIGINS=https://your-frontend.example cins-backend
+  ```
+  CORS origins are configurable via the `ALLOWED_ORIGINS` env var
+  (comma-separated; defaults to `http://localhost:3000` for local dev —
+  `app/backend/app/main.py`).
+- **Frontend**: `app/frontend/next.config.ts` reads `NEXT_PUBLIC_API_BASE`
+  for the backend origin the `/api`/`/health` rewrite proxies to, falling
+  back to `CINS_BACKEND_ORIGIN` (back-compat) then `http://127.0.0.1:8000`.
+  Set `NEXT_PUBLIC_API_BASE` to the deployed backend's origin (e.g. the HF
+  Space URL) when deploying the frontend (Vercel or otherwise).

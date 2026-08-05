@@ -10,10 +10,12 @@ not safe to shard across multiple uvicorn workers; see app/README.md).
 
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import analyze, fit, health, inverse, presolve
+from app.routers import airfoils, analyze, fit, flowfield, geometry, health, inverse, presolve
 
 app = FastAPI(
     title="CINS API",
@@ -24,9 +26,18 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# ALLOWED_ORIGINS: comma-separated list; defaults to local Next.js dev only.
+# Deploy-readiness (app/README.md): set this env var to the deployed frontend
+# origin(s) (e.g. the Vercel URL) in production.
+_allowed_origins = [
+    o.strip()
+    for o in os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,3 +48,6 @@ app.include_router(analyze.router)
 app.include_router(fit.router)
 app.include_router(presolve.router)
 app.include_router(inverse.router)
+app.include_router(airfoils.router)
+app.include_router(geometry.router)
+app.include_router(flowfield.router)

@@ -1,0 +1,21 @@
+# Build context is the repo root (see app/backend/Dockerfile). Keep the
+# context small — this repo has large experiment artifacts and two full
+# node_modules/venv trees that must never end up in an image layer.
+.git
+.venv
+.claude
+node_modules
+app/frontend/node_modules
+app/frontend/.next
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.ruff_cache
+experiments/results
+docs
+paper
+site
+*.md
+!README.md
+app/backend/.cache
+.remember
