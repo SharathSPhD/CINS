@@ -111,3 +111,48 @@ def test_load_degenerate_zero_chord(tmp_path):
     bad.write_text("FLAT\n0.5 0.0\n0.5 0.0\n0.5 0.1\n0.5 0.0\n")
     with pytest.raises(AirfoilParseError):
         load_airfoil_dat(bad)
+
+
+# ---------------------------------------------------------------------------
+# _ensure_min_te_gap regression (closure-review finding: the fix that
+# recovered 63/117 UIUC panel cells had no named test — a refactor could
+# silently reopen the failure mode with the suite staying green)
+# ---------------------------------------------------------------------------
+
+
+def test_min_te_gap_opens_sharp_te_and_viscous_solve_survives():
+    """Sharp/coincident TE endpoints must be opened to >= MIN_TE_GAP so
+    mfoil's build_wake TE-tangent sign test never evaluates on noise
+    (vendor mfoil.py:748 assert; killed 63/117 UIUC panel cells 2026-08-05).
+    ah21-9 is one of the previously-crashing sections."""
+    import numpy as np
+
+    from cins.cst.io import MIN_TE_GAP, load_airfoil_dat
+
+    X = load_airfoil_dat("data/airfoils/uiuc/ah21-9.dat")
+    gap = float(np.hypot(*(X[:, -1] - X[:, 0])))
+    assert gap >= MIN_TE_GAP - 1e-12
+
+    # duplicated-endpoint synthetic loop: duplicate must drop, gap must open
+    psi = np.linspace(0, 1, 40)
+    thick = 0.05 * np.sqrt(psi) * (1 - psi)
+    xs = np.concatenate([psi[::-1], psi[1:]])
+    zs = np.concatenate([-thick[::-1], thick[1:]])
+    loop = np.vstack([xs, zs])
+    loop = np.hstack([loop, loop[:, :1]])  # exact duplicate closing point
+    from cins.cst.io import _ensure_min_te_gap
+
+    Y = _ensure_min_te_gap(loop)
+    g2 = float(np.hypot(*(Y[:, -1] - Y[:, 0])))
+    assert g2 >= MIN_TE_GAP - 1e-12
+    assert Y[1, -1] > Y[1, 0]  # opened along thickness: upper above lower
+
+
+def test_min_te_gap_leaves_open_te_untouched():
+    import numpy as np
+
+    from cins.cst.io import load_airfoil_dat
+
+    X = load_airfoil_dat("data/airfoils/uiuc/davis.dat")  # large flat-back TE
+    gap = float(np.hypot(*(X[:, -1] - X[:, 0])))
+    assert gap > 0.01  # untouched, well above the minimum

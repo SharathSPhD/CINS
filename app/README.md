@@ -23,6 +23,20 @@ docstring for the exact call sequences reused from
 `cins.benchmarks.pipeline.run_pipeline` (`prepare_cell` -> `InverseProblem`
 -> `solve_inverse`).
 
+## Public deployment (live)
+
+- Frontend: https://cins-inverse-design.vercel.app (Vercel; browser calls the
+  backend origin directly — NEXT_PUBLIC_API_BASE baked at build)
+- Backend: https://cins-backend.onrender.com (Render free tier, Docker from
+  app/backend/Dockerfile, auto-deploys on push to main)
+- **Free-tier latency reality:** a viscous analyze measures ~166 s and a full
+  inverse job ~10–20 min on Render's 0.1-vCPU instance (numbers verified correct
+  against the pinned baselines — it is slow, not wrong). Inviscid endpoints run
+  in seconds. A paid instance (~$7/mo) cuts viscous solves to ~15 s. The
+  archived-showcase endpoints (/api/showcase, /static/figures) are instant.
+- CORS: exact origins via ALLOWED_ORIGINS env (wildcard+credentials silently
+  drops the allow-origin header — learned the hard way).
+
 ## Run it
 
 Backend (FastAPI, from the repo root — uses the repo's existing `.venv`):

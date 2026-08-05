@@ -26,7 +26,7 @@
 | Inlet/outlet BC | Inlet angle prescribed, outlet angle unknown (+ cascade Kutta row Γ = s·ΔV_t) | Turbine-analysis convention; DOF re-assertion required (FM-1 discipline) |
 | Compressibility | Accept subcritical (Kármán–Tsien) for Stage 2; transonic deferred to MISES (Stage 3) | §8.5; no cheap fix inside a panel method |
 | AVDR/streamtube | Defer to Stage 3 | Not needed for the Gostelow validation ladder |
-| Validation ladder | (1) s=10⁶ reproduces Stage 1 EXACTLY (pinned regression); (2) Gostelow analytic cascades; (3) LS89 MUR experimental Mach distributions (data already in repo, data/airfoils/turbine/ls89/); (4) MULTALL cross-check | §8.4 + our LS89 acquisition |
+| Validation ladder | (1) s=10⁶ reproduces Stage 1 EXACTLY (pinned regression); (2) Gostelow analytic cascades — THE Stage 2 gate; (3) LS89 GEOMETRY-side validation only in Stage 2 (fit/paneling/inverse self-consistency on the section); the MUR pressure-distribution comparisons move to Stage 3 — the closure review computed peak isentropic Mach 0.964–1.227 across all 7 in-repo MUR datasets (mur43–49), i.e. locally transonic-to-supersonic, outside the Kármán–Tsien subcritical scope this same document commits to (amended per adversarial check, 2026-08-05); (4) MULTALL cross-check | §8.4 + LS89 scope corrected |
 | Geometry basis | CST unchanged; stagger/pitch as rigid-body parameters outside A (absorption modes per FM-1 bookkeeping) | Keeps dsurface_dA design-independent |
 
 ## Work breakdown (Stage 2 gates, mirroring T-ladder discipline)
@@ -35,7 +35,10 @@
 - **S1** Cascade BC rows + DOF re-assertion (inlet prescribed / outlet free / Kutta)
 - **S2** Gostelow inviscid validation gate (surface-velocity RMS threshold from the
   published exact solutions; pre-register before running)
-- **S3** Viscous cascade + LS89 subcritical cases (MUR conditions below drag rise)
+- **S3** Viscous cascade at subcritical conditions (synthetic + Gostelow-derived
+  loadings); LS89 limited to geometry-side checks — the in-repo MUR conditions are
+  locally transonic (peak M_is 0.96–1.23, computed from the repo data) and belong
+  to Stage 3/MISES (amended per the closure review's adversarial check)
 - **S4** Cascade inverse: falsifiable test T7-analog (self-generated surface-Mach
   target, QR station selection, release-and-verify) — targets: Mach RMS < 0.005,
   outlet angle < 0.1° (§8.6, calibrated to Lavagnoli's KAN benchmarks)

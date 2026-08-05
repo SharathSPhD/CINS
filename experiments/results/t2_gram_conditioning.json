@@ -1,8 +1,8 @@
 {
   "manifest": {
-    "git_sha": "c339388108b2932216f8f5752bd411ee7491ee2e",
-    "config_hash": "ce63e9af3c3b54a7",
-    "timestamp_utc": "2026-08-04T14:43:40.855535+00:00",
+    "git_sha": "ea53a4e920b792d25fc57631ebc62fe1aedc8144",
+    "config_hash": "c078a26ec4a5ca81",
+    "timestamp_utc": "2026-08-05T10:05:43.003923+00:00",
     "n_gate": 8,
     "n_sweep": [
       4,
