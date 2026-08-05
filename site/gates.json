@@ -1,6 +1,6 @@
 {
   "project": "CINS \u2014 CST Inverse Newton Solver",
-  "updated": "2026-08-04",
+  "updated": "2026-08-05",
   "stage": 1,
   "gates": [
     {
@@ -78,9 +78,9 @@
     {
       "id": "T9",
       "title": "Stage 2 design review",
-      "status": "in_progress",
-      "date": null,
-      "evidence": "Design review drafted & pushed (docs/T9-stage2-design-review.md): ln.sin quadrature-first kernel, s->inf oracle, Gostelow+LS89 ladder, S0-S5 gates. Adversarial check pending.",
+      "status": "closed",
+      "date": "2026-08-05",
+      "evidence": "Design review adversarially checked and AMENDED: LS89 MUR comparisons moved to Stage 3 (peak M_is 0.964-1.227 across all 7 in-repo datasets = locally transonic, outside T9's own subcritical scope \u2014 caught by the closure review); Gostelow = THE Stage 2 gate; S0-S5 ladder frozen. STAGE 1 COMPLETE.",
       "commit": null
     }
   ]

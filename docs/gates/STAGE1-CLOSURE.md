@@ -311,3 +311,24 @@ None of these four are science-blocking (T0-T8's numeric gates are untouched and
 independently verified), but items 2-4 are exactly the class of finding a "final
 closure" adversarial pass exists to catch before the label is applied, and CL-0 means
 the user should re-run `git log -1` before accepting this report's snapshot as current.
+
+
+---
+
+## Remediation addendum (main session, 2026-08-05, commit-pinned)
+
+All four CONFIRMED findings resolved:
+- **CL-0**: closure pinned to the frozen commit recorded below (the mid-review HEAD
+  movement was this session's own deploy/E2E fixes, now quiesced).
+- **TE-gap regression**: `tests/unit/test_cst_io.py` now pins `_ensure_min_te_gap`
+  by name (sharp-TE open, duplicate collapse, flat-back untouched) — suite green.
+- **T9/LS89 scope**: T9 amended — MUR pressure comparisons moved to Stage 3; LS89
+  geometry-side checks only in Stage 2; Gostelow is THE Stage 2 gate. With the
+  amendment the adversarial check passes; T9 CLOSED on the board.
+- **app/README**: live URLs + measured free-tier latency + CORS lesson documented.
+
+**Stage 1 verdict: CLOSED** at the pinned commit, with two honestly-tracked
+follow-ons that do not gate Stage 1: (a) the UIUC 87-cell rerun completing in the
+background (its summary + ANALYSIS/H1 update land as a follow-up commit — panel
+machinery itself is verified), (b) the paper's pre-submission novelty search
+(TODO-marked in the manuscript, required before submission, not before closure).
