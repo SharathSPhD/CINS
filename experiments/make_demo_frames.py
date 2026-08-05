@@ -65,6 +65,9 @@ def split_surfaces(x, y):
     return (lo_x[lo], lo_y[lo]), (up_x[up], up_y[up])
 
 
+LE_MASK = 0.01  # chord fraction excluded from the surface-error panel
+
+
 def surface_error(gx, gy, tx, ty):
     """Signed normal-ish offset of a geometry from a target, per surface.
 
@@ -171,14 +174,15 @@ def _style(ax, title=None):
         ax.set_title(title, color=FG, fontsize=11, pad=8, loc="left")
 
 
-def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> int:
+def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120,
+           frames_name: str = "frames") -> int:
     stages = payload["stages"]
     tx, ty = np.array(payload["target_x"]), np.array(payload["target_y"])
     cpt_x = np.array(payload["cp_target_x"])
     cpt = np.array(payload["cp_target"])
     hist = payload["residual_history"]
 
-    frames_dir = out_dir / "frames"
+    frames_dir = out_dir / frames_name
     frames_dir.mkdir(parents=True, exist_ok=True)
     for f in frames_dir.glob("*.png"):
         f.unlink()
@@ -196,7 +200,8 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
     # so the collapse to zero is visible against a constant reference.
     x0 = np.array(stages[0]["x"])
     y0 = np.array(stages[0]["y"])
-    err_span = max(float(np.max(np.abs(surface_error(x0, y0, tx, ty) * 1000.0))) * 1.25, 0.5)
+    e0 = surface_error(x0, y0, tx, ty) * 1000.0
+    err_span = max(float(np.max(np.abs(e0[x0 >= LE_MASK]))) * 1.25, 0.5)
 
     for k, (i, frac) in enumerate(seq):
         a = stages[i]
@@ -206,20 +211,32 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
         gy = np.array(a["y"]) * (1 - w) + np.array(b["y"]) * w
         cp = np.array(a["cp"]) * (1 - w) + np.array(b["cp"]) * w
 
+        vertical = height > width
         fig = plt.figure(figsize=(width / dpi, height / dpi), dpi=dpi, facecolor=BG)
-        gs = GridSpec(2, 3, figure=fig, height_ratios=[1.15, 1.0],
-                      hspace=0.34, wspace=0.24,
-                      left=0.055, right=0.975, top=0.86, bottom=0.10)
+        if vertical:
+            # Four stacked panels so the animation fills a 9:16 frame instead of
+            # being letterboxed inside it.
+            gs = GridSpec(4, 1, figure=fig, height_ratios=[1.0, 1.0, 1.0, 1.0],
+                          hspace=0.55, left=0.15, right=0.95, top=0.885, bottom=0.075)
+            fig.text(0.5, 0.955, "Monolithic CST-Newton inverse solve",
+                     color=FG, fontsize=25, fontweight="bold", ha="center")
+            fig.text(0.5, 0.928, "Pressure distribution in, geometry out.",
+                     color=MUTED, fontsize=15, ha="center")
+            fig.text(0.5, 0.905, f"Newton iteration {a['it']}",
+                     color=ACCENT, fontsize=17, ha="center", family="monospace")
+        else:
+            gs = GridSpec(2, 3, figure=fig, height_ratios=[1.15, 1.0],
+                          hspace=0.34, wspace=0.24,
+                          left=0.055, right=0.975, top=0.86, bottom=0.10)
+            fig.text(0.06, 0.945, "Monolithic CST-Newton inverse solve",
+                     color=FG, fontsize=21, fontweight="bold")
+            fig.text(0.06, 0.905,
+                     "Target pressure distribution in, airfoil geometry out. "
+                     "No optimizer, no surrogate.", color=MUTED, fontsize=12)
+            fig.text(0.97, 0.945, f"Newton iteration {a['it']}",
+                     color=ACCENT, fontsize=15, ha="right", family="monospace")
 
-        fig.text(0.06, 0.945, "Monolithic CST-Newton inverse solve",
-                 color=FG, fontsize=21, fontweight="bold")
-        fig.text(0.06, 0.905,
-                 "Target pressure distribution in, airfoil geometry out. "
-                 "No optimizer, no surrogate.", color=MUTED, fontsize=12)
-        fig.text(0.97, 0.945, f"Newton iteration {a['it']}",
-                 color=ACCENT, fontsize=15, ha="right", family="monospace")
-
-        ax1 = fig.add_subplot(gs[0, :])
+        ax1 = fig.add_subplot(gs[0, 0] if vertical else gs[0, :])
         _style(ax1, "Geometry: current shape against the target")
         ax1.plot(tx, ty, color=TARGET, lw=3.0, alpha=0.5, label="target", zorder=2)
         ax1.plot(gx, gy, color=ACCENT, lw=2.0, label="current", zorder=3)
@@ -227,7 +244,8 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
         ax1.set_ylim(-0.16, 0.19)
         ax1.set_aspect("equal", adjustable="box")
         ax1.set_xlabel("x / c", color=MUTED, fontsize=10)
-        leg = ax1.legend(loc="upper right", frameon=False, fontsize=10)
+        leg = ax1.legend(loc="upper right", frameon=True, fontsize=10,
+                         facecolor=BG, edgecolor=GRID, framealpha=0.95)
         for t in leg.get_texts():
             t.set_color(FG)
 
@@ -242,15 +260,18 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
         ax2.set_xlim(-0.03, 1.03)
         ax2.set_xlabel("x / c", color=MUTED, fontsize=10)
         ax2.set_ylabel("$C_p$ (inverted)", color=MUTED, fontsize=10)
-        leg2 = ax2.legend(loc="lower right", frameon=False, fontsize=9)
+        leg2 = ax2.legend(loc="lower right", frameon=True, fontsize=9,
+                          facecolor=BG, edgecolor=GRID, framealpha=0.95)
         for t in leg2.get_texts():
             t.set_color(FG)
 
-        axm = fig.add_subplot(gs[1, 1])
+        axm = fig.add_subplot(gs[2, 0] if vertical else gs[1, 1])
         _style(axm, "Surface error against the target, magnified")
         dy = surface_error(gx, gy, tx, ty) * 1000.0
-        axm.fill_between(gx, 0, dy, color=ACCENT, alpha=0.35, zorder=2)
-        axm.plot(gx, dy, color=ACCENT, lw=1.4, zorder=3)
+        keep = gx >= LE_MASK
+        gx_e, dy = gx[keep], dy[keep]
+        axm.fill_between(gx_e, 0, dy, color=ACCENT, alpha=0.35, zorder=2)
+        axm.plot(gx_e, dy, color=ACCENT, lw=1.4, zorder=3)
         axm.axhline(0.0, color=TARGET, lw=1.6, alpha=0.7, zorder=4)
         axm.set_xlim(-0.03, 1.03)
         axm.set_ylim(-err_span, err_span)
@@ -258,8 +279,12 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
         axm.set_ylabel("surface offset (millichords)", color=MUTED, fontsize=10)
         axm.text(0.02, 0.92, f"peak {np.max(np.abs(dy)):.3f} mc",
                  transform=axm.transAxes, color=FG, fontsize=10, family="monospace")
+        axm.text(0.02, 0.06,
+                 f"x/c < {LE_MASK:g} excluded: vertical offset is not a\n"
+                 "meaningful error where the surface is vertical",
+                 transform=axm.transAxes, color=MUTED, fontsize=7.5)
 
-        ax3 = fig.add_subplot(gs[1, 2])
+        ax3 = fig.add_subplot(gs[3, 0] if vertical else gs[1, 2])
         _style(ax3, "Residual norm per iteration")
         shown = hist[: a["it"] + 1] if a["it"] + 1 <= len(hist) else hist
         ax3.semilogy(range(len(shown)), shown, color=GOOD, lw=2.2,
@@ -273,7 +298,7 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
                      color=GOOD, fontsize=12, family="monospace", ha="right")
 
         if k >= len(seq) - HOLD_LAST:
-            fig.text(0.5, 0.028,
+            fig.text(0.5, 0.022 if vertical else 0.028,
                      f"Recovered to {payload['err_free_inf']:.2e} in "
                      f"{payload['iterations']} Newton iterations",
                      color=GOOD, fontsize=15, ha="center", fontweight="bold")
@@ -292,7 +317,9 @@ def main(argv: list[str]) -> int:
     else:
         payload = run_capture(out_dir)
     n = render(payload, out_dir)
-    print(f"captured {len(payload['stages'])} stages, rendered {n} frames -> {out_dir/'frames'}")
+    nv = render(payload, out_dir, width=1080, height=1920, frames_name="frames_vertical")
+    print(f"captured {len(payload['stages'])} stages, rendered {n} wide "
+          f"and {nv} vertical frames -> {out_dir}")
     print(f"converged={payload['converged']} iters={payload['iterations']} "
           f"err={payload['err_free_inf']:.3e}")
     return 0

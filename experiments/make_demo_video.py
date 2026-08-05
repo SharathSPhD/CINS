@@ -206,7 +206,10 @@ def main(argv: list[str]) -> int:
     encode(root / "wide", out_dir / "cins-demo-wide.mp4", (1920, 1080))
     print(f"wide: {n} frames -> {out_dir/'cins-demo-wide.mp4'}")
 
-    n = build_timeline(anim, ui, root / "vertical", (1080, 1920))
+    anim_v = root / "frames_vertical"
+    if not anim_v.exists() or not any(anim_v.glob("f*.png")):
+        anim_v = anim  # fall back to letterboxing the wide frames
+    n = build_timeline(anim_v, ui, root / "vertical", (1080, 1920))
     encode(root / "vertical", out_dir / "cins-demo-vertical.mp4", (1080, 1920))
     print(f"vertical: {n} frames -> {out_dir/'cins-demo-vertical.mp4'}")
 
