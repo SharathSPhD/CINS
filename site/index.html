@@ -1,110 +1,787 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CINS — Inverse Airfoil Design Without an Optimizer</title>
-<style>
-  :root {
-    --bg: #0e1116; --panel: #171c24; --text: #e6e9ef; --muted: #9aa4b2;
-    --accent: #4cc9f0; --ok: #2dd4a7; --warn: #f4b842; --pend: #566072; --line: #262d38;
-  }
-  @media (prefers-color-scheme: light) {
-    :root { --bg:#f7f8fa; --panel:#ffffff; --text:#15202b; --muted:#5b6572;
-            --accent:#0077b6; --ok:#0d9b76; --warn:#c07d00; --pend:#a8b0bc; --line:#e3e7ec; }
-  }
-  * { box-sizing: border-box; margin: 0; }
-  body { background: var(--bg); color: var(--text);
-         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
-  header h1 { font-size: 2rem; letter-spacing: -0.02em; }
-  header p.tag { color: var(--muted); margin-top: .35rem; max-width: 46rem; }
-  .badges { margin-top: .8rem; display: flex; gap: .5rem; flex-wrap: wrap; }
-  .badge { font-size: .78rem; padding: .18rem .6rem; border-radius: 999px;
-           border: 1px solid var(--line); color: var(--muted); }
-  section { margin-top: 2.5rem; }
-  h2 { font-size: 1.25rem; margin-bottom: .8rem; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1.2rem 1.4rem; }
-  .explain p + p { margin-top: .7rem; }
-  .explain .nontech { border-left: 3px solid var(--accent); padding-left: 1rem; color: var(--muted); margin-top: 1rem; }
-  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-  th, td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
-  .dot { display: inline-block; width: .65rem; height: .65rem; border-radius: 50%; margin-right: .45rem; }
-  .s-closed .dot { background: var(--ok); } .s-closed td.st { color: var(--ok); }
-  .s-in_progress .dot { background: var(--warn); } .s-in_progress td.st { color: var(--warn); }
-  .s-pending .dot { background: var(--pend); } .s-pending td.st { color: var(--muted); }
-  .ev { color: var(--muted); font-size: .85rem; }
-  footer { margin-top: 3rem; color: var(--muted); font-size: .85rem; }
-  a { color: var(--accent); text-decoration: none; } a:hover { text-decoration: underline; }
-  .scroll { overflow-x: auto; }
-</style>
+<meta name="description" content="CINS recovers an airfoil shape from a target pressure distribution by solving one square Newton system, with CST coefficients appended to the flow solver's own unknown vector. An interactive walkthrough of the method and the T0-T9 experiment ladder.">
+<meta name="theme-color" content="#0b0f14">
+<meta property="og:title" content="CINS: Inverse Airfoil Design Without an Optimizer">
+<meta property="og:description" content="Geometry recovered from a target pressure distribution as one square Newton root-find, with CST coefficients as first-class unknowns in the flow solver's global system.">
+<meta property="og:type" content="article">
+<title>CINS: Inverse Airfoil Design Without an Optimizer</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>CINS</h1>
-    <p class="tag">Inverse airfoil design without an optimizer — geometry recovered from a
-    target pressure distribution as one square Newton root-find, with CST coefficients as
-    first-class unknowns in the flow solver's global system.</p>
-    <div class="badges">
-      <span class="badge">Stage 1 · isolated airfoil · mfoil</span>
-      <span class="badge">Paper P1 → AIAA</span>
-      <span class="badge"><a href="https://github.com/SharathSPhD/CINS">github.com/SharathSPhD/CINS</a></span>
+<span id="top"></span>
+<a href="#main" class="skip-link">Skip to content</a>
+
+<div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+
+<header class="site-header">
+  <div class="sh-inner">
+    <a class="sh-brand" href="#top">
+      <span class="sh-mark" aria-hidden="true"></span>
+      <span class="sh-name">CINS</span>
+      <span class="sh-tag">CST Inverse Newton Solver</span>
+    </a>
+    <nav class="sh-links" aria-label="Resources">
+      <a class="sh-primary" href="assets/paper/p1_main.pdf" target="_blank" rel="noopener noreferrer">Paper</a>
+      <a class="sh-primary" href="https://cins-inverse-design.vercel.app" target="_blank" rel="noopener noreferrer">Live app</a>
+      <a class="sh-primary" href="https://github.com/SharathSPhD/CINS" target="_blank" rel="noopener noreferrer">Repository</a>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">&#9681;</button>
+    </nav>
+  </div>
+</header>
+
+<nav class="dot-nav" aria-label="Section navigation">
+  <ol>
+    <li><a href="#hook" data-scene-link="hook"><span class="dot" aria-hidden="true"></span><span class="lab">Open</span></a></li>
+    <li><a href="#problem" data-scene-link="problem"><span class="dot" aria-hidden="true"></span><span class="lab">The problem</span></a></li>
+    <li><a href="#cst-linearity" data-scene-link="cst-linearity"><span class="dot" aria-hidden="true"></span><span class="lab">CST is linear</span></a></li>
+    <li><a href="#newton-system" data-scene-link="newton-system"><span class="dot" aria-hidden="true"></span><span class="lab">One square system</span></a></li>
+    <li><a href="#falsifiable" data-scene-link="falsifiable"><span class="dot" aria-hidden="true"></span><span class="lab">The falsifiable test</span></a></li>
+    <li><a href="#identifiability" data-scene-link="identifiability"><span class="dot" aria-hidden="true"></span><span class="lab">Station selection</span></a></li>
+    <li><a href="#naca-panel" data-scene-link="naca-panel"><span class="dot" aria-hidden="true"></span><span class="lab">The NACA panel</span></a></li>
+    <li><a href="#flow-solves" data-scene-link="flow-solves"><span class="dot" aria-hidden="true"></span><span class="lab">Flow-solve count</span></a></li>
+    <li><a href="#conditioning" data-scene-link="conditioning"><span class="dot" aria-hidden="true"></span><span class="lab">The conditioning cliff</span></a></li>
+    <li><a href="#next" data-scene-link="next"><span class="dot" aria-hidden="true"></span><span class="lab">What's next</span></a></li>
+    <li><a href="#demo-video" data-scene-link="demo-video"><span class="dot" aria-hidden="true"></span><span class="lab">Demo</span></a></li>
+    <li><a href="#reading" data-scene-link="reading"><span class="dot" aria-hidden="true"></span><span class="lab">Evidence</span></a></li>
+  </ol>
+</nav>
+
+<main id="main">
+
+  <!-- ============================== HERO ============================== -->
+  <section id="hook" class="hero" data-scene="hook">
+    <div class="hero-canvas"><canvas id="hero-particles" role="img" aria-label="An animated field of connected points, suggesting a network of flow-solution nodes."></canvas></div>
+    <div class="hero-copy reading">
+      <p class="kicker">An interactive essay &middot; CINS, the CST Inverse Newton Solver</p>
+      <h1>Inverse Airfoil Design Without <em>an Optimizer</em></h1>
+      <p class="lead">
+        Give the solver a target pressure distribution. It hands back the airfoil that
+        produces it, by solving one square system of equations. No search loop, no
+        scoring function, no thousands of flow solves.
+      </p>
+      <p class="byline">Stage 1 complete &middot; isolated airfoil, mfoil &middot; a guided tour for the curious and the technical alike</p>
+      <p class="scroll-hint" aria-hidden="true">scroll to begin &darr;</p>
     </div>
-  </header>
-
-  <section class="explain card">
-    <h2>What is this?</h2>
-    <p><strong>Technical:</strong> Airfoil geometry parameterized by the Class-Shape
-    Transformation is <em>linear</em> in its coefficients <b>A</b>. Appending <b>A</b> to a
-    Newton-coupled viscous/inviscid solver's global system — with target-pressure rows and
-    linear geometric-constraint rows closing the DOF count (M&nbsp;+&nbsp;K&nbsp;=&nbsp;n<sub>A</sub>&nbsp;+&nbsp;1) —
-    turns inverse design into a determined root-find: ~5–15 Newton iterations instead of
-    10²–10³ optimizer-driven flow solves.</p>
-    <p class="nontech"><strong>Plain terms:</strong> Designers usually find a wing shape by
-    trial and error — a computer guesses a shape, simulates the airflow, scores it, and
-    repeats hundreds of times. CINS instead asks for the airflow you <em>want</em> and solves
-    directly for the one shape that produces it, in a handful of steps, with built-in warnings
-    when the wish is physically impossible.</p>
   </section>
 
-  <section>
-    <h2>Gate board — Stage 1</h2>
-    <div class="card scroll">
-      <table id="gate-table">
-        <thead><tr><th>Gate</th><th>Deliverable</th><th>Status</th><th>Closed</th><th>Evidence</th></tr></thead>
-        <tbody></tbody>
-      </table>
+  <!-- ============================== ACT I ============================== -->
+  <section class="act" data-act="Act I">
+    <div class="act-inner reveal">
+      <p class="act-kicker">Act I</p>
+      <h2 class="act-title">The <em>Problem</em></h2>
+      <p class="act-sub">Inverse airfoil design has almost always been posed as a search. This project asks whether it needs to be.</p>
+    </div>
+    <div class="act-grid" aria-hidden="true"></div>
+  </section>
+
+  <section id="problem" class="scene" data-scene="problem">
+    <div class="reading">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">01</span><span class="rule" aria-hidden="true"></span>The problem</p>
+        <h2>Design by trial and error</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          Inverse airfoil design starts from a wish: a pressure distribution, a lift
+          target, a drag budget. The conventional way to answer that wish is
+          optimization. Guess a shape, run the flow solver, score how close the result
+          is to the wish, adjust the shape, and repeat.
+        </p>
+        <p class="reveal">
+          Each guess costs one full flow solve. A gradient-based optimizer wrapped
+          around that loop typically needs on the order of one hundred to one thousand
+          solves before it stops improving, and stopping does not certify a unique
+          answer. Two different starting guesses can converge to two different shapes
+          that both score well against the same target.
+        </p>
+        <div class="callout callout-key reveal">
+          <p class="callout-label">Why this matters</p>
+          <p>An optimizer finds a shape that scores well against the target. It does not
+          certify that no other, very different, shape scores just as well. Uniqueness
+          is not something a scoring loop delivers on its own.</p>
+        </div>
+        <p class="reveal">
+          The flow solver itself is not the bottleneck. mfoil's coupled viscous and
+          inviscid Newton system converges a single analysis case in a handful of
+          iterations. The cost sits in the outer loop that calls the solver over and
+          over while it searches for a shape.
+        </p>
+        <details class="deep-dive reveal">
+          <summary><span class="chev" aria-hidden="true"></span><span class="dd-label">Go deeper</span><span class="dd-title">Why not just parameterize more cleverly?</span></summary>
+          <div class="dd-body">
+            <p>
+              Better shape parameterizations, B-splines, PARSEC, or orthogonal modes
+              trained on an airfoil database, reduce the number of free parameters an
+              optimizer has to search over, and can suppress non-physical shapes. None
+              of them changes where geometry lives: outside the flow solver's own
+              unknown vector, so the outer loop is still a search, just over a smaller
+              or better-conditioned space. This project takes the parameterization one
+              step further. Instead of shrinking the search, it removes the search.
+            </p>
+          </div>
+        </details>
+      </div>
     </div>
   </section>
 
-  <section class="card">
-    <h2>The falsifiable test (T7)</h2>
-    <p class="ev">Take a known airfoil, compute its pressure distribution, then hand only that
-    distribution back to CINS. Success = the exact original shape re-emerges
-    (‖A−A*‖<sub>∞</sub> &lt; 10⁻⁴) in single-digit Newton iterations with a quadratic
-    convergence tail. Failure patterns map to four instrumented failure modes (rank
-    deficiency, basis conditioning, leading-edge singularity, non-smooth transition closure).</p>
+  <!-- ============================== ACT II ============================== -->
+  <section class="act" data-act="Act II">
+    <div class="act-inner reveal">
+      <p class="act-kicker">Act II</p>
+      <h2 class="act-title">The <em>Idea</em></h2>
+      <p class="act-sub">A shape that is linear in its own coefficients can join the flow solver's Newton system as a first-class unknown.</p>
+    </div>
+    <div class="act-grid" aria-hidden="true"></div>
   </section>
 
-  <footer>
-    Research dossier, spec, gate contract and statistical pre-registration live in
-    <a href="https://github.com/SharathSPhD/CINS/tree/main/docs">docs/</a>.
-    Every number on this page traces to a git-versioned run manifest.
-  </footer>
-</div>
-<script>
-fetch('gates.json').then(r => r.json()).then(d => {
-  document.querySelector('#gate-table tbody').innerHTML = d.gates.map(g => `
-    <tr class="s-${g.status}">
-      <td><span class="dot"></span><b>${g.id}</b></td>
-      <td>${g.title}</td>
-      <td class="st">${g.status.replace('_',' ')}</td>
-      <td>${g.date ?? '—'}</td>
-      <td class="ev">${g.evidence ?? '—'}</td>
-    </tr>`).join('');
-});
-</script>
+  <section id="cst-linearity" class="scene" data-scene="cst-linearity">
+    <div class="reading">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">02</span><span class="rule" aria-hidden="true"></span>The geometry</p>
+        <h2>A shape linear in its own coefficients</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          Class-Shape Transformation (CST) writes an airfoil surface as a class
+          function multiplied by a weighted sum of Bernstein polynomials. The weights,
+          the CST coefficients, are the only design variables.
+        </p>
+
+        <div class="eqn-block reveal">
+          <div class="eqn-row eqn"><span class="rm">C</span><sub>N1</sub><sup>N2</sup>(&psi;) = &psi;<sup>N1</sup>(1&minus;&psi;)<sup>N2</sup></div>
+          <div class="eqn-row eqn"><span class="rm">S</span><sub>i</sub>(&psi;) = <span class="rm">K</span><sub>i</sub>&thinsp;&psi;<sup>i</sup>(1&minus;&psi;)<sup>n&minus;i</sup>,&nbsp; <span class="rm">K</span><sub>i</sub> = <span class="frac"><span class="num rm">n!</span><span class="den rm">i!(n&minus;i)!</span></span></div>
+          <div class="eqn-label">&psi; = x/c &isin; [0,1], &zeta; = z/c. N1 = 0.5, N2 = 1.0: round nose, sharp tail. S<sub>i</sub> is the i-th Bernstein basis polynomial of order n.</div>
+        </div>
+
+        <p class="reveal">The upper and lower surfaces sum the basis against the CST coefficients A and add a trailing-edge thickness term:</p>
+
+        <div class="eqn-block reveal">
+          <div class="eqn-row eqn">&zeta;<sub>u</sub>(&psi;) = <span class="rm">C</span>(&psi;)&thinsp;<span class="rm">S</span><sub>u</sub>(&psi;) + &psi;&thinsp;&zeta;<sub>T,u</sub></div>
+          <div class="eqn-row eqn">&zeta;<sub>l</sub>(&psi;) = <span class="rm">C</span>(&psi;)&thinsp;<span class="rm">S</span><sub>l</sub>(&psi;) + &psi;&thinsp;&zeta;<sub>T,l</sub></div>
+          <div class="eqn-label"><span class="rm">S</span><sub>u</sub>(&psi;) = &sum;<sub>i=0</sub><sup>n</sup> A<sub>u,i</sub> <span class="rm">S</span><sub>i</sub>(&psi;), and likewise for the lower surface. &zeta;<sub>T,u</sub> = +t<sub>TE</sub>/2, &zeta;<sub>T,l</sub> = &minus;t<sub>TE</sub>/2.</div>
+        </div>
+
+        <div class="callout callout-key reveal">
+          <p class="callout-label">The property this project exploits</p>
+          <p>The surface is a <em>linear</em> combination of A. Its derivative with respect to any single coefficient does not depend on A:</p>
+        </div>
+
+        <div class="eqn-block reveal">
+          <div class="eqn-row eqn"><span class="frac"><span class="num">&part;&zeta;</span><span class="den">&part;A<sub>i</sub></span></span> = <span class="rm">C</span>(&psi;)&thinsp;<span class="rm">S</span><sub>i</sub>(&psi;)</div>
+          <div class="eqn-label">A fixed matrix, computed once from the chordwise node distribution and reused at every Newton iteration.</div>
+        </div>
+
+        <p class="reveal">
+          That matrix does not need to be re-derived as the shape changes during a
+          Newton iteration. Recomputing it every step is, in practice, the single most
+          common way to lose the performance argument for this whole approach.
+        </p>
+
+        <details class="deep-dive reveal">
+          <summary><span class="chev" aria-hidden="true"></span><span class="dd-label">Go deeper</span><span class="dd-title">Constraints become linear rows too</span></summary>
+          <div class="dd-body">
+            <p>
+              Two endpoint identities follow directly from the surface definition:
+              A<sub>0</sub> = &radic;(2R<sub>LE</sub>/c) fixes the leading-edge radius, and
+              A<sub>n</sub> = tan&beta; + &Delta;z<sub>TE</sub>/c fixes the trailing-edge
+              wedge angle. Inscribed area integrates to a closed-form Beta function of
+              the Bernstein basis, evaluated with <code>scipy.special.beta</code>, never
+              by numerical quadrature in a production constraint row. Under CST, every
+              geometric functional that matters becomes a linear row, g&middot;A = b,
+              instead of a nonlinear predicate evaluated on a rebuilt mesh:
+            </p>
+            <div class="table-scroll">
+            <table class="data">
+              <thead><tr><th>Constraint</th><th>Under CST</th><th>Under a B-spline control-point wrapper</th></tr></thead>
+              <tbody>
+                <tr><td>LE radius</td><td>A<sub>0</sub>=&radic;(2R<sub>LE</sub>/c): linear, exact</td><td>implicit, via tangent points</td></tr>
+                <tr><td>TE thickness</td><td>&zeta;<sub>T</sub> term: linear</td><td>geometric post-check</td></tr>
+                <tr><td>Boat-tail / wedge angle</td><td>A<sub>n</sub>: linear</td><td>nonlinear angular design variable</td></tr>
+                <tr><td>Inscribed area</td><td>linear functional, Beta-function closed form</td><td>numerical, non-smooth</td></tr>
+                <tr><td>Curvature</td><td>rational function of A, differentiable</td><td>monotonicity predicate, non-smooth</td></tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="newton-system" class="scene" data-scene="newton-system">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">03</span><span class="rule" aria-hidden="true"></span>The system</p>
+        <h2>One square system, not two nested loops</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          Append the CST coefficients, and optionally angle of attack, directly to the
+          flow solver's own unknown vector. Add one row per target-pressure station and
+          one row per linear geometric constraint. Solve once.
+        </p>
+
+        <div class="table-scroll reveal">
+        <table class="data">
+          <caption>Unknowns: U (flow state, N<sub>tot</sub>), A (CST coefficients, n<sub>A</sub>), &alpha; (angle of attack, 0 or 1)</caption>
+          <thead><tr><th>Equation</th><th>Rows</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td class="num">R(U; x(A)) = 0</td><td class="num">N<sub>tot</sub></td><td>mfoil's own coupled viscous/inviscid residual</td></tr>
+            <tr><td class="num">T(U) &minus; Cp<sub>target</sub> = 0</td><td class="num">M</td><td>one row per target-pressure station</td></tr>
+            <tr><td class="num">G&middot;A &minus; b = 0</td><td class="num">K</td><td>one row per linear geometric constraint</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <p class="reveal">The block Jacobian, for the T7 winning configuration:</p>
+
+        <div class="block-matrix reveal">
+          <div class="bm-bracket" aria-hidden="true"></div>
+          <div class="bm-grid" role="img" aria-label="Block Jacobian: top-left dR/dU, top-middle dR/dA, top-right dR/dalpha; middle-left dT/dU, middle-middle zero, middle-right dT/dalpha; bottom-left zero, bottom-middle dG/dA, bottom-right zero.">
+            <div class="bm-cell"><div class="expr">&part;R/&part;U</div><div class="dim">N<sub>tot</sub>&times;N<sub>tot</sub></div></div>
+            <div class="bm-cell"><div class="expr">&part;R/&part;A</div><div class="dim">N<sub>tot</sub>&times;n<sub>A</sub></div></div>
+            <div class="bm-cell"><div class="expr">&part;R/&part;&alpha;</div><div class="dim">N<sub>tot</sub>&times;n<sub>&alpha;</sub></div></div>
+            <div class="bm-cell"><div class="expr">&part;T/&part;U</div><div class="dim">M&times;N<sub>tot</sub></div></div>
+            <div class="bm-cell"><div class="expr zero">0</div><div class="dim">M&times;n<sub>A</sub></div></div>
+            <div class="bm-cell"><div class="expr">&part;T/&part;&alpha;</div><div class="dim">M&times;n<sub>&alpha;</sub></div></div>
+            <div class="bm-cell"><div class="expr zero">0</div><div class="dim">K&times;N<sub>tot</sub></div></div>
+            <div class="bm-cell"><div class="expr">&part;G/&part;A</div><div class="dim">K&times;n<sub>A</sub></div></div>
+            <div class="bm-cell"><div class="expr zero">0</div><div class="dim">K&times;n<sub>&alpha;</sub></div></div>
+          </div>
+          <div class="bm-bracket right" aria-hidden="true"></div>
+        </div>
+        <p class="reveal" style="text-align:center; font-family: var(--font-mono); font-size: .82rem; color: var(--ink-faint);">
+          T7 configuration: N<sub>tot</sub>=230 (200 surface nodes plus wake), n<sub>A</sub>=18, M=16, K=0, n<sub>&alpha;</sub>=0. J &isin; &#8477;<sup>246&times;246</sup>
+        </p>
+
+        <p class="reveal">
+          The square system is not incidental. It is checked at construction, before
+          any Newton step is taken:
+        </p>
+
+        <div class="eqn-block reveal">
+          <div class="eqn-row eqn">M + K = n<sub>A,free</sub> + n<sub>&alpha;</sub></div>
+          <div class="eqn-label">n<sub>A,free</sub> is the count of CST coefficients not eliminated by a prescribed leading edge or an equality-row elimination.</div>
+        </div>
+
+        <div class="callout callout-caveat reveal">
+          <p class="callout-label">A guardrail, not a hope</p>
+          <p>An over- or under-determined system raises immediately, rather than
+          silently returning a non-answer. Act IV's ablation matrix exercises both
+          failure directions deliberately: adding or removing a single constraint row
+          from the baseline configuration raises <code>"extended system not
+          square"</code> before a single Newton iteration runs.</p>
+        </div>
+
+        <p class="reveal">
+          Because the target-pressure rows depend on A only through the converged flow
+          state U, the T block carries no direct A-dependence, and because G is
+          constant, the only genuinely new Jacobian block is &part;R/&part;A. Its second
+          factor is the cached derivative from Act II; its first factor reuses mfoil's
+          own analytic sensitivity of the residual to a perturbed geometry.
+        </p>
+
+        <details class="deep-dive reveal">
+          <summary><span class="chev" aria-hidden="true"></span><span class="dd-label">Go deeper</span><span class="dd-title">Why the constraint target is target-consistent, not idealized</span></summary>
+          <div class="dd-body">
+            <p>
+              The right-hand side of each constraint row, b, is set from the target
+              airfoil's own CST coefficients, b = G&middot;A*, not from a textbook or
+              idealized value. An idealized right-hand side would encode a leading-edge
+              radius or trailing-edge wedge angle that does not quite match the actual
+              target, and the Newton iteration would then be asked to solve a problem
+              that is subtly inconsistent with its own target-pressure rows. This
+              distinction surfaced during the T4 pre-solve work and is now a fixed rule
+              for how every constraint row is built.
+            </p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== ACT III ============================== -->
+  <section class="act" data-act="Act III">
+    <div class="act-inner reveal">
+      <p class="act-kicker">Act III</p>
+      <h2 class="act-title">The <em>Falsifiable</em> Test</h2>
+      <p class="act-sub">Take a known airfoil. Compute its pressure distribution. Hand only that distribution back, and see whether the original shape re-emerges.</p>
+    </div>
+    <div class="act-grid" aria-hidden="true"></div>
+  </section>
+
+  <section id="falsifiable" class="scene" data-scene="falsifiable">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">04</span><span class="rule" aria-hidden="true"></span>The test</p>
+        <h2>Recovering a known airfoil from its own pressure distribution</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          The test is deliberately strict, and it is the project's own falsification
+          criterion (T7 in the experiment ladder). A NACA 2412 section generates a
+          target pressure distribution. Its CST coefficients are then discarded. The
+          solver is given only the target pressure and asked to solve for the shape
+          that produced it.
+        </p>
+        <p class="reveal">
+          Configuration: eight Bernstein coefficients per surface (eighteen CST
+          coefficients total), the two leading-edge coefficients prescribed rather than
+          solved for, transition forced during the inverse iterations, target stations
+          chosen by QR-pivoted selection.
+        </p>
+
+        <div class="stat-row reveal">
+          <div class="stat"><span class="n">16</span><span class="l">free coefficients recovered by Newton</span></div>
+          <div class="stat ok"><span class="n">4</span><span class="l">Newton iterations to convergence</span></div>
+          <div class="stat ok"><span class="n">1.079&times;10<sup>&minus;11</sup></span><span class="l">&Vert;A&minus;A*&Vert;&infin; over the free coefficients</span></div>
+        </div>
+        <p class="reveal">Gate: &lt;10<sup>&minus;4</sup> in &le;9 iterations. Measured margin: five orders of magnitude.</p>
+
+        <div class="table-scroll reveal">
+        <table class="data">
+          <caption>Residual history, t8_n08_baseline (identical configuration to the T7 run)</caption>
+          <thead><tr><th>Newton iteration</th><th>Residual</th><th>Reduction</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="num">5.85&times;10<sup>&minus;4</sup></td><td class="num">n/a</td></tr>
+            <tr><td class="num">2</td><td class="num">3.14&times;10<sup>&minus;6</sup></td><td class="num">&asymp;186x</td></tr>
+            <tr><td class="num">3</td><td class="num">1.04&times;10<sup>&minus;10</sup></td><td class="num">&asymp;30,200x</td></tr>
+            <tr class="hl"><td class="num">4</td><td class="num">6.35&times;10<sup>&minus;11</sup></td><td class="num">at solver noise floor</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="fig-grid reveal">
+          <figure class="fig">
+            <img src="assets/img/t7-geometry-overlay.png" alt="Recovered airfoil geometry overlaid on the target NACA 2412 shape, showing near-exact agreement on both surfaces." loading="lazy" width="1800" height="1500">
+            <figcaption>Recovered geometry overlaid on the target. <span class="src">experiments/results/t8/figures/paper/fig_t7_geometry_overlay.png</span></figcaption>
+          </figure>
+          <figure class="fig">
+            <img src="assets/img/t7-cp-comparison.png" alt="Pressure coefficient comparison between the recovered airfoil and the target, curves overlapping to plotting precision." loading="lazy" width="2200" height="900">
+            <figcaption>Target vs. recovered pressure coefficient. <span class="src">experiments/results/t8/figures/paper/fig_t7_cp_comparison.png</span></figcaption>
+          </figure>
+        </div>
+        <div class="fig reveal">
+          <img src="assets/img/t7-flow-solution.png" alt="Converged flow solution around the recovered airfoil, natural-transition release-and-verify solve." loading="lazy" width="2200" height="900">
+          <figcaption>Converged flow solution, natural-transition release-and-verify solve. <span class="src">experiments/results/t8/figures/paper/fig_t7_flow_solution.png</span></figcaption>
+        </div>
+
+        <div class="callout callout-key reveal">
+          <p class="callout-label">Release and verify</p>
+          <p>
+            Transition is forced during the inverse Newton iterations, converge the
+            shape first, then transition is released to its natural, free mode and the
+            recovered geometry is re-solved in ordinary direct-analysis mode,
+            independent of the inverse machinery. This is the real check: it compares
+            lift and drag, neither of which entered the Newton system as a target,
+            computed by a different code path.
+          </p>
+        </div>
+
+        <div class="stat-row reveal">
+          <div class="stat ok"><span class="n">8.0&times;10<sup>&minus;13</sup></span><span class="l">&Delta;c<sub>l</sub>, recovered vs. target (natural transition)</span></div>
+          <div class="stat ok"><span class="n">1.1&times;10<sup>&minus;14</sup></span><span class="l">&Delta;c<sub>d</sub>, recovered vs. target (natural transition)</span></div>
+        </div>
+
+        <details class="deep-dive reveal">
+          <summary><span class="chev" aria-hidden="true"></span><span class="dd-label">Go deeper</span><span class="dd-title">What would falsify this test</span></summary>
+          <div class="dd-body">
+            <p>
+              Four instrumented failure modes bound the claim: rank deficiency in the
+              constraint rows (FM-1, guarded at construction, see Act II), conditioning
+              collapse in the CST basis at high Bernstein order (FM-2, Act IV), an
+              unobservable leading-edge mode when leading-edge stations are dropped
+              without also fixing A<sub>0</sub> (FM-3), and a non-smooth transition
+              closure that looks geometric but is thermodynamic (FM-4, mitigated by
+              forcing transition during the inverse solve and releasing it afterward).
+              A run that fails any of these does not silently report success; it either
+              raises at construction or fails the gate thresholds above.
+            </p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== ACT IV ============================== -->
+  <section class="act" data-act="Act IV">
+    <div class="act-inner reveal">
+      <p class="act-kicker">Act IV</p>
+      <h2 class="act-title">What the <em>Experiments</em> Showed</h2>
+      <p class="act-sub">Fourteen ablations, two controls, a nineteen-section panel. The results that did not confirm the original hypothesis are the more informative ones.</p>
+    </div>
+    <div class="act-grid" aria-hidden="true"></div>
+  </section>
+
+  <section id="identifiability" class="scene" data-scene="identifiability">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">05</span><span class="rule" aria-hidden="true"></span>Station selection</p>
+        <h2>Converged is not the same as correct</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          The ablation study varied nothing about the Newton solver and only one thing
+          about the problem: which stations along the surface carry the target-pressure
+          rows. The result is the central methodological finding of the study.
+        </p>
+
+        <div class="verdict-row reveal">
+          <div class="verdict fail">
+            <div class="v-top"><span class="v-code">Evenly spaced stations</span><span class="v-badge">Wrong root</span></div>
+            <p class="v-claim">Newton reports <code>converged: true</code>, but at a different, self-consistent root than the target.</p>
+            <p class="v-stat">&Vert;A&minus;A*&Vert;&infin; = 1.43&times;10<sup>&minus;3</sup> &middot; submap cond = 3.47&times;10<sup>12</sup></p>
+            <p class="v-detail">The residual it zeroed is real. It is just not the target's residual.</p>
+          </div>
+          <div class="verdict pass">
+            <div class="v-top"><span class="v-code">QR-pivoted stations</span><span class="v-badge">Recovers target</span></div>
+            <p class="v-claim">Same solver, same target, same initial-guess strategy. Only the station selection changed.</p>
+            <p class="v-stat">&Vert;A&minus;A*&Vert;&infin; = 1.08&times;10<sup>&minus;11</sup> &middot; submap cond = 90.3</p>
+            <p class="v-detail">Twelve orders of magnitude of conditioning separate the two selections.</p>
+          </div>
+        </div>
+
+        <div class="fig reveal">
+          <img src="assets/img/station-selection.png" alt="Comparison of evenly spaced versus QR-pivoted target-pressure station selection and the resulting coefficient recovery error." loading="lazy" width="1300" height="1040">
+          <figcaption>Station selection determines which root the Newton iteration finds. <span class="src">experiments/results/t8/figures/station_selection.png</span></figcaption>
+        </div>
+
+        <p class="reveal">
+          Submap conditioning is a different matrix than the full extended-system
+          Jacobian, and the two must not be conflated: the qr_pivot submap conditions
+          at 90.3, while the full extended-system Jacobian at this cell's first
+          iteration conditions at roughly 1.6&times;10<sup>8</sup>. They answer different
+          questions.
+        </p>
+
+        <div class="callout callout-caveat reveal">
+          <p class="callout-label">A genuine limitation, not a tuning knob</p>
+          <p>
+            A Newton solve that reports convergence is not, on its own, evidence that
+            the recovered shape produced the target pressure distribution. Two
+            different, badly conditioned station layouts can each converge to a
+            different but internally consistent root. Station selection is not a
+            performance optimization here; it is what makes the inverse problem
+            identifiable in the first place.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="naca-panel" class="scene" data-scene="naca-panel">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">06</span><span class="rule" aria-hidden="true"></span>Generalization</p>
+        <h2>Eighteen of eighteen generable NACA sections</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          A single self-consistent recovery is a proof of concept. A panel of NACA
+          four- and five-digit sections, spanning nine to twenty-five percent
+          thickness and zero to six percent camber, tests whether the result
+          generalizes.
+        </p>
+
+        <div class="stat-row reveal">
+          <div class="stat ok"><span class="n">18/18</span><span class="l">generable sections recovered</span></div>
+          <div class="stat"><span class="n">3&ndash;7</span><span class="l">Newton iterations per section</span></div>
+          <div class="stat"><span class="n">&le;1.5&times;10<sup>&minus;10</sup></span><span class="l">max coefficient error, worst section</span></div>
+        </div>
+
+        <div class="fig reveal">
+          <img src="assets/img/h1-panel-gallery.png" alt="Gallery of recovered NACA airfoil sections overlaid on their targets across the panel." loading="lazy" width="2600" height="1440">
+          <figcaption>Recovered geometry across the panel, overlaid on each target section. <span class="src">experiments/results/t8/figures/paper/fig_h1_panel_gallery.png</span></figcaption>
+        </div>
+
+        <p class="reveal">
+          Nineteen sections were configured; eighteen were scored. Two were excluded
+          before scoring, not counted as solver failures: <strong>panel_0006</strong>,
+          whose own target-pressure generation did not converge (a problem upstream of
+          the inverse solve), and <strong>NACA 44012</strong>, whose 44XXX mean-line
+          family is not implemented by the vendor NACA5 generator used to build panel
+          targets.
+        </p>
+
+        <div class="callout callout-note reveal">
+          <p class="callout-label">What the sample size supports</p>
+          <p>
+            Eighteen recovered sections is a point result, not a large-sample
+            statistical claim. A Wilson 95% lower bound at n=18 sits at 0.824, below a
+            pre-registered 0.9 threshold, for interval-arithmetic reasons rather than a
+            solver shortfall: reaching a lower bound of 0.9 at 100% observed success
+            requires n&ge;29. The panel is reported as what it is, not stretched into a
+            confidence interval it cannot support.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="flow-solves" class="scene" data-scene="flow-solves">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">07</span><span class="rule" aria-hidden="true"></span>Cost</p>
+        <h2>Fewer flow solves than a tuned nested optimizer</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          The pre-registered hypothesis was two to three orders of magnitude fewer
+          flow solves than nested optimization. The measured number is smaller than
+          that, and it is measured against a genuinely competent baseline rather than a
+          strawman: <code>scipy.optimize.least_squares</code>, Levenberg-Marquardt,
+          tuned convergence tolerances, fairly paired by initialization strategy, over
+          the same sixteen free coefficients.
+        </p>
+
+        <div class="table-scroll reveal">
+        <table class="data">
+          <thead><tr><th>Pairing (shared init strategy)</th><th>Monolithic (flow-solve equivalents)</th><th>Nested LM (flow-solve equivalents)</th><th>Ratio</th></tr></thead>
+          <tbody>
+            <tr><td>Presolve-init</td><td class="num">120</td><td class="num">373</td><td class="num">3.1x</td></tr>
+            <tr class="hl"><td>Perturbed-init (cold start)</td><td class="num">43</td><td class="num">347</td><td class="num">8.1x</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="fig reveal">
+          <img src="assets/img/h2-flow-solves.png" alt="Bar chart comparing flow-solve-equivalent counts between the monolithic solver and a nested Levenberg-Marquardt baseline, under two initialization pairings." loading="lazy" width="1600" height="1000">
+          <figcaption>Flow-solve-equivalent count, monolithic vs. nested LM, both fairly-paired comparisons. <span class="src">experiments/results/t8/figures/h2_flow_solves.png</span></figcaption>
+        </div>
+
+        <div class="callout callout-caveat reveal">
+          <p class="callout-label">Correcting the pre-registered claim</p>
+          <p>
+            An order-of-magnitude reduction was hypothesized before this ablation ran.
+            The measured 3.1x to 8.1x likely reflects that a modern, well-tuned LM
+            implementation is a stronger baseline than the class of nested-optimization
+            baseline the original hypothesis had in mind. The qualitative advantages,
+            determinism, guaranteed local quadratic convergence, analytic
+            constraint-row Jacobians, hold independent of the exact ratio.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="conditioning" class="scene" data-scene="conditioning">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">08</span><span class="rule" aria-hidden="true"></span>Limits</p>
+        <h2>A conditioning cliff at Bernstein order twelve</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          Raising the number of CST coefficients per surface raises the resolution of
+          the recoverable geometry. It also raises the condition number of the
+          station-selection submap, and past a threshold the Newton iteration count
+          jumps.
+        </p>
+
+        <div class="table-scroll reveal">
+        <table class="data">
+          <caption>Bernstein order sweep, NACA 2412 baseline configuration otherwise unchanged</caption>
+          <thead><tr><th>Order n (per surface)</th><th>Iterations</th><th>&Vert;A&minus;A*&Vert;&infin;</th><th>Submap cond.</th></tr></thead>
+          <tbody>
+            <tr><td class="num">4</td><td class="num">3</td><td class="num">8.08&times;10<sup>&minus;12</sup></td><td class="num">10.6</td></tr>
+            <tr><td class="num">6</td><td class="num">4</td><td class="num">1.59&times;10<sup>&minus;10</sup></td><td class="num">20.4</td></tr>
+            <tr><td class="num">8</td><td class="num">4</td><td class="num">1.08&times;10<sup>&minus;11</sup></td><td class="num">90.3</td></tr>
+            <tr><td class="num">10</td><td class="num">4</td><td class="num">1.46&times;10<sup>&minus;10</sup></td><td class="num">592</td></tr>
+            <tr class="hl"><td class="num">12</td><td class="num">21 (fails 9-iter gate)</td><td class="num">6.31&times;10<sup>&minus;10</sup></td><td class="num">1,144</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="fig reveal">
+          <img src="assets/img/n-sweep.png" alt="Newton iteration count and submap condition number as a function of Bernstein order, showing a cliff between order ten and order twelve." loading="lazy" width="2300" height="900">
+          <figcaption>Iteration count and conditioning vs. Bernstein order n. <span class="src">experiments/results/t8/figures/n_sweep.png</span></figcaption>
+        </div>
+
+        <p class="reveal">
+          Iteration count is flat at three to four steps through order ten, then jumps
+          to twenty-one at order twelve, past the nine-iteration gate. Three
+          conditioning series appear across this project's diagnostics, the CST
+          fit/Gram matrix, the station-selection submap shown here, and the full
+          extended-system Jacobian; they are distinct matrices answering distinct
+          questions, tracked separately rather than conflated into one number.
+        </p>
+
+        <details class="deep-dive reveal">
+          <summary><span class="chev" aria-hidden="true"></span><span class="dd-label">Go deeper</span><span class="dd-title">The quadratic convergence tail, where it is visible</span></summary>
+          <div class="dd-body">
+            <p>
+              A three-point local order estimator, applied only where at least three
+              residual values sit clearly above the solver's floating-point noise
+              floor, scores a median convergence order of 2.15 across five estimable
+              cells, meeting a pre-registered &ge;1.8 threshold. Most converged cells
+              reach the noise floor in exactly two post-initial Newton steps, too fast
+              for the estimator to score at all, a reduction rate of roughly 150x per
+              step that is not consistent with linear convergence.
+            </p>
+            <div class="fig">
+              <img src="assets/img/h3-convergence-overlay.png" alt="Overlay of residual convergence histories across ablation cells, showing a steep quadratic-like drop toward the solver noise floor." loading="lazy" width="1400" height="900">
+              <figcaption>Residual history overlay across ablation cells. <span class="src">experiments/results/t8/figures/h3_convergence_overlay.png</span></figcaption>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== ACT V ============================== -->
+  <section class="act" data-act="Act V">
+    <div class="act-inner reveal">
+      <p class="act-kicker">Act V</p>
+      <h2 class="act-title">What's <em>Next</em></h2>
+      <p class="act-sub">Stage 1 closed on an isolated airfoil. Stage 2 carries the same architecture into a cascade.</p>
+    </div>
+    <div class="act-grid" aria-hidden="true"></div>
+  </section>
+
+  <section id="next" class="scene" data-scene="next">
+    <div class="reading">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">09</span><span class="rule" aria-hidden="true"></span>The cascade</p>
+        <h2>From an isolated airfoil to a cascade</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          Stage 1 targeted a single airfoil in an unbounded flow, solved by mfoil.
+          Stage 2 extends the same monolithic architecture to a compressor or turbine
+          cascade: a periodic row of blades, an inlet flow angle prescribed as a
+          boundary condition, an outlet angle that is itself part of the solve, and a
+          Kutta-consistent circulation row.
+        </p>
+        <p class="reveal">
+          Compressibility is handled with a subcritical Karman-Tsien correction to
+          start. Transonic comparisons, including LS89 mid-span pressure
+          distributions, are deferred to a Stage 3 solver built on MISES: the Stage 2
+          design review found peak isentropic Mach numbers of 0.964 to 1.227 across all
+          seven in-repo LS89 datasets, locally transonic to supersonic, outside a
+          subcritical panel method's scope.
+        </p>
+        <p class="reveal">
+          Station selection carries forward, and gets more important. A cascade
+          surface has a covered passage where target stations can be geometrically
+          inaccessible, so the identifiability finding of Act IV becomes part of the
+          Stage 2 specification rather than an afterthought.
+        </p>
+
+        <div class="callout callout-key reveal">
+          <p class="callout-label">The falsifiable pattern repeats</p>
+          <p>
+            Stage 2 does not introduce a new coupling idea. It adds boundary conditions
+            and a periodicity kernel to the same square Newton system. The
+            recover-a-known-case test that closed Stage 1 (Act III) is the same gate
+            planned for Stage 2, against Gostelow's analytic cascade solutions.
+          </p>
+        </div>
+
+        <div class="card-grid reveal">
+          <div class="pcard" style="border-left-color: var(--accent);">
+            <h4>S0&ndash;S1</h4>
+            <p>Spacing s=10<sup>6</sup> reproduces Stage 1 exactly: a pinned regression against the isolated-airfoil result.</p>
+          </div>
+          <div class="pcard" style="border-left-color: var(--accent2);">
+            <h4>S2&ndash;S3</h4>
+            <p>Gostelow analytic cascades, the Stage 2 gate; subcritical viscous cascade at Gostelow-derived loadings.</p>
+          </div>
+          <div class="pcard" style="border-left-color: var(--ink-faint);">
+            <h4>S4&ndash;S5</h4>
+            <p>LS89 geometry-side checks and a MULTALL cross-check; transonic MUR pressure comparisons deferred to Stage 3.</p>
+          </div>
+        </div>
+
+        <div class="btn-row reveal">
+          <a class="btn primary" href="assets/paper/p1_main.pdf" target="_blank" rel="noopener noreferrer">Read the paper (PDF)</a>
+          <a class="btn" href="https://cins-inverse-design.vercel.app" target="_blank" rel="noopener noreferrer">Try the live app</a>
+          <a class="btn" href="https://github.com/SharathSPhD/CINS" target="_blank" rel="noopener noreferrer">Browse the repository</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo-video" class="scene" data-scene="demo-video">
+    <div class="reading">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">10</span><span class="rule" aria-hidden="true"></span>Watch it run</p>
+        <h2>A walkthrough of the solver</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          A short recording of the inverse solve running end to end: a target pressure
+          distribution in, a recovered geometry out.
+        </p>
+        <div class="video-frame reveal">
+          <video id="demo-video-el" controls preload="metadata" poster="assets/demo/poster.jpg" style="max-height: 70vh;">
+            <source src="assets/demo/cins-demo-wide.mp4" type="video/mp4">
+            Your browser does not support embedded video. The recording is at
+            <code>assets/demo/cins-demo-wide.mp4</code>.
+          </video>
+          <div id="demo-video-fallback" class="video-fallback" style="display:none;">
+            <span class="vf-icon" aria-hidden="true">&#9654;</span>
+            The walkthrough recording has not been published to this build yet.
+            Once <code>assets/demo/cins-demo-wide.mp4</code> is added, it plays here
+            automatically, no other change required.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== EVIDENCE / CLOSE ============================== -->
+  <section id="reading" class="scene" data-scene="reading">
+    <div class="reading">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">11</span><span class="rule" aria-hidden="true"></span>Evidence</p>
+        <h2>Every number traces to a run manifest</h2>
+      </header>
+      <div class="scene-body">
+        <p class="reveal">
+          Every experiment run writes an immutable manifest, config hash, git commit,
+          random seed, under <code>experiments/results/</code>. The figures on this
+          page are copied unmodified from
+          <code>experiments/results/t8/figures/</code>; none were redrawn by hand for
+          presentation. The nine-gate ladder below (T0 through T9) tracks Stage 1 from
+          environment bring-up to design review for Stage 2.
+        </p>
+        <div id="gate-ledger" class="gate-ledger reveal" aria-label="Gate ledger, T0 through T9"></div>
+
+        <section id="about-author" class="about reveal">
+          <h3>About this project</h3>
+          <p>
+            CINS is Stage 1 of a monolithic CST-Newton inverse-design method: an
+            isolated-airfoil implementation built on the open-source mfoil solver. The
+            code, experiment configs, and the paper source live in the repository.
+            The full-stack app runs the same engine core behind a FastAPI backend and a
+            Next.js frontend.
+          </p>
+          <div class="btn-row">
+            <a class="btn" href="https://github.com/SharathSPhD/CINS" target="_blank" rel="noopener noreferrer">github.com/SharathSPhD/CINS</a>
+            <a class="btn" href="https://github.com/SharathSPhD/CINS/tree/main/docs" target="_blank" rel="noopener noreferrer">Research dossier &amp; spec</a>
+            <a class="btn" href="https://cins-inverse-design.vercel.app" target="_blank" rel="noopener noreferrer">cins-inverse-design.vercel.app</a>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="reading">
+    <p>CINS: CST Inverse Newton Solver. Stage 1 (isolated airfoil, mfoil) complete;
+    Stage 2 (cascade) in design review. Figures computed from
+    <span class="mono">experiments/results/t8/</span>; every number above traces to a
+    git-versioned run manifest.</p>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
 </body>
 </html>

@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "app/frontend", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "cins-site",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/site\" && exec python3 -m http.server 4321"],
+      "port": 4321
     }
   ]
 }
