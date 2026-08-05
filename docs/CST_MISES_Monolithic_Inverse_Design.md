@@ -336,7 +336,7 @@ MISES 2.63 also dumps sensitivities of surface pressures, Hk and geometry with r
 
 ### 5.6 CST + inverse coupling that already exists (prior art)
 
-- **Morris, A. M., Allen, C. B. & Rendall, T. C. S.** (2010). "Inverse Airfoil Design Utilizing CST Parameterization." AIAA 2010-1228. — **nearest prior art.** Relates pressure residuals to required shape change (pressure-residual sign → normal-direction shape modification), with CST used as the *smoothing algorithm*. Solver-agnostic, subsonic and transonic. Note this is a weaker and structurally different construction from the monolithic proposal: CST smooths a correction, it is not an unknown in the Newton system.
+- **Lane, K. A. & Marshall, D. D.** (2010). "Inverse Airfoil Design Utilizing CST Parameterization." AIAA 2010-1228. [ATTRIBUTION CORRECTED 2026-08-05: this entry previously named Morris, Allen & Rendall. Verified against the Cal Poly Digital Commons record and AIAA ARC; see docs/novelty-search.md.] — **nearest prior art.** Relates pressure residuals to required shape change (pressure-residual sign → normal-direction shape modification), with CST used as the *smoothing algorithm*. Solver-agnostic, subsonic and transonic. Note this is a weaker and structurally different construction from the monolithic proposal: CST smooths a correction, it is not an unknown in the Newton system.
 - **CST + SU2 adjoint** — "Aerofoil Optimisation Using CST Parameterisation in SU2." Geometric sensitivities ∂(surface point)/∂Aᵢ for adjoint gradients.
 
 **Negative result (verify before claiming novelty):** No published work couples the MISES *inverse* mode to CST, despite the Parametric-Inverse hook being explicitly built to accept it. This is from search, not an exhaustive library check. **Confirm via targeted AIAA and ASME Digital Collection searches before writing any novelty claim.**
@@ -762,7 +762,7 @@ Note that Parametric-Inverse is documented as a *best fit* to the target — a G
 | **P2** | Cascade extension: periodic panel kernel, Gostelow validation, turbine cascade inverse design | ASME *J. Turbomachinery* or ASME Turbo Expo |
 | **P3** (optional) | Open-source Newton-coupled cascade solver with CST-native inverse mode — filling the §6.4 gap | *J. Turbomachinery* / software paper |
 
-**Novelty positioning for P1:** the contribution is *not* "geometry unknowns in the Newton system" (Drela, 1986/1990) and *not* "CST used in inverse design" (Morris, Allen & Rendall, 2010, where CST is a smoother). It is the combination — **a complete analytic basis whose linearity makes the geometric Jacobian exact and constant, and whose geometric functionals make design constraints linear rows, together converting constrained shape optimization into constrained root-finding.**
+**Novelty positioning for P1:** the contribution is *not* "geometry unknowns in the Newton system" (Drela, 1986/1990) and *not* "CST used in inverse design" (Lane & Marshall, 2010, where CST is a smoother). It is the combination — **a complete analytic basis whose linearity makes the geometric Jacobian exact and constant, and whose geometric functionals make design constraints linear rows, together converting constrained shape optimization into constrained root-finding.**
 
 **Before submitting:** confirm the §5.6 negative result with a targeted search of the AIAA and ASME Digital Collections. The absence of prior CST–MISES-inverse coupling is currently based on web search, not an exhaustive library check.
 
