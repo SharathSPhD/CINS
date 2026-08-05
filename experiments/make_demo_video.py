@@ -142,8 +142,14 @@ def build_timeline(anim_dir: Path, ui_dir: Path, work: Path,
             emit(p, int(2.4 * FPS))
 
     c3 = tmp / "c3.png"
-    card("18 of 18 sections recovered",
-         "NACA panel, 3 to 7 Newton iterations, coefficient error at 1e-11.", c3, size)
+    # "18 of 18" without "eligible" reads as a contradiction against the panel
+    # table in the Gallery, which shows 20 rows with two marked no: those two
+    # have no generable configuration, which is why the paper counts 18. State
+    # the UIUC panel here too rather than leaving the NACA number to stand alone.
+    card("18 of 18 eligible NACA sections recovered",
+         "3 to 7 Newton iterations, error near 1e-11.\n"
+         "On the 117-section UIUC panel, 83 converge, all to the same accuracy.",
+         c3, size)
     emit(c3, int(2.6 * FPS))
 
     c4 = tmp / "c4.png"
