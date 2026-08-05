@@ -97,35 +97,10 @@ export default function GalleryPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Results Gallery</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-        {data.manifest_note}. Everything below is an archived run replayed for reference: not a
-        live solve (use Analyze / Inverse / Flow Field for that).
+        {data.manifest_note}. The flow fields and airfoil corpus below are solved live on
+        load. The panel sweep, figures and residual history are archived runs replayed for
+        reference.
       </p>
-
-      <section className="mt-8">
-        <h2 className="text-lg font-medium">T7 self-consistency gate</h2>
-        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-          NACA 2412 with forced transition. The solver recovers the section&apos;s own CST
-          coefficients from its own target pressure distribution in{" "}
-          {data.t7.iterations.length} Newton iterations. Read the plot as three residual
-          blocks falling together: R is the flow residual, T is the mismatch at the target
-          pressure stations, and G is the constraint row. The combined residual reaches the
-          solver tolerance at 1e-10.
-        </p>
-        <div className="mt-3 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
-          <ArchivedResidualChart iterations={data.t7.iterations as never[]} />
-          <p className="mt-2 text-xs text-neutral-500">
-            Archived run. The reported convergence-order estimate for this run is{" "}
-            {data.t7.convergence_order?.toFixed(3) ?? "not available"}, which measures noise
-            rather than the asymptotic rate: the flow block starts at the solver floor, so the
-            three-point estimator has no pre-floor points to work with. The quadratic tail is
-            visible instead in the combined residual sequence quoted above.
-          </p>
-          <pre className="mt-3 text-xs font-mono whitespace-pre-wrap text-neutral-600 dark:text-neutral-400 max-h-48 overflow-auto">
-            {data.t7.log_tail}
-          </pre>
-        </div>
-      </section>
-
       <section className="mt-8">
         <h2 className="text-lg font-medium">Flow field showcase</h2>
         <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
@@ -222,6 +197,34 @@ export default function GalleryPage() {
           </div>
         </section>
       )}
+
+      <details className="mt-10 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+        <summary className="cursor-pointer text-sm font-medium text-neutral-600 dark:text-neutral-400">
+          Reference: T7 self-consistency residual history and run log
+        </summary>
+        <h2 className="text-lg font-medium">T7 self-consistency gate</h2>
+        <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+          NACA 2412 with forced transition. The solver recovers the section&apos;s own CST
+          coefficients from its own target pressure distribution in{" "}
+          {data.t7.iterations.length} Newton iterations. Read the plot as three residual
+          blocks falling together: R is the flow residual, T is the mismatch at the target
+          pressure stations, and G is the constraint row. The combined residual reaches the
+          solver tolerance at 1e-10.
+        </p>
+        <div className="mt-3 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+          <ArchivedResidualChart iterations={data.t7.iterations as never[]} />
+          <p className="mt-2 text-xs text-neutral-500">
+            Archived run. The reported convergence-order estimate for this run is{" "}
+            {data.t7.convergence_order?.toFixed(3) ?? "not available"}, which measures noise
+            rather than the asymptotic rate: the flow block starts at the solver floor, so the
+            three-point estimator has no pre-floor points to work with. The quadratic tail is
+            visible instead in the combined residual sequence quoted above.
+          </p>
+          <pre className="mt-3 text-xs font-mono whitespace-pre-wrap text-neutral-600 dark:text-neutral-400 max-h-48 overflow-auto">
+            {data.t7.log_tail}
+          </pre>
+        </div>
+      </details>
     </div>
   );
 }
