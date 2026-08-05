@@ -91,22 +91,34 @@
     var fallback = document.getElementById("demo-video-fallback");
     if (!video || !fallback) return;
     var source = video.querySelector("source");
-    var declared = fallback.style.display !== "none";
     function showFallback() {
       video.style.display = "none";
       fallback.style.display = "block";
     }
-    if (!source || !source.getAttribute("src")) { showFallback(); return; }
-    video.addEventListener("error", showFallback, true);
-    if (source) {
-      source.addEventListener("error", showFallback);
+    function hideFallback() {
+      video.style.display = "";
+      fallback.style.display = "none";
     }
-    // If metadata never loads (file missing / 404), fall back after a short grace period.
+    if (!source || !source.getAttribute("src")) { showFallback(); return; }
+
+    // A missing file raises a real error on the element or its source. That is
+    // the only reliable "not published" signal, so it is the only one that
+    // decides on its own.
+    video.addEventListener("error", showFallback, true);
+    source.addEventListener("error", showFallback);
+
+    // A slow file is not a missing file. The previous version hid the video for
+    // good if metadata had not arrived within 2.5 seconds, which is routine for
+    // a 1.7 MB asset on a cold CDN edge, and nothing ever re-checked: the page
+    // then claimed the recording was unpublished while it was being served with
+    // HTTP 200. The wait is longer now and, more importantly, reversible.
     var settled = false;
-    video.addEventListener("loadedmetadata", function () { settled = true; });
+    ["loadedmetadata", "canplay", "playing"].forEach(function (ev) {
+      video.addEventListener(ev, function () { settled = true; hideFallback(); });
+    });
     setTimeout(function () {
       if (!settled && video.readyState < 1) { showFallback(); }
-    }, 2500);
+    }, 12000);
   })();
 
   /* ---------------------------------------------------------- hero particle field (canvas 2D) */
