@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# The public backend origin is not a secret (NEXT_PUBLIC_* is client-visible),
+# and a git-based Vercel build needs it at build time, so it is committed.
+!.env.production
