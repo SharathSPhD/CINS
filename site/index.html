@@ -46,8 +46,7 @@
     <li><a href="#flow-solves" data-scene-link="flow-solves"><span class="dot" aria-hidden="true"></span><span class="lab">Flow-solve count</span></a></li>
     <li><a href="#conditioning" data-scene-link="conditioning"><span class="dot" aria-hidden="true"></span><span class="lab">The conditioning cliff</span></a></li>
     <li><a href="#next" data-scene-link="next"><span class="dot" aria-hidden="true"></span><span class="lab">What's next</span></a></li>
-    <li><a href="#demo-video" data-scene-link="demo-video"><span class="dot" aria-hidden="true"></span><span class="lab">Demo</span></a></li>
-    <li><a href="#reading" data-scene-link="reading"><span class="dot" aria-hidden="true"></span><span class="lab">Evidence</span></a></li>
+        <li><a href="#reading" data-scene-link="reading"><span class="dot" aria-hidden="true"></span><span class="lab">Evidence</span></a></li>
   </ol>
 </nav>
 
@@ -64,7 +63,21 @@
         produces it, by solving one square system of equations. No search loop, no
         scoring function, no thousands of flow solves.
       </p>
-      <p class="byline">Stage 1 complete &middot; isolated airfoil, mfoil &middot; a guided tour for the curious and the technical alike</p>
+      <div class="video-frame hero-video">
+        <video id="demo-video-el" autoplay muted loop playsinline controls
+               preload="metadata" poster="assets/demo/poster.jpg">
+          <source src="assets/demo/cins-demo-wide.mp4" type="video/mp4">
+          Your browser does not support embedded video. The recording is at
+          <code>assets/demo/cins-demo-wide.mp4</code>.
+        </video>
+        <div id="demo-video-fallback" class="video-fallback" style="display:none;">
+          <span class="vf-icon" aria-hidden="true">&#9654;</span>
+          The walkthrough recording has not been published to this build yet.
+          Once <code>assets/demo/cins-demo-wide.mp4</code> is added, it plays here
+          automatically, no other change required.
+        </div>
+      </div>
+      <p class="byline">Every frame is recorded from a real solve &middot; Stage 1 complete, isolated airfoil on mfoil</p>
       <p class="scroll-hint" aria-hidden="true">scroll to begin &darr;</p>
     </div>
   </section>
@@ -701,34 +714,6 @@
           <a class="btn primary" href="assets/paper/p1_main.pdf" target="_blank" rel="noopener noreferrer">Read the paper (PDF)</a>
           <a class="btn" href="https://cins-inverse-design.vercel.app" target="_blank" rel="noopener noreferrer">Try the live app</a>
           <a class="btn" href="https://github.com/SharathSPhD/CINS" target="_blank" rel="noopener noreferrer">Browse the repository</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section id="demo-video" class="scene" data-scene="demo-video">
-    <div class="reading">
-      <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">10</span><span class="rule" aria-hidden="true"></span>Watch it run</p>
-        <h2>A walkthrough of the solver</h2>
-      </header>
-      <div class="scene-body">
-        <p class="lead reveal">
-          A short recording of the inverse solve running end to end: a target pressure
-          distribution in, a recovered geometry out.
-        </p>
-        <div class="video-frame reveal">
-          <video id="demo-video-el" controls preload="metadata" poster="assets/demo/poster.jpg" style="max-height: 70vh;">
-            <source src="assets/demo/cins-demo-wide.mp4" type="video/mp4">
-            Your browser does not support embedded video. The recording is at
-            <code>assets/demo/cins-demo-wide.mp4</code>.
-          </video>
-          <div id="demo-video-fallback" class="video-fallback" style="display:none;">
-            <span class="vf-icon" aria-hidden="true">&#9654;</span>
-            The walkthrough recording has not been published to this build yet.
-            Once <code>assets/demo/cins-demo-wide.mp4</code> is added, it plays here
-            automatically, no other change required.
-          </div>
         </div>
       </div>
     </div>

@@ -349,3 +349,39 @@ table.data tr.hl td { color: var(--ink); background: color-mix(in srgb, var(--ac
 .two-col-list strong { color: var(--ink); }
 .accent { color: var(--accent); }
 .accent2 { color: var(--accent2); }
+
+/* Hero video. The recording is the hero, so on wide screens the copy sits
+   beside it and both are visible without scrolling. */
+.hero { min-height: auto; padding-block: 4.5rem 3.5rem; }
+.hero-copy { padding-block: 0; width: 100%; }
+.hero-video { margin: 1.6rem 0 1.1rem; box-shadow: 0 24px 60px -28px rgba(0,0,0,.55); }
+.hero-video video { display: block; width: 100%; height: auto; }
+
+@media (min-width: 1000px) {
+  .hero-copy {
+    display: grid;
+    grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
+    grid-template-areas: "kicker video" "title video" "lead video" "byline video" "hint video";
+    column-gap: 3rem;
+    align-content: center;
+    max-width: 84rem;
+    margin-inline: auto;
+    padding-inline: 2rem;
+  }
+  .hero-copy .kicker { grid-area: kicker; }
+  .hero-copy h1     { grid-area: title; font-size: clamp(2.1rem, 3.4vw, 3.1rem); max-width: 14ch; }
+  .hero-copy .lead  { grid-area: lead; max-width: 40ch; font-size: 1.06rem; }
+  .hero-copy .byline{ grid-area: byline; }
+  .hero-copy .scroll-hint { grid-area: hint; }
+  .hero-video {
+    grid-area: video;
+    align-self: center;
+    margin: 0;
+  }
+}
+
+@media (max-width: 999px) {
+  .hero h1 { font-size: clamp(1.9rem, 5.6vw, 2.9rem); }
+  .hero .lead { max-width: 52ch; font-size: 1.02rem; }
+  .hero-video video { max-height: 46vh; object-fit: contain; }
+}
