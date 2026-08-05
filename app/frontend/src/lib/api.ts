@@ -1,6 +1,16 @@
-// Typed client for the CINS FastAPI backend, called through Next's /api
-// rewrite proxy (see next.config.ts) so the browser only ever talks to the
-// same origin it's served from. Mirrors app/backend/app/schemas.py.
+// Typed client for the CINS FastAPI backend. Mirrors app/backend/app/schemas.py.
+//
+// Origin strategy: when NEXT_PUBLIC_API_BASE is set (public deploys), the
+// browser calls the backend origin DIRECTLY — Vercel's rewrite proxy caps
+// long requests, and a viscous solve on the free-tier backend can take
+// minutes (measured 166s cold); direct browser fetch has no such cap and the
+// backend's CORS allows it. Locally (env unset) requests stay same-origin
+// and go through Next's /api rewrite (see next.config.ts).
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_BASE ?? "";
+
+function apiUrl(path: string): string {
+  return `${API_ORIGIN}${path}`;
+}
 
 export interface SurfaceCp {
   x: number[];
@@ -343,7 +353,7 @@ export interface AirfoilUploadResponse {
 export async function uploadAirfoil(file: File): Promise<AirfoilUploadResponse> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch("/api/airfoils/upload", { method: "POST", body: form });
+  const res = await fetch(apiUrl("/api/airfoils/upload"), { method: "POST", body: form });
   if (!res.ok) {
     const detail = await res.json().catch(() => res.statusText);
     throw new ApiError(res.status, detail.detail ?? detail);
@@ -396,7 +406,7 @@ class ApiError extends Error {
 }
 
 async function postJson<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
-  const res = await fetch(path, {
+  const res = await fetch(apiUrl(path), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -409,7 +419,7 @@ async function postJson<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
 }
 
 async function getJson<TRes>(path: string): Promise<TRes> {
-  const res = await fetch(path);
+  const res = await fetch(apiUrl(path));
   if (!res.ok) {
     const detail = await res.json().catch(() => res.statusText);
     throw new ApiError(res.status, detail.detail ?? detail);
