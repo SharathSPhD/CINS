@@ -1,0 +1,24 @@
+{
+  "cell_name": "panel_uiuc_goe646",
+  "converged": false,
+  "convergence_order": null,
+  "dof_check_error": null,
+  "err_all_inf": null,
+  "err_free_inf": null,
+  "iterations": 0,
+  "manifest": {
+    "cell_name": "panel_uiuc_goe646",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_goe646.yaml"
+  },
+  "model_gap": null,
+  "n_flow_solves_equivalent": 0,
+  "n_residual_evaluations": 0,
+  "notes": [
+    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1758, in solve_viscous\n    build_wake(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 748, in build_wake\n    assert t[0] > 0, 'Wrong wake direction; ensure airfoil points are CCW'\n           ^^^^^^^^\nAssertionError: Wrong wake direction; ensure airfoil points are CCW\n\n"
+  ],
+  "realisability": null,
+  "release_verify": null,
+  "residual_history": [],
+  "submap_cond": null,
+  "wall_time_s": 0.0
+}

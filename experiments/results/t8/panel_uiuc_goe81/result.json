@@ -1,0 +1,24 @@
+{
+  "cell_name": "panel_uiuc_goe81",
+  "converged": false,
+  "convergence_order": null,
+  "dof_check_error": null,
+  "err_all_inf": null,
+  "err_free_inf": null,
+  "iterations": 0,
+  "manifest": {
+    "cell_name": "panel_uiuc_goe81",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_goe81.yaml"
+  },
+  "model_gap": null,
+  "n_flow_solves_equivalent": 0,
+  "n_residual_evaluations": 0,
+  "notes": [
+    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nLibrary/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 63, in run_cell\n    result = run_pipeline(cfg, cell_name=cell_name, config_path=config_path, run_dir=str(out_dir))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 430, in run_pipeline\n    return _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 242, in prepare_cell\n    set_forced_transition(m, cfg.transition.xtr_upper, cfg.transition.xtr_lower)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/solver/mfoil_adapter.py\", line 280, in set_forced_transition\n    raise ValueError(\nValueError: forced trip x/c=0.05 on surface 0 is AFT of the current transition; laminarizing turbulent nodes is not supported (ADR-0003)\n\n"
+  ],
+  "realisability": null,
+  "release_verify": null,
+  "residual_history": [],
+  "submap_cond": null,
+  "wall_time_s": 0.0
+}

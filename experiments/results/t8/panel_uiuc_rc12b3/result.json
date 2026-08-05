@@ -1,0 +1,54 @@
+{
+  "cell_name": "panel_uiuc_rc12b3",
+  "converged": true,
+  "convergence_order": 0.12420689646838252,
+  "dof_check_error": null,
+  "err_all_inf": 2.401098764259757e-11,
+  "err_free_inf": 2.401098764259757e-11,
+  "iterations": 4,
+  "manifest": {
+    "cell_name": "panel_uiuc_rc12b3",
+    "config_hash": "d4b89870081dff52",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_rc12b3.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "1057059e4f5df8ff2caecb3696b8db84dcafe55f",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:rc12b3",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T00:24:25.099300+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": 0.09848567066773578,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 100,
+  "notes": [],
+  "realisability": 2.8522330070209882e-05,
+  "release_verify": {
+    "cd": 0.007346178163344145,
+    "cd_target": 0.0073461781633360305,
+    "cl": 0.4179900436856653,
+    "cl_target": 0.4179900436828334,
+    "converged": true,
+    "dcd": 8.114169058881515e-15,
+    "dcl": 2.831901380062618e-12,
+    "ok": true
+  },
+  "residual_history": [
+    2.9131526008799183e-05,
+    2.7582286284636925e-08,
+    1.1308183687422483e-10,
+    5.713231839804434e-11
+  ],
+  "submap_cond": 102.80799045580456,
+  "wall_time_s": 157.37725508399308
+}

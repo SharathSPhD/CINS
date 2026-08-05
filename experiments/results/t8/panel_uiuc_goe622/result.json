@@ -1,0 +1,71 @@
+{
+  "cell_name": "panel_uiuc_goe622",
+  "converged": true,
+  "convergence_order": -3.4084518767044285,
+  "dof_check_error": null,
+  "err_all_inf": 2.64097632651783e-11,
+  "err_free_inf": 2.64097632651783e-11,
+  "iterations": 21,
+  "manifest": {
+    "cell_name": "panel_uiuc_goe622",
+    "config_hash": "cf12e2bf3c61221a",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_goe622.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "1057059e4f5df8ff2caecb3696b8db84dcafe55f",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:goe622",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-04T23:07:44.331429+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": 0.11700044520037975,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 661,
+  "notes": [],
+  "realisability": 0.001956061416542026,
+  "release_verify": {
+    "cd": 0.005238155333624555,
+    "cd_target": 0.005238155333610944,
+    "cl": 0.49769481442782676,
+    "cl_target": 0.49769481442713215,
+    "converged": true,
+    "dcd": 1.3610640392514028e-14,
+    "dcl": 6.946110353567292e-13,
+    "ok": true
+  },
+  "residual_history": [
+    0.0018250355889771598,
+    0.00012094723965535404,
+    1.6280701568118387e-08,
+    1.3648480916858823e-10,
+    1.1358819136536189e-10,
+    1.5947804580563086e-10,
+    2.2428111355109933e-10,
+    2.7542556215927317e-10,
+    1.9891036359132438e-10,
+    1.0820382388255088e-10,
+    1.5623723096459135e-10,
+    2.0805542344610146e-10,
+    1.7751836389632698e-10,
+    2.1846973966535995e-10,
+    2.557636353138157e-10,
+    1.597952805111355e-10,
+    1.4337155747789306e-10,
+    1.432244319436085e-10,
+    1.380449809446716e-10,
+    1.6564045827285395e-10,
+    8.900240970877663e-11
+  ],
+  "submap_cond": 94.47209314799085,
+  "wall_time_s": 770.5938929591794
+}

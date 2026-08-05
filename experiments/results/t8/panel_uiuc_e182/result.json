@@ -1,0 +1,42 @@
+{
+  "cell_name": "panel_uiuc_e182",
+  "converged": false,
+  "convergence_order": null,
+  "dof_check_error": null,
+  "err_all_inf": null,
+  "err_free_inf": null,
+  "iterations": 0,
+  "manifest": {
+    "cell_name": "panel_uiuc_e182",
+    "config_hash": "75fe284cc1cb7696",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_e182.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "1057059e4f5df8ff2caecb3696b8db84dcafe55f",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:e182",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-04T21:17:17.348809+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": null,
+  "n_flow_solves_equivalent": 2,
+  "n_residual_evaluations": 0,
+  "notes": [
+    "direct (natural) target solve failed to converge"
+  ],
+  "realisability": null,
+  "release_verify": null,
+  "residual_history": [],
+  "submap_cond": null,
+  "wall_time_s": 9.847437040880322
+}

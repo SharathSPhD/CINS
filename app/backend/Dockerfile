@@ -40,6 +40,13 @@ RUN pip install --no-cache-dir -r app/backend/requirements.txt
 
 COPY app/backend/app app/backend/app
 
+# --- archived showcase data (read-only evidence for /api/showcase + /static) ---
+# T7 run + panel result JSONs + paper figures + the gate board. Small (~10 MB);
+# without these the deployed showcase/gate-strip/replay render empty.
+COPY experiments/results/t7_naca2412 experiments/results/t7_naca2412
+COPY experiments/results/t8 experiments/results/t8
+COPY site/gates.json site/gates.json
+
 EXPOSE 7860
 
 # Single worker: app/jobs.py's in-process job store and app/engine.py's

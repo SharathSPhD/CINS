@@ -1,0 +1,73 @@
+{
+  "cell_name": "panel_uiuc_naca64a410",
+  "converged": true,
+  "convergence_order": 1.9296317525046884,
+  "dof_check_error": null,
+  "err_all_inf": 1.1377515769794844e-10,
+  "err_free_inf": 1.1377515769794844e-10,
+  "iterations": 21,
+  "manifest": {
+    "cell_name": "panel_uiuc_naca64a410",
+    "config_hash": "1bbe2aaca3ccd46b",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_naca64a410.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "1057059e4f5df8ff2caecb3696b8db84dcafe55f",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:naca64a410",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T00:08:01.965221+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": 0.13689437326732753,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 661,
+  "notes": [
+    "stations remapped by nearest-x; residual max|dx/c|=8.66e-05"
+  ],
+  "realisability": 0.018436377542931936,
+  "release_verify": {
+    "cd": 0.005193108996734624,
+    "cd_target": 0.005193108996697043,
+    "cl": 0.5716999017896223,
+    "cl_target": 0.5716999017890452,
+    "converged": true,
+    "dcd": 3.758104938356155e-14,
+    "dcl": 5.770939282001564e-13,
+    "ok": true
+  },
+  "residual_history": [
+    0.007668814697148978,
+    0.0007317002466575318,
+    8.129922727164878e-07,
+    1.3383840825964738e-10,
+    1.3504102909496543e-10,
+    1.2336895381467749e-10,
+    1.7566670595713855e-10,
+    1.6339550501526573e-10,
+    1.0154926571141023e-10,
+    1.998646303103506e-10,
+    1.7310683985300592e-10,
+    1.6950087729435627e-10,
+    1.493979771365164e-10,
+    1.289466308716045e-10,
+    1.524608923973524e-10,
+    1.0956411558148376e-10,
+    2.2136913291459052e-10,
+    1.3369510434710805e-10,
+    1.1115997810902249e-10,
+    1.0192845826502195e-10,
+    8.622615810432164e-11
+  ],
+  "submap_cond": 103.66049979721163,
+  "wall_time_s": 779.4346367500257
+}

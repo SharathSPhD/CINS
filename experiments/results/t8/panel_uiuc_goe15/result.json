@@ -1,0 +1,24 @@
+{
+  "cell_name": "panel_uiuc_goe15",
+  "converged": false,
+  "convergence_order": null,
+  "dof_check_error": null,
+  "err_all_inf": null,
+  "err_free_inf": null,
+  "iterations": 0,
+  "manifest": {
+    "cell_name": "panel_uiuc_goe15",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_goe15.yaml"
+  },
+  "model_gap": null,
+  "n_flow_solves_equivalent": 0,
+  "n_residual_evaluations": 0,
+  "notes": [
+    "UNEXPECTED EXCEPTION: Traceback (most recent call last):\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 91, in sweep\n    result = _run_cell_subprocess(path, results_root=results_root)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/runner.py\", line 135, in _run_cell_subprocess\n    raise RuntimeError(\nRuntimeError: cell subprocess failed (rc=1):\n\nloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 437, in _run_pipeline_inner\n    prep = prepare_cell(cfg, counters, cell_name=cell_name, config_path=config_path, t0=t0)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/pipeline.py\", line 232, in prepare_cell\n    m.solve()\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 218, in solve\n    solve_viscous(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1765, in solve_viscous\n    solve_coupled(M) # solve coupled system\n    ^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/src/cins/benchmarks/instrumentation.py\", line 91, in counted_solve_coupled\n    return orig_solve_coupled(m)\n           ^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1826, in solve_coupled\n    stagpoint_move(M)\n  File \"/Users/sharath/Library/CloudStorage/OneDrive-Personal/wsl_projects/mfoil-cst/vendor/mfoil/mfoil.py\", line 1724, in stagpoint_move\n    assert (ues[0] > 0) and (ues[1] > 0), 'stagpoint_move: velocity error'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: stagpoint_move: velocity error\n\n"
+  ],
+  "realisability": null,
+  "release_verify": null,
+  "residual_history": [],
+  "submap_cond": null,
+  "wall_time_s": 0.0
+}

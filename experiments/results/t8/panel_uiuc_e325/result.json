@@ -1,0 +1,73 @@
+{
+  "cell_name": "panel_uiuc_e325",
+  "converged": true,
+  "convergence_order": 1.9695533899074669,
+  "dof_check_error": null,
+  "err_all_inf": 6.287033393892472e-11,
+  "err_free_inf": 6.287033393892472e-11,
+  "iterations": 23,
+  "manifest": {
+    "cell_name": "panel_uiuc_e325",
+    "config_hash": "ee4491668ebe1a35",
+    "config_path": "configs/experiments/panel_uiuc/panel_uiuc_e325.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "b35794d94f1c8a225d7152cab60fa88eccc4dde7",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "uiuc:e325",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "presolve",
+      "n_perturb_frac": 0.05,
+      "station_selection": "qr_pivot"
+    },
+    "timestamp": "2026-08-05T09:07:31.345414+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": 0.07593199877081179,
+  "n_flow_solves_equivalent": 120,
+  "n_residual_evaluations": 727,
+  "notes": [],
+  "realisability": 2.19642528017807e-05,
+  "release_verify": {
+    "cd": 0.007107181786874924,
+    "cd_target": 0.007107181786900954,
+    "cl": 0.13373857949806278,
+    "cl_target": 0.13373857950249016,
+    "converged": true,
+    "dcd": 2.602952575703199e-14,
+    "dcl": 4.427375133175815e-12,
+    "ok": true
+  },
+  "residual_history": [
+    5.3349791765254746e-05,
+    1.0004984727653584e-06,
+    1.7526405926793985e-10,
+    1.586779552190537e-10,
+    1.8280036097271886e-10,
+    2.210472014712275e-10,
+    1.9360652723022702e-10,
+    1.8906686478525636e-10,
+    2.0280885329219274e-10,
+    1.1767032180768776e-10,
+    1.8651175010982557e-10,
+    1.0976998395417321e-10,
+    2.242372590239098e-10,
+    1.823459428522636e-10,
+    1.497429219535421e-10,
+    1.6876984219972131e-10,
+    2.178484924374913e-10,
+    1.9987931402989357e-10,
+    1.0572488164555101e-10,
+    1.001293781731278e-10,
+    1.4063324989834823e-10,
+    1.205283477035987e-10,
+    8.894703373199235e-11
+  ],
+  "submap_cond": 71.24540215221083,
+  "wall_time_s": 862.5202522908803
+}
