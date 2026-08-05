@@ -1,7 +1,7 @@
 // Typed client for the CINS FastAPI backend. Mirrors app/backend/app/schemas.py.
 //
 // Origin strategy: when NEXT_PUBLIC_API_BASE is set (public deploys), the
-// browser calls the backend origin DIRECTLY — Vercel's rewrite proxy caps
+// browser calls the backend origin DIRECTLY: Vercel's rewrite proxy caps
 // long requests, and a viscous solve on the free-tier backend can take
 // minutes (measured 166s cold); direct browser fetch has no such cap and the
 // backend's CORS allows it. Locally (env unset) requests stay same-origin
@@ -43,6 +43,10 @@ export interface BLDistributions {
   delta_star: SurfaceSplit;
   cf: SurfaceSplit;
   Hk: SurfaceSplit;
+  amplification: SurfaceSplit;
+  ue: SurfaceSplit;
+  uei: SurfaceSplit;
+  Re_theta: SurfaceSplit;
   transition_x: { upper: number; lower: number } | null;
 }
 
@@ -51,6 +55,8 @@ export interface AnalyzeResponse {
   cl: number;
   cd: number;
   cm: number;
+  cdf: number | null;
+  cdp: number | null;
   alpha: number;
   Re: number | null;
   Ma: number;
@@ -58,8 +64,12 @@ export interface AnalyzeResponse {
   cp: number[];
   upper: SurfaceCp;
   lower: SurfaceCp;
+  upper_cpi: SurfaceCp | null;
+  lower_cpi: SurfaceCp | null;
+  sonic_cp: number | null;
   coords: number[][];
   bl: BLDistributions | null;
+  bl_offset: { upper: number[][]; lower: number[][] } | null;
 }
 
 export interface InverseRequest {
@@ -146,6 +156,7 @@ export interface InverseResultPayload {
   presolve_gate?: Record<string, unknown> | null;
   stages: InverseStage[];
   dof: DofAccounting | null;
+  phase: string | null;
 }
 
 export interface InverseJobResponse {
@@ -153,6 +164,14 @@ export interface InverseJobResponse {
   status: "queued" | "running" | "done" | "error";
   result: InverseResultPayload | null;
   error: string | null;
+  /** Authoritative current-phase text: see app/backend/app/jobs.py. */
+  phase: string;
+  created_at: number;
+  updated_at: number;
+  /** Server-computed seconds since submission: drives the elapsed/heartbeat UI. */
+  elapsed_s: number;
+  /** Server-side watchdog budget (seconds); job is marked "error" past this. */
+  timeout_s: number;
 }
 
 // --------------------------------------------------------------------------- //
@@ -278,12 +297,18 @@ export interface FlowFieldResponse {
   note: string;
 }
 
+// Inviscid_velocity is evaluated once per exterior grid point by a pure-Python
+// vendor loop (vendor/mfoil/mfoil.py, never edited): measured ~5-6s locally
+// for the default 60x40 grid, and free-tier deploys are documented as far
+// slower (app/README.md): hence the generous timeout vs. the 45s default.
+const FLOWFIELD_TIMEOUT_MS = 90_000;
+
 export function flowfield(req: FlowFieldRequest): Promise<FlowFieldResponse> {
-  return postJson("/api/flowfield", req);
+  return postJson("/api/flowfield", req, FLOWFIELD_TIMEOUT_MS);
 }
 
 // --------------------------------------------------------------------------- //
-// /api/inverse/raw, /api/inverse/gate — user-defined target Cp
+// /api/inverse/raw, /api/inverse/gate: user-defined target Cp
 // --------------------------------------------------------------------------- //
 
 export interface BaselineSpec {
@@ -330,8 +355,13 @@ export interface RawTargetGate {
   A_lower_init: number[];
 }
 
+// Measured ~27s locally for a typical target (two presolve passes, each
+// rebuilding an 18-coefficient sensitivity matrix): see app/backend/app/jobs.py's
+// module docstring for why this is genuinely slow, not stuck.
+const GATE_TIMEOUT_MS = 120_000;
+
 export function presolveGateRaw(req: RawTargetInverseRequest): Promise<RawTargetGate> {
-  return postJson("/api/inverse/gate", req);
+  return postJson("/api/inverse/gate", req, GATE_TIMEOUT_MS);
 }
 
 export function submitInverseRaw(req: RawTargetInverseRequest): Promise<InverseSubmitResponse> {
@@ -380,6 +410,7 @@ export interface ShowcasePanelEntry {
   err_all_inf: number | null;
   wall_time_s: number | null;
   notes: string[];
+  airfoil_id: string | null;
 }
 
 export interface ShowcaseResponse {
@@ -405,12 +436,46 @@ class ApiError extends Error {
   }
 }
 
-async function postJson<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
-  const res = await fetch(apiUrl(path), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+// Default client-side request timeout. The failure mode this guards against
+// (defect-fix: Flow Field / Analyze showing "Solving..." with no solution
+// ever appearing) is a request that never resolves: a dropped connection,
+// a proxy that holds the socket open past its own server-side timeout, or a
+// free-tier backend cold-start (app/README.md: ~166s for a viscous analyze
+// on Render's 0.1-vCPU instance): NOT a fast 4xx/5xx, which fetch() already
+// rejects promptly. Without this, `loading` state has no way to ever clear.
+const DEFAULT_TIMEOUT_MS = 45_000;
+
+class TimeoutError extends Error {
+  constructor(ms: number) {
+    super(`request timed out after ${(ms / 1000).toFixed(0)}s`);
+  }
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new TimeoutError(timeoutMs);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function postJson<TReq, TRes>(
+  path: string,
+  body: TReq,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<TRes> {
+  const res = await fetchWithTimeout(
+    apiUrl(path),
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) },
+    timeoutMs,
+  );
   if (!res.ok) {
     const detail = await res.json().catch(() => res.statusText);
     throw new ApiError(res.status, detail.detail ?? detail);
@@ -418,8 +483,8 @@ async function postJson<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
   return res.json() as Promise<TRes>;
 }
 
-async function getJson<TRes>(path: string): Promise<TRes> {
-  const res = await fetch(apiUrl(path));
+async function getJson<TRes>(path: string, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<TRes> {
+  const res = await fetchWithTimeout(apiUrl(path), {}, timeoutMs);
   if (!res.ok) {
     const detail = await res.json().catch(() => res.statusText);
     throw new ApiError(res.status, detail.detail ?? detail);
@@ -439,4 +504,11 @@ export function pollInverse(jobId: string): Promise<InverseJobResponse> {
   return getJson(`/api/inverse/${jobId}`);
 }
 
-export { ApiError };
+export { ApiError, TimeoutError };
+
+/** Formats any error thrown by this module into user-facing text. */
+export function describeError(err: unknown): string {
+  if (err instanceof ApiError) return String(err.detail);
+  if (err instanceof TimeoutError) return err.message;
+  return String(err);
+}

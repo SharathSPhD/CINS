@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CINS — CST Inverse Newton Solver",
+  title: "CINS: CST Inverse Newton Solver",
   description:
-    "Deterministic monolithic CST-Newton inverse airfoil design — draw a target Cp, get geometry back via a square Newton root-find. No optimizer, no surrogate.",
+    "Deterministic monolithic CST-Newton inverse airfoil design: draw a target Cp, get geometry back via a square Newton root-find. No optimizer, no surrogate.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -50,7 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main className="flex-1">{children}</main>
         <footer className="border-t border-neutral-200 dark:border-neutral-800 py-4">
           <div className="mx-auto max-w-5xl px-4 text-xs text-neutral-500">
-            CST Inverse Newton Solver — deterministic monolithic inverse airfoil design.
+            CST Inverse Newton Solver: deterministic monolithic inverse airfoil design.
           </div>
         </footer>
       </body>

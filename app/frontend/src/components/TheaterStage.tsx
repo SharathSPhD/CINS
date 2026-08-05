@@ -2,7 +2,7 @@
 
 // Inverse Design Theater (item 2 of the app rich-features brief): the
 // per-iteration ``stages`` array from the backend (app.engine.
-// StageCapturingDiagnostics) rendered as an animated staged view — geometry
+// StageCapturingDiagnostics) rendered as an animated staged view: geometry
 // panel with target-ghost overlay + LE zoom, Cp panel (current vs target,
 // inverted y-axis, stations marked), and a convergence panel (R/T/G, log
 // scale) with stage narration + a DOF card. A scrub-bar lets the user replay
@@ -60,7 +60,7 @@ export default function TheaterStage({
       <label className="block">
         <span className="flex justify-between text-xs text-neutral-500 mb-1">
           <span>
-            Stage scrub — it={stage.it}
+            Stage scrub: it={stage.it}
             {scrub === null && stages.length > 0 ? " (live)" : ""}
           </span>
           <button
@@ -102,7 +102,7 @@ function GeometryPanel({ coords, target }: { coords: number[][]; target?: number
       pts.map((p, i) => `${i === 0 ? "M" : "L"}${sxFn(p[0]).toFixed(2)},${syFn(p[1]).toFixed(2)}`).join(" ") + " Z";
     return {
       path: toPath(coords),
-      targetPath: target ? toPath(target) : null,
+      targetPath : target ? toPath(target) : null,
       sx: sxFn,
       sy: syFn,
     };
@@ -110,7 +110,7 @@ function GeometryPanel({ coords, target }: { coords: number[][]; target?: number
 
   return (
     <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
-      <div className="text-xs font-medium mb-1">Geometry (evolving) {target && "— gray = target"}</div>
+      <div className="text-xs font-medium mb-1">Geometry (evolving) {target && ", gray = target"}</div>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
         {targetPath && (
           <path d={targetPath} fill="none" stroke="#9ca3af" strokeDasharray="4 3" strokeWidth={1.5} />
@@ -160,7 +160,7 @@ function CpPanel({ x, current, target }: { x: number[]; current: number[]; targe
   const margin = CP_MARGIN;
   // NOTE: stations span BOTH surfaces (QR-pivoted node indices, not split by
   // upper/lower like CpChart.tsx), so a single x-sorted connecting line would
-  // zigzag between surfaces at similar x/c — point pairs (current vs target,
+  // zigzag between surfaces at similar x/c: point pairs (current vs target,
   // joined by a thin connector showing the per-station error) read far more
   // clearly than a fake continuous curve here.
   const { pairs } = useMemo(() => {
@@ -183,7 +183,7 @@ function CpPanel({ x, current, target }: { x: number[]; current: number[]; targe
   return (
     <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
       <div className="text-xs font-medium mb-1">
-        Cp at target stations — current (blue) vs target (gray), connector = error
+        Cp at target stations: current (blue) vs target (gray), connector = error
       </div>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto text-neutral-400 dark:text-neutral-600">
         <line x1={margin.left} x2={width - margin.right} y1={height - margin.bottom} y2={height - margin.bottom} stroke="currentColor" />
@@ -233,12 +233,12 @@ function ConvergencePanel({
     const sxFn = (i: number) =>
       margin.left + (upTo.length <= 1 ? 0 : (i / (upTo.length - 1)) * (width - margin.left - margin.right));
     const syFn = (v: number) => margin.top + (1 - (v - yMin) / span) * (height - margin.top - margin.bottom);
-    const toPath = (arr: number[]) => arr.map((v, i) => `${i === 0 ? "M" : "L"}${sxFn(i).toFixed(2)},${syFn(v).toFixed(2)}`).join(" ");
+    const toPath = (arr : number[]) => arr.map((v, i) => `${i === 0 ? "M" : "L"}${sxFn(i).toFixed(2)},${syFn(v).toFixed(2)}`).join(" ");
     return { rPath: toPath(rs), tPath: toPath(ts), gPath: toPath(gs) };
   }, [upTo, width, height, margin]);
 
   const stage = stages[idx];
-  const narration = `Newton iteration ${stage.it} — |R|=${(stage.R_norm ?? 0).toExponential(2)}, |T|=${(stage.T_norm ?? 0).toExponential(2)}, |G|=${(stage.G_norm ?? 0).toExponential(2)}, alpha=${stage.alpha.toFixed(3)}°`;
+  const narration = `Newton iteration ${stage.it}: |R|=${(stage.R_norm ?? 0).toExponential(2)}, |T|=${(stage.T_norm ?? 0).toExponential(2)}, |G|=${(stage.G_norm ?? 0).toExponential(2)}, alpha=${stage.alpha.toFixed(3)}°`;
 
   return (
     <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">

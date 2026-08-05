@@ -1,13 +1,13 @@
 "use client";
 
 // Canvas rendering for the Flow Field view (item 3 of the app rich-features
-// brief). Canvas (not SVG) is explicitly called out as fine here — a
+// brief). Canvas (not SVG) is explicitly called out as fine here: a
 // per-pixel heatmap plus ~25 streamlines redrawn on every alpha change is
 // exactly the workload SVG struggles with (thousands of DOM nodes) and
 // canvas is built for.
 //
-// Everything below — the color ramp, the bilinear grid sampler, and the RK2
-// streamline integrator — is hand-rolled client-side (no plotting/vector-
+// Everything below: the color ramp, the bilinear grid sampler, and the RK2
+// streamline integrator: is hand-rolled client-side (no plotting/vector-
 // field library), consistent with the rest of the app's "own the rendering"
 // approach (see CpChart.tsx's rationale).
 
@@ -123,7 +123,7 @@ export default function FlowFieldCanvas({
     for (let j = 0; j < field.ny; j++) {
       for (let i = 0; i < field.nx; i++) {
         // Image row 0 renders at the TOP of the drawImage target, but data row
-        // j=0 is y_min (bottom) — write rows flipped so the heatmap matches the
+        // j=0 is y_min (bottom): write rows flipped so the heatmap matches the
         // silhouette's y-up world transform. (Bug: suction side rendered below
         // the airfoil at positive alpha; backend data verified correct.)
         const idx = ((field.ny - 1 - j) * field.nx + i) * 4;

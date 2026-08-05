@@ -78,15 +78,21 @@ class SurfaceSplit(BaseModel):
 
 class BLDistributions(BaseModel):
     """Viscous boundary-layer distributions, per surface, x-ascending (mfoil's
-    ``post.{th,ds,cf,Hk}`` — momentum thickness, displacement thickness, skin
-    friction, kinematic shape factor), plus the e^n transition location.
-    Present only for a converged viscous (``Re`` given) solve."""
+    ``post.{th,ds,sa,ue,uei,cf,Ret,Hk}`` — momentum thickness, displacement
+    thickness, amplification factor/shear-lag coefficient, edge velocity
+    (viscous/inviscid), skin friction, Re_theta, kinematic shape factor —
+    the full set ``m.plot_distributions`` offers), plus the e^n transition
+    location. Present only for a converged viscous (``Re`` given) solve."""
 
     x: SurfaceSplit
     theta: SurfaceSplit
     delta_star: SurfaceSplit
     cf: SurfaceSplit
     Hk: SurfaceSplit
+    amplification: SurfaceSplit
+    ue: SurfaceSplit
+    uei: SurfaceSplit
+    Re_theta: SurfaceSplit
     transition_x: dict[str, float] | None = None
 
 
@@ -95,6 +101,8 @@ class AnalyzeResponse(BaseModel):
     cl: float
     cd: float
     cm: float
+    cdf: float | None = Field(None, description="skin-friction drag coefficient (viscous only)")
+    cdp: float | None = Field(None, description="pressure drag coefficient (viscous only)")
     alpha: float
     Re: float | None
     Ma: float
@@ -102,10 +110,24 @@ class AnalyzeResponse(BaseModel):
     cp: list[float]
     upper: SurfaceCp
     lower: SurfaceCp
+    upper_cpi: SurfaceCp | None = Field(
+        None, description="inviscid Cp overlay, upper surface (mfoil plot_cpplus dashed curve)"
+    )
+    lower_cpi: SurfaceCp | None = Field(
+        None, description="inviscid Cp overlay, lower surface (mfoil plot_cpplus dashed curve)"
+    )
+    sonic_cp: float | None = Field(
+        None, description="sonic Cp (m.param.cps); set only when Ma>0 and within the Cp range"
+    )
     coords: list[list[float]] = Field(
         description="[[x, y], ...] geometry actually solved (mfoil's re-paneled nodes)"
     )
     bl: BLDistributions | None = None
+    bl_offset: dict[str, list[list[float]]] | None = Field(
+        None,
+        description="airfoil surface offset by delta* along outward normals (mfoil "
+        "mplot_boundary_layer) — {'upper': [[x,y],...], 'lower': [[x,y],...]}",
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -415,6 +437,15 @@ class InverseResultPayload(BaseModel):
     dof: dict[str, Any] | None = Field(
         None, description="DOF card: n_A_free (M), n_targets (M'), n_constraints (K), etc."
     )
+    phase: str | None = Field(
+        None,
+        description=(
+            "human-readable phase text (defect-fix: job hangs with no visible progress) — "
+            "e.g. 'fit: baseline CST fit', 'presolve pass 1/2', 'station selection', "
+            "'initial solve', 'newton it 3'. Also mirrored job-level on InverseJobResponse.phase, "
+            "which is the authoritative/most current value (updated even between progress calls)."
+        ),
+    )
 
 
 class InverseJobResponse(BaseModel):
@@ -422,6 +453,17 @@ class InverseJobResponse(BaseModel):
     status: Literal["queued", "running", "done", "error"]
     result: InverseResultPayload | None = None
     error: str | None = None
+    phase: str = Field(
+        "queued",
+        description="current phase text — see InverseResultPayload.phase; authoritative source.",
+    )
+    created_at: float = Field(description="unix timestamp the job was created")
+    updated_at: float = Field(description="unix timestamp of the last progress heartbeat")
+    elapsed_s: float = Field(description="server-computed seconds since job creation")
+    timeout_s: float = Field(
+        description="server-side timeout (seconds) after which a still-running job is marked "
+        "'error' with an explicit reason rather than hanging forever (CINS_INVERSE_TIMEOUT_S)"
+    )
 
 
 # --------------------------------------------------------------------------- #

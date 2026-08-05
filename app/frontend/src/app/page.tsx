@@ -32,16 +32,15 @@ export default function Home() {
       {/* Hero */}
       <h1 className="text-3xl font-semibold tracking-tight">CINS</h1>
       <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-        CST Inverse Newton Solver — a deterministic monolithic inverse airfoil design engine.
+        CST Inverse Newton Solver: a deterministic monolithic inverse airfoil design engine.
       </p>
       <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">
         Every public airfoil tool (foil.tools, airfoilx.com, Webfoil, NeuralFoil, airfoiltools.com)
         does forward analysis, optimization, or ML surrogates. None solves the inverse problem
         directly: draw a target pressure distribution, get geometry back from a square Newton
-        root-find — no outer optimizer, no surrogate, no training data. Appending CST coefficients
+        root-find: no outer optimizer, no surrogate, no training data. Appending CST coefficients
         to mfoil&apos;s global Newton system turns inverse airfoil design into a determined
-        root-find, and the <strong>Inverse Design Theater</strong> below watches it happen —
-        geometry, pressure, and residuals evolving iteration by iteration, live.
+        root-find, and the <strong>Inverse Design Theater</strong> below watches it happen: geometry, pressure, and residuals evolving iteration by iteration, live.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">
@@ -64,7 +63,7 @@ export default function Home() {
         <div className="mt-10">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Gate board — {closed}/{gates.length} closed
+              Gate board: {closed}/{gates.length} closed
             </h2>
             <span className="text-xs text-neutral-400">updated {String(data?.gates?.updated ?? "")}</span>
           </div>
@@ -76,7 +75,7 @@ export default function Home() {
                 className={`shrink-0 rounded-md border px-2.5 py-1.5 text-xs ${
                   g.status === "closed"
                     ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
-                    : "border-neutral-300 dark:border-neutral-700 text-neutral-500"
+                   : "border-neutral-300 dark:border-neutral-700 text-neutral-500"
                 }`}
               >
                 <div className="font-mono font-semibold">{g.id}</div>

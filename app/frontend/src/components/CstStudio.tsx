@@ -3,7 +3,7 @@
 // CST Studio panel (item 4 of the app rich-features brief): labeled
 // coefficient sliders around a fitted CST baseline, driving
 // /api/geometry/from-cst live (debounced) for an instant geometry morph +
-// derived-params readout. Ties A0 to LE radius and A_n to TE wedge — the
+// derived-params readout. Ties A0 to LE radius and A_n to TE wedge: the
 // "linearity story" the dossier's CST parameterization is built on.
 
 import { useEffect, useRef, useState } from "react";
@@ -18,8 +18,7 @@ interface CstStudioProps {
 
 // NOTE: this component is deliberately keyed by its fitted coefficients from
 // the parent (see AnalyzePage: `<CstStudio key={...} fit={fitResult} />`) so
-// that a new fit remounts it — resetting local slider state from props —
-// instead of syncing props into state via a `useEffect`, which the current
+// that a new fit remounts it: resetting local slider state from props: // instead of syncing props into state via a `useEffect`, which the current
 // react-hooks lint rules (set-state-in-effect) flag as an anti-pattern.
 export default function CstStudio({ fit }: CstStudioProps) {
   const [aUpper, setAUpper] = useState<number[]>(fit.A_upper);
@@ -66,7 +65,7 @@ export default function CstStudio({ fit }: CstStudioProps) {
   return (
     <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-medium">CST Studio — live coefficient morph</h2>
+        <h2 className="text-sm font-medium">CST Studio: live coefficient morph</h2>
         <button
           type="button"
           onClick={resetToFit}
@@ -77,7 +76,7 @@ export default function CstStudio({ fit }: CstStudioProps) {
       </div>
       <p className="text-xs text-neutral-500 mb-3">
         A_u0/A_l0 set the leading-edge radius (R_LE = A0&sup2;/2); A_un/A_ln set the trailing-edge
-        wedge half-angle. Every other coefficient bends the surface in between — the CST basis is
+        wedge half-angle. Every other coefficient bends the surface in between: the CST basis is
         linear in A, so each slider&apos;s effect on the shape is independent and additive.
       </p>
 

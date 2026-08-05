@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import FlowFieldCanvas from "@/components/FlowFieldCanvas";
 import {
   airfoilGeometry,
-  ApiError,
+  describeError,
   flowfield,
   listAirfoils,
   type AirfoilListItem,
@@ -27,13 +27,19 @@ export default function FlowFieldPage() {
 
   const [field, setField] = useState<FlowFieldResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [elapsedS, setElapsedS] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     listAirfoils()
       .then(setCatalog)
       .catch(() => setCatalog(null));
+    return () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    };
   }, []);
 
   async function pickAirfoil(item: AirfoilListItem) {
@@ -48,21 +54,37 @@ export default function FlowFieldPage() {
         setCustomCoords(geo.coords);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
     }
   }
 
   async function runSolve() {
+    // Defect-fix: a stale, slower-to-resolve request (e.g. from a debounced
+    // slider drag) landing AFTER a newer one previously overwrote `field`
+    // with a wrong/older result silently: track which request is current
+    // and drop any response that isn't it anymore.
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
+    setElapsedS(0);
+    const startedAt = Date.now();
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    heartbeatRef.current = setInterval(() => {
+      setElapsedS((Date.now() - startedAt) / 1000);
+    }, 500);
     try {
-      const req = customCoords ? { coords: customCoords, alpha } : { naca, alpha };
+      const req = customCoords ? { coords : customCoords, alpha }: { naca, alpha };
       const res = await flowfield(req);
+      if (requestId !== requestIdRef.current) return; // superseded by a newer request
       setField(res);
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      if (requestId !== requestIdRef.current) return;
+      setError(describeError(err));
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      }
     }
   }
 
@@ -82,7 +104,7 @@ export default function FlowFieldPage() {
       <h1 className="text-2xl font-semibold tracking-tight">Flow Field</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         Inviscid velocity field (vendor <code>inviscid_velocity</code>) rendered as a |V| or Cp
-        heatmap with client-side RK2 streamline tracing — works for any NACA code or UIUC section.
+        heatmap with client-side RK2 streamline tracing: works for any NACA code or UIUC section.
       </p>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
@@ -110,7 +132,7 @@ export default function FlowFieldPage() {
 
           <label className="block">
             <span className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1">
-              {customCoords ? "NACA code (unused — custom geometry loaded)" : "NACA code"}
+              {customCoords ? "NACA code (unused : custom geometry loaded)" : "NACA code"}
             </span>
             <input
               className={inputCls}
@@ -147,13 +169,13 @@ export default function FlowFieldPage() {
             </div>
             <div className="flex gap-2 text-xs">
               <button
-                className={`flex-1 px-2 py-1 rounded border ${colorBy === "speed" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : "border-neutral-300 dark:border-neutral-700"}`}
+                className={`flex-1 px-2 py-1 rounded border ${colorBy === "speed" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900": "border-neutral-300 dark:border-neutral-700"}`}
                 onClick={() => setColorBy("speed")}
               >
                 |V| magnitude
               </button>
               <button
-                className={`flex-1 px-2 py-1 rounded border ${colorBy === "cp" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : "border-neutral-300 dark:border-neutral-700"}`}
+                className={`flex-1 px-2 py-1 rounded border ${colorBy === "cp" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900": "border-neutral-300 dark:border-neutral-700"}`}
                 onClick={() => setColorBy("cp")}
               >
                 Cp contour
@@ -175,8 +197,15 @@ export default function FlowFieldPage() {
             disabled={loading}
             className="w-full rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {loading ? "Solving..." : "Solve"}
+            {loading ? `Solving... (${elapsedS.toFixed(0)}s)`: "Solve"}
           </button>
+          {loading && elapsedS > 8 && (
+            <div className="text-xs text-neutral-500">
+              Each grid point needs its own vendor panel-velocity evaluation: this is
+              inherently a few seconds, and much longer on a cold or free-tier backend
+              (up to ~90s before this is treated as failed).
+            </div>
+          )}
 
           {error && <ErrorBox message={error} />}
         </div>
@@ -186,12 +215,12 @@ export default function FlowFieldPage() {
             <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
               <FlowFieldCanvas field={field} colorBy={colorBy} showStreamlines={showStreamlines} />
               <div className="mt-2 text-xs text-neutral-500">
-                alpha = {field.alpha.toFixed(2)}&deg;, V&#8734; = {field.Vinf.toFixed(3)} — {field.note}
+                alpha = {field.alpha.toFixed(2)}&deg;, V&#8734; = {field.Vinf.toFixed(3)}: {field.note}
               </div>
             </div>
-          ) : (
+          ): (
             <div className="text-sm text-neutral-500 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-8 text-center">
-              {loading ? "Solving..." : "Run a solve to see the flow field."}
+              {loading ? `Solving... (${elapsedS.toFixed(0)}s elapsed)`: "Run a solve to see the flow field."}
             </div>
           )}
         </div>
@@ -227,7 +256,7 @@ function AirfoilRow({
       className={`w-full flex justify-between px-2 py-1 rounded text-left ${
         selected
           ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-          : "hover:bg-neutral-100 dark:hover:bg-neutral-900"
+         : "hover:bg-neutral-100 dark:hover:bg-neutral-900"
       }`}
     >
       <span>{item.name}</span>

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app import engine, jobs
@@ -36,7 +38,17 @@ def poll_inverse(job_id: str) -> dict:
     job = jobs.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail=f"unknown job_id {job_id!r}")
-    return {"job_id": job.id, "status": job.status, "result": job.result, "error": job.error}
+    return {
+        "job_id": job.id,
+        "status": job.status,
+        "result": job.result,
+        "error": job.error,
+        "phase": job.phase,
+        "created_at": job.created_at,
+        "updated_at": job.updated_at,
+        "elapsed_s": time.time() - job.created_at,
+        "timeout_s": job.timeout_s,
+    }
 
 
 @router.post("/inverse/gate", response_model=RawTargetGate)

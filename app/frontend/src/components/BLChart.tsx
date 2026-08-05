@@ -3,7 +3,7 @@
 // Boundary-layer distribution tabs (item 5 of the app rich-features brief):
 // theta / delta* / cf / Hk vs x/c, per surface, with a transition marker.
 // Same hand-rolled SVG approach as CpChart.tsx (see its header comment for
-// the "no charting library" rationale) — one more fixed XY curve family.
+// the "no charting library" rationale): one more fixed XY curve family.
 
 import { useMemo, useState } from "react";
 import type { BLDistributions } from "@/lib/api";
@@ -14,13 +14,28 @@ interface BLChartProps {
   height?: number;
 }
 
-type Field = "theta" | "delta_star" | "cf" | "Hk";
+type Field = "theta" | "delta_star" | "amplification" | "ue" | "uei" | "cf" | "Re_theta" | "Hk";
 
 const FIELD_LABELS: Record<Field, string> = {
   theta: "theta (momentum thickness)",
   delta_star: "delta* (displacement thickness)",
+  amplification: "n / c_tau (amplification / shear-lag)",
+  ue: "u_e (edge velocity)",
+  uei: "u_e,inv (inviscid edge velocity)",
   cf: "cf (skin friction)",
+  Re_theta: "Re_theta",
   Hk: "Hk (kinematic shape factor)",
+};
+
+const FIELD_SHORT: Record<Field, string> = {
+  theta: "theta",
+  delta_star: "delta*",
+  amplification: "n/ctau",
+  ue: "ue",
+  uei: "uei",
+  cf: "cf",
+  Re_theta: "Re_theta",
+  Hk: "Hk",
 };
 
 const MARGIN = { top: 16, right: 16, bottom: 32, left: 48 };
@@ -69,18 +84,19 @@ export default function BLChart({ bl, width = 560, height = 300 }: BLChartProps)
 
   return (
     <div>
-      <div className="flex gap-1 mb-2 text-xs">
+      <div className="flex flex-wrap gap-1 mb-2 text-xs">
         {(Object.keys(FIELD_LABELS) as Field[]).map((f) => (
           <button
             key={f}
             onClick={() => setField(f)}
+            title={FIELD_LABELS[f]}
             className={`px-2 py-1 rounded border ${
               field === f
                 ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                : "border-neutral-300 dark:border-neutral-700"
+               : "border-neutral-300 dark:border-neutral-700"
             }`}
           >
-            {f}
+            {FIELD_SHORT[f]}
           </button>
         ))}
       </div>

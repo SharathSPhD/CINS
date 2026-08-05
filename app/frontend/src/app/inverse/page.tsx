@@ -1,11 +1,14 @@
 "use client";
 
+import ArchivedResidualChart from "@/components/ArchivedResidualChart";
+
 import { useEffect, useRef, useState } from "react";
+import AirfoilShape from "@/components/AirfoilShape";
 import TheaterStage from "@/components/TheaterStage";
 import {
   airfoilGeometry,
   analyze,
-  ApiError,
+  describeError,
   pollInverse,
   presolveGateRaw,
   showcase,
@@ -30,41 +33,57 @@ export default function InversePage() {
       <h1 className="text-2xl font-semibold tracking-tight">Inverse Design Theater</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         Submits a monolithic CST-Newton inverse solve (dossier §7.6) as a background job, then
-        polls for status and animates every Newton iteration live — geometry, Cp vs target, and
-        the R/T/G convergence trace — as they land.
+        polls for status and animates every Newton iteration live: geometry, Cp vs target, and
+        the R/T/G convergence trace: as they land.
       </p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        <div className="inline-flex rounded-md border border-neutral-300 dark:border-neutral-700 overflow-hidden text-sm">
-          <button
-            className={`px-3 py-1.5 ${mode === "raw_target" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : ""}`}
-            onClick={() => setMode("raw_target")}
-          >
-            Custom target
-          </button>
-          <button
-            className={`px-3 py-1.5 ${mode === "naca_target" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : ""}`}
-            onClick={() => setMode("naca_target")}
-          >
-            Self-consistency (NACA target)
-          </button>
-        </div>
-        <ReplayArchivedT7 />
+      <div className="mt-4 inline-flex rounded-md border border-neutral-300 dark:border-neutral-700 overflow-hidden text-sm">
+        <button
+          className={`px-3 py-1.5 ${mode === "raw_target" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900": ""}`}
+          onClick={() => setMode("raw_target")}
+        >
+          Custom target
+        </button>
+        <button
+          className={`px-3 py-1.5 ${mode === "naca_target" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900": ""}`}
+          onClick={() => setMode("naca_target")}
+        >
+          Self-consistency (NACA target)
+        </button>
       </div>
 
-      {mode === "naca_target" ? <NacaTargetPanel /> : <RawTargetPanel />}
+      {/* Both panels stay mounted and are shown/hidden with CSS rather than
+          conditionally rendered: defect-fix: switching tabs used to UNMOUNT
+          the inactive panel, silently wiping its local state (loaded target
+          points, the realisability gate, an in-flight job) so a user who
+          glanced at the other tab and came back saw "Load or upload a target
+          curve first" even though they HAD loaded one. See RawTargetPanel's
+          own `points` state below. */}
+      <div style={{ display : mode === "raw_target" ? "block" : "none" }}>
+        <RawTargetPanel />
+      </div>
+      <div style={{ display : mode === "naca_target" ? "block" : "none" }}>
+        <NacaTargetPanel />
+      </div>
+
+      {/* Archived reference material, not a live solve: deliberately placed
+          BELOW the live Theater so the primary visuals (this run's geometry
+          evolution, Cp vs target, convergence) lead and the archived replay
+          is a supporting reference, not the first thing on the page. */}
+      <ReplayArchivedT7 />
     </div>
   );
 }
 
 // --------------------------------------------------------------------------- //
-// "Replay archived T7" instant-demo button (item 7) — fed from the archived
+// "Replay archived T7" instant-demo button (item 7): fed from the archived
 // diagnostics.json residual series, NOT a live solve. Clearly labeled.
 // --------------------------------------------------------------------------- //
 
 function ReplayArchivedT7() {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<ShowcaseResponse | null>(null);
+  const [targetCoords, setTargetCoords] = useState<number[][] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -79,45 +98,86 @@ function ReplayArchivedT7() {
     setError(null);
     try {
       setData(await showcase());
+      airfoilGeometry("naca:2412")
+        .then((g) => setTargetCoords(g.coords))
+        .catch(() => setTargetCoords(null));
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
     } finally {
       setLoading(false);
     }
   }
 
+  const iters = data?.t7.iterations as
+    | { it: number; R_norm: number | null; T_norm: number | null; G_norm: number | null }[]
+    | undefined;
+  const nIters = iters?.length ?? data?.t7.residual_history.length ?? 0;
+  const order = data?.t7.convergence_order;
+
   return (
-    <div>
+    <section className="mt-14 border-t border-neutral-200 dark:border-neutral-800 pt-6">
       <button
         type="button"
         onClick={onClick}
-        className="text-sm rounded-md border border-dashed border-neutral-400 dark:border-neutral-600 px-3 py-1.5"
+        className="text-sm rounded-md border border-dashed border-neutral-400 dark:border-neutral-600 px-3 py-1.5 text-neutral-600 dark:text-neutral-400"
       >
-        {open ? "Hide" : "Replay archived T7 run"}
+        {open ? "Hide archived reference run" : "Show archived reference run (T7 self-consistency)"}
       </button>
       {open && (
-        <div className="mt-3 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-4">
-          <div className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-1">
-            Archived replay — not a live solve
+        <div className="mt-3 rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
+          <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-1">
+            Archived replay: not a live solve
           </div>
           {loading && <div className="text-sm text-neutral-500">loading archived run...</div>}
-          {error && <div className="text-sm text-red-600 dark:text-red-400">{error}</div>}
+          {error && <ErrorBox message={error} />}
           {data && (
             <>
-              <p className="text-xs text-neutral-600 dark:text-neutral-400 mb-2">
-                T7 self-consistency gate (NACA 2412, forced transition): recovers its own CST
-                coefficients from its target Cp. Manifest:{" "}
-                <code>{JSON.stringify(data.t7.manifest)}</code>
+              <p className="mt-1 text-sm text-neutral-700 dark:text-neutral-300">
+                What this is: a NACA 2412 airfoil (forced transition, prescribed leading edge) run
+                through the monolithic Newton solve with its OWN Cp as the target: a
+                self-consistency check, not a demo of drawing an arbitrary target. What to look
+                for: the combined residual (flow + target-Cp + constraint rows, {"‖(R,T,G)‖"})
+                collapses from O(10&#8315;&#179;) toward machine precision (~10&#8315;&#185;&#8304;) in{" "}
+                {nIters} iterations: the quadratic (Newton) convergence rate the dossier predicts
+                for a square, well-conditioned system, not a slow asymptotic crawl.
               </p>
-              <ResidualChart history={(data.t7.residual_history.filter((v) => v != null) as number[])} />
-              <div className="mt-2 text-xs font-mono whitespace-pre-wrap text-neutral-600 dark:text-neutral-400 max-h-40 overflow-auto">
-                {data.t7.log_tail}
+              {iters && iters.length > 0 ? (
+                <ArchivedResidualChart iterations={iters} />
+              ): (
+                <ResidualChart history={(data.t7.residual_history.filter((v) => v != null) as number[])} />
+              )}
+              <div className="mt-3 grid gap-4 sm:grid-cols-[1fr_auto] items-start">
+                <div className="text-xs text-neutral-500">
+                  R (flow) convergence-order estimate, log-log slope over the final 3 iterations:{" "}
+                  <span className="font-mono">{order?.toFixed(3) ?? ","}</span>. Read this
+                  alongside the chart above, not instead of it: R was already at 10&#8315;&#185;&#178;
+                  by iteration 0 in this run (a near-converged initial guess), so this estimator is
+                  measuring floating-point noise at the residual floor, not the asymptotic rate: a value far from 2 here does not mean slow convergence. The collapse driving this
+                  run is the target-Cp residual (T, orange above), not R.
+                </div>
               </div>
+              {targetCoords && (
+                <div className="mt-4">
+                  <div className="text-xs font-medium mb-1">Target airfoil: NACA 2412</div>
+                  <AirfoilShape coords={targetCoords} height={120} />
+                </div>
+              )}
+              <details className="mt-3">
+                <summary className="text-xs text-neutral-500 cursor-pointer">
+                  Raw run log (last 25 lines) and manifest
+                </summary>
+                <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400">
+                  Manifest: <code>{JSON.stringify(data.t7.manifest)}</code>
+                </p>
+                <div className="mt-1 text-xs font-mono whitespace-pre-wrap text-neutral-600 dark:text-neutral-400 max-h-40 overflow-auto">
+                  {data.t7.log_tail}
+                </div>
+              </details>
             </>
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -153,7 +213,7 @@ function NacaTargetPanel() {
         .then((g) => setTargetCoords(g.coords))
         .catch(() => setTargetCoords(null));
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +223,7 @@ function NacaTargetPanel() {
     <div className="mt-6">
       <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 text-sm text-neutral-600 dark:text-neutral-400">
         Runs a self-consistency inverse (recover a NACA airfoil&apos;s own CST coefficients from
-        its target Cp, T7-style, forced transition, dossier default config) — a falsifiable check
+        its target Cp, T7-style, forced transition, dossier default config): a falsifiable check
         that the monolithic Newton system actually recovers a known answer.
       </div>
 
@@ -195,7 +255,7 @@ function NacaTargetPanel() {
 }
 
 // --------------------------------------------------------------------------- //
-// raw_target mode — target editor (template-from-airfoil + table edit + CSV
+// raw_target mode: target editor (template-from-airfoil + table edit + CSV
 // import), coordinate/baseline import, and the T4 realisability gate surfaced
 // prominently BEFORE the Newton solve runs (product requirement: this is the
 // dossier §7.10 guard made into UX).
@@ -214,6 +274,7 @@ function RawTargetPanel() {
   const [templateNaca, setTemplateNaca] = useState("2412");
   const [templateAlpha, setTemplateAlpha] = useState(2.0);
   const [points, setPoints] = useState<TargetPoint[]>([]);
+  const [templateLoading, setTemplateLoading] = useState(false);
   const [csvUnits, setCsvUnits] = useState<"cp" | "ue">("cp");
 
   const [alphaDeg, setAlphaDeg] = useState(2.0);
@@ -239,18 +300,21 @@ function RawTargetPanel() {
   }, []);
 
   function buildBaseline(): BaselineSpec {
-    return baselineMode === "naca" ? { naca: baselineNaca } : {};
+    return baselineMode === "naca" ? { naca : baselineNaca }: {};
   }
 
   async function loadTemplate() {
     setError(null);
+    setTemplateLoading(true);
     try {
       const res = await analyze({ naca: templateNaca, alpha: templateAlpha });
       const pts = res.x.map((x, i) => ({ x, cp: res.cp[i] }));
       setPoints(pts);
       setGate(null);
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
+    } finally {
+      setTemplateLoading(false);
     }
   }
 
@@ -268,7 +332,7 @@ function RawTargetPanel() {
         const parsed: TargetPoint[] = rows
           .map((row) => row.split(/[,\s]+/).map(Number))
           .filter((cols) => cols.length >= 2 && cols.every((v) => Number.isFinite(v)))
-          .map(([x, val]) => ({ x, cp: csvUnits === "cp" ? val : 1 - val * val }));
+          .map(([x, val]) => ({ x, cp : csvUnits === "cp" ? val : 1 - val * val }));
         if (parsed.length < 5) {
           setError("CSV parsed to fewer than 5 valid (x, value) rows");
           return;
@@ -285,7 +349,7 @@ function RawTargetPanel() {
   }
 
   function updatePoint(i: number, field: "x" | "cp", value: number) {
-    setPoints((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field]: value } : p)));
+    setPoints((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field] : value }: p)));
   }
 
   function buildRawRequest() {
@@ -293,8 +357,8 @@ function RawTargetPanel() {
       baseline: buildBaseline(),
       target: { x: points.map((p) => p.x), cp: points.map((p) => p.cp) },
       constraints: useLeConstraint
-        ? [{ type: "le_radius" as const, R_LE: rLe }]
-        : [],
+        ? [{ type : "le_radius" as const, R_LE : rLe }]
+       : [],
       n,
       alpha_deg: alphaDeg,
       alpha_free: alphaFree,
@@ -303,6 +367,9 @@ function RawTargetPanel() {
   }
 
   async function checkGate() {
+    // Defense in depth only: the button is `disabled` below whenever this
+    // would fire, with a tooltip explaining why, so a click should not
+    // normally reach here with < 5 points.
     if (points.length < 5) {
       setError("Load or upload a target curve first (need >= 5 stations)");
       return;
@@ -313,7 +380,7 @@ function RawTargetPanel() {
       const g = await presolveGateRaw(buildRawRequest());
       setGate(g);
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
     } finally {
       setGateLoading(false);
     }
@@ -332,7 +399,7 @@ function RawTargetPanel() {
       setJobId(res.job_id);
       startPolling(res.job_id, setJob, setError, timerRef);
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
     } finally {
       setSubmitting(false);
     }
@@ -344,7 +411,7 @@ function RawTargetPanel() {
         <Section title="1. Baseline geometry">
           <div className="flex gap-2 text-xs mb-2">
             <button
-              className={`px-2 py-1 rounded border ${baselineMode === "naca" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900" : "border-neutral-300 dark:border-neutral-700"}`}
+              className={`px-2 py-1 rounded border ${baselineMode === "naca" ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900": "border-neutral-300 dark:border-neutral-700"}`}
               onClick={() => setBaselineMode("naca")}
             >
               NACA code
@@ -397,9 +464,10 @@ function RawTargetPanel() {
           <button
             type="button"
             onClick={loadTemplate}
-            className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 py-1.5 text-sm"
+            disabled={templateLoading}
+            className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 py-1.5 text-sm disabled:opacity-50"
           >
-            Load as target template
+            {templateLoading ? "Loading template..." : "Load as target template"}
           </button>
 
           <div className="mt-3 flex items-center gap-2 text-xs">
@@ -488,7 +556,7 @@ function RawTargetPanel() {
               checked={alphaFree}
               onChange={(e) => setAlphaFree(e.target.checked)}
             />
-            alpha free (dossier FM-1 absorption DOF — recommended for arbitrary targets)
+            alpha free (dossier FM-1 absorption DOF: recommended for arbitrary targets)
           </label>
           <Field label={alphaFree ? "alpha seed (deg)" : "alpha, fixed (deg)"}>
             <input
@@ -514,20 +582,29 @@ function RawTargetPanel() {
           <button
             type="button"
             onClick={checkGate}
-            disabled={gateLoading}
-            className="flex-1 rounded-md border border-neutral-300 dark:border-neutral-700 py-2 text-sm font-medium disabled:opacity-50"
+            disabled={gateLoading || points.length < 5}
+            title={points.length < 5 ? "Load or upload a target curve first (need >= 5 stations)" : undefined}
+            className="flex-1 rounded-md border border-neutral-300 dark:border-neutral-700 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {gateLoading ? "Checking..." : "Check realisability"}
+            {gateLoading ? "Checking... (up to ~1-2 min)" : "Check realisability"}
           </button>
           <button
             type="button"
             onClick={onRunInverse}
-            disabled={submitting}
-            className="flex-1 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-2 text-sm font-medium disabled:opacity-50"
+            disabled={submitting || points.length < 5}
+            title={points.length < 5 ? "Load or upload a target curve first (need >= 5 stations)" : undefined}
+            className="flex-1 rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Submitting..." : "Run inverse solve"}
           </button>
         </div>
+        {points.length < 5 && (
+          <p className="text-xs text-neutral-500">
+            {points.length === 0
+              ? "Load a target template or upload a CSV above : both buttons need >= 5 target stations."
+             : `Only ${points.length} station(s) loaded: need >= 5.`}
+          </p>
+        )}
 
         {error && <ErrorBox message={error} />}
       </div>
@@ -551,17 +628,17 @@ function GateCard({ gate }: { gate: RawTargetGate }) {
       className={`rounded-lg border p-4 ${
         gate.realisable
           ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30"
-          : "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"
+         : "border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"
       }`}
     >
       <h2 className="text-sm font-medium">
-        T4 realisability gate: {gate.realisable ? "realisable" : "WARNING — may be outside the CST manifold"}
+        T4 realisability gate : {gate.realisable ? "realisable" : "WARNING : may be outside the CST manifold"}
       </h2>
       <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
         ||M &middot; &Delta;A - (Cp_target - Cp0)|| / ||Cp_target|| = {gate.realisability.toFixed(4)} (threshold{" "}
         {gate.threshold}). {gate.realisable
-          ? "The target is within the CST-representable manifold at this baseline — Newton should converge normally."
-          : "This target may not be representable by this CST parameterization/order; the monolithic Newton solve may stagnate or fail to converge. You can still proceed."}
+          ? "The target is within the CST-representable manifold at this baseline : Newton should converge normally."
+         : "This target may not be representable by this CST parameterization/order; the monolithic Newton solve may stagnate or fail to converge. You can still proceed."}
       </p>
       <p className="mt-1 text-xs text-neutral-500">KKT condition number: {gate.kkt_cond.toExponential(2)}</p>
     </div>
@@ -583,7 +660,7 @@ function startPolling(
         if (timerRef.current) clearInterval(timerRef.current);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
       if (timerRef.current) clearInterval(timerRef.current);
     }
   }, POLL_INTERVAL_MS);
@@ -610,20 +687,23 @@ function JobStatus({
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-neutral-600 dark:text-neutral-400">
-        job <code>{jobId}</code> — status: <span className="font-mono">{job?.status ?? "queued"}</span>
-        {job?.status === "running" && stages.length > 0 && (
-          <span className="ml-2 text-neutral-500">({stages.length} Newton iterations so far)</span>
-        )}
-      </div>
+      <JobHeartbeat jobId={jobId} job={job} />
 
       {gate && <GateCard gate={gate} />}
 
       {stages.length > 0 ? (
-        <TheaterStage stages={stages} targetCoords={targetCoords} dof={dof} alphaFree={alphaFree} />
-      ) : (
+        <TheaterStage
+          stages={stages}
+          targetCoords={targetCoords}
+          dof={dof}
+          alphaFree={alphaFree}
+          narrationExtra={job?.status === "running" ? `phase : ${job.phase}`: undefined}
+        />
+      ): (
         <div className="text-sm text-neutral-500 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-6 text-center">
-          Presolving / waiting for the first Newton iteration...
+          {job?.status === "error"
+            ? "Solve failed before the first Newton iteration : see the error below."
+           : `${job?.phase ?? "presolving"}... no Newton iteration has landed yet.`}
         </div>
       )}
 
@@ -638,25 +718,25 @@ function JobStatus({
           className={`rounded-lg border p-4 ${
             job.result?.converged
               ? "border-emerald-300 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30"
-              : "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40"
+             : "border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40"
           }`}
         >
           <h2 className="text-sm font-medium mb-2">
-            Verdict: {job.result?.converged ? "converged" : "did not converge"}
+            Verdict : {job.result?.converged ? "converged" : "did not converge"}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <Stat label="iterations" value={String(job.result?.iterations ?? "—")} />
-            <Stat label="alpha (deg)" value={job.result?.alpha?.toFixed(3) ?? "—"} />
+            <Stat label="iterations" value={String(job.result?.iterations ?? ",")} />
+            <Stat label="alpha (deg)" value={job.result?.alpha?.toFixed(3) ?? ","} />
             <Stat
               label="convergence order"
-              value={job.result?.convergence_order?.toFixed(2) ?? "—"}
+              value={job.result?.convergence_order?.toFixed(2) ?? ","}
             />
-            <Stat label="realisability" value={job.result?.realisability?.toFixed(4) ?? "—"} />
+            <Stat label="realisability" value={job.result?.realisability?.toFixed(4) ?? ","} />
           </div>
           {rv && (
             <div className="mt-3 text-xs text-neutral-600 dark:text-neutral-400">
               <div className="font-medium mb-1">
-                release-verify: {rv.ok === undefined ? (rv.converged ? "converged" : "?") : rv.ok ? "PASS" : "FAIL"}
+                release-verify : {rv.ok === undefined ? (rv.converged ? "converged" : "?") : rv.ok ? "PASS" : "FAIL"}
               </div>
               {rv.cl !== undefined && (
                 <div className="font-mono">
@@ -697,6 +777,57 @@ function Section({ title, children }: { title: string; children: React.ReactNode
         {title}
       </h3>
       {children}
+    </div>
+  );
+}
+
+// Defect-fix (job hangs with no visible progress): a ticking elapsed timer
+// (client-side, sub-poll-interval smoothness) plus the server's phase text
+// and per-phase stage count, so the user always knows the job is alive and
+// roughly what it's doing: "Presolving" was previously the ONLY state ever
+// shown before the first Newton iteration, indistinguishable from a hang.
+function JobHeartbeat({ jobId, job }: { jobId: string; job: InverseJobResponse | null }) {
+  const [now, setNow] = useState(() => Date.now() / 1000);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now() / 1000), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!job) {
+    return <div className="text-sm text-neutral-600 dark:text-neutral-400">submitting...</div>;
+  }
+  const elapsed = job.status === "running" || job.status === "queued" ? now - job.created_at : job.elapsed_s;
+  const sinceHeartbeat = now - job.updated_at;
+  const stages = job.result?.stages ?? [];
+  const pctOfTimeout = job.timeout_s > 0 ? Math.min(100, (elapsed / job.timeout_s) * 100) : 0;
+
+  return (
+    <div className="text-sm text-neutral-600 dark:text-neutral-400 space-y-1">
+      <div>
+        job <code className="text-xs">{jobId}</code>: status: <span className="font-mono">{job.status}</span>
+        {": "}
+        <span className="font-mono">{job.phase}</span>
+        {stages.length > 0 && (
+          <span className="ml-2 text-neutral-500">({stages.length} Newton iteration(s) so far)</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 text-xs text-neutral-500">
+        <span
+          className={`inline-block h-2 w-2 rounded-full ${
+            job.status === "running" && sinceHeartbeat < 5 ? "bg-emerald-500 animate-pulse" : "bg-neutral-400"
+          }`}
+          title={`last update ${sinceHeartbeat.toFixed(0)}s ago`}
+        />
+        <span>elapsed {elapsed.toFixed(0)}s</span>
+        {job.status === "running" && (
+          <>
+            <span>/ timeout {job.timeout_s.toFixed(0)}s</span>
+            <div className="h-1.5 w-24 rounded-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden">
+              <div className="h-full bg-neutral-500" style={{ width: `${pctOfTimeout}%` }} />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

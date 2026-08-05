@@ -8,7 +8,7 @@ import CstStudio from "@/components/CstStudio";
 import {
   airfoilGeometry,
   analyze,
-  ApiError,
+  describeError,
   fit,
   listAirfoils,
   uploadAirfoil,
@@ -22,6 +22,7 @@ export default function AnalyzePage() {
   const [naca, setNaca] = useState("2412");
   const [alpha, setAlpha] = useState(2.0);
   const [re, setRe] = useState<number | "">(1.0e6);
+  const [ma, setMa] = useState(0.0);
   const [tripEnabled, setTripEnabled] = useState(false);
   const [xtrUpper, setXtrUpper] = useState(0.05);
   const [xtrLower, setXtrLower] = useState(0.05);
@@ -57,7 +58,7 @@ export default function AnalyzePage() {
         setCustomCoords(geo.coords);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
     }
   }
 
@@ -70,18 +71,20 @@ export default function AnalyzePage() {
         ? await analyze({
             coords: customCoords,
             alpha,
-            Re: re === "" ? undefined : re,
+            Re : re === "" ? undefined : re,
+            Ma: ma,
             transition: tripEnabled
-              ? { mode: "forced", xtr_upper: xtrUpper, xtr_lower: xtrLower }
-              : undefined,
+              ? { mode : "forced", xtr_upper : xtrUpper, xtr_lower : xtrLower }
+             : undefined,
           })
-        : await analyze({
+       : await analyze({
             naca,
             alpha,
-            Re: re === "" ? undefined : re,
+            Re : re === "" ? undefined : re,
+            Ma: ma,
             transition: tripEnabled
-              ? { mode: "forced", xtr_upper: xtrUpper, xtr_lower: xtrLower }
-              : undefined,
+              ? { mode : "forced", xtr_upper : xtrUpper, xtr_lower : xtrLower }
+             : undefined,
           });
       setResult(res);
       try {
@@ -91,7 +94,7 @@ export default function AnalyzePage() {
         setFitResult(null);
       }
     } catch (err) {
-      setError(err instanceof ApiError ? String(err.detail) : String(err));
+      setError(describeError(err));
       setResult(null);
       setFitResult(null);
     } finally {
@@ -111,7 +114,7 @@ export default function AnalyzePage() {
       setUploadedName(res.name);
       setSelectedId(null);
     } catch (err) {
-      setUploadError(err instanceof ApiError ? String(err.detail) : String(err));
+      setUploadError(describeError(err));
     } finally {
       setUploading(false);
     }
@@ -124,7 +127,7 @@ export default function AnalyzePage() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Analyze</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-        Direct mfoil solve on a NACA airfoil (forward analysis) — the engine core (
+        Direct mfoil solve on a NACA airfoil (forward analysis): the engine core (
         <code>src/cins/</code>) wrapped by FastAPI, unmodified.
       </p>
 
@@ -172,7 +175,7 @@ export default function AnalyzePage() {
             </div>
           </div>
 
-          <Field label={customCoords ? "NACA code (unused — custom geometry loaded)" : "NACA code"}>
+          <Field label={customCoords ? "NACA code (unused : custom geometry loaded)" : "NACA code"}>
             <input
               className={inputCls}
               value={naca}
@@ -203,6 +206,17 @@ export default function AnalyzePage() {
               value={re}
               onChange={(e) => setRe(e.target.value === "" ? "" : Number(e.target.value))}
               placeholder="1000000"
+            />
+          </Field>
+          <Field label="Mach number (Karman-Tsien, subcritical)">
+            <input
+              type="number"
+              step="0.05"
+              min={0}
+              max={0.69}
+              className={inputCls}
+              value={ma}
+              onChange={(e) => setMa(Number(e.target.value))}
             />
           </Field>
 
@@ -265,16 +279,28 @@ export default function AnalyzePage() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Stat label="converged" value={result.converged ? "yes" : "no"} />
                 <Stat label="cl" value={result.cl.toFixed(4)} />
-                <Stat label="cd" value={result.cd.toFixed(5)} />
                 <Stat label="cm" value={result.cm.toFixed(4)} />
+                <Stat label="alpha" value={`${result.alpha.toFixed(2)}°`} />
+                <Stat label="cd (total)" value={result.cd.toFixed(5)} />
+                <Stat label="cdf (friction)" value={result.cdf != null ? result.cdf.toFixed(5) : ","} />
+                <Stat label="cdp (pressure)" value={result.cdp != null ? result.cdp.toFixed(5) : ","} />
+                <Stat label="Re / Ma" value={`${result.Re != null ? result.Re.toExponential(1) : "inviscid"} / ${result.Ma.toFixed(2)}`} />
               </div>
               <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
                 <h2 className="text-sm font-medium mb-2">Pressure coefficient</h2>
-                <CpChart upper={result.upper} lower={result.lower} />
+                <CpChart
+                  upper={result.upper}
+                  lower={result.lower}
+                  upperCpi={result.upper_cpi}
+                  lowerCpi={result.lower_cpi}
+                  sonicCp={result.sonic_cp}
+                />
               </div>
               <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
-                <h2 className="text-sm font-medium mb-2">Airfoil shape</h2>
-                <AirfoilShape coords={result.coords} />
+                <h2 className="text-sm font-medium mb-2">
+                  Airfoil shape{result.bl_offset && " with boundary-layer displacement thickness"}
+                </h2>
+                <AirfoilShape coords={result.coords} blOffset={result.bl_offset} />
               </div>
               {result.bl && (
                 <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4">
@@ -314,7 +340,7 @@ export default function AnalyzePage() {
                 </div>
               )}
             </>
-          ) : (
+          ): (
             <div className="text-sm text-neutral-500 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-8 text-center">
               Run a solve to see Cp and coefficients.
             </div>
@@ -364,7 +390,7 @@ function AirfoilRow({
       className={`w-full flex justify-between px-2 py-1 rounded text-left ${
         selected
           ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-          : "hover:bg-neutral-100 dark:hover:bg-neutral-900"
+         : "hover:bg-neutral-100 dark:hover:bg-neutral-900"
       }`}
     >
       <span>{item.name}</span>

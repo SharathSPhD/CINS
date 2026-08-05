@@ -147,17 +147,37 @@ def run_analyze(req: Any) -> dict[str, Any]:
     x_lo, cp_lo, x_up, cp_up = _split_ascending(x, cp, le_idx)
     geom = np.asarray(m.geom.xpoint, dtype=float)  # (2, N)
 
+    # Inviscid Cp overlay (mfoil's plot_cpplus draws this dashed alongside the
+    # solid viscous/inviscid Cp — m.post.cpi is computed by calc_force
+    # regardless of viscous/inviscid mode, cost-free here) and the sonic Cp
+    # line (m.param.cps, only meaningful for Ma>0 — plot_cpplus only draws it
+    # when it falls within the current Cp range).
+    cpi = np.asarray(m.post.cpi, dtype=float) if hasattr(m.post, "cpi") else None
+    cpi_lo = cpi_up = None
+    if cpi is not None:
+        _, cpi_lo, _, cpi_up = _split_ascending(x, cpi, le_idx)
+    sonic_cp = None
+    if req.Ma and req.Ma > 0:
+        cps = getattr(getattr(m, "param", None), "cps", None)
+        if cps is not None and cps > float(np.min(cp)) - 0.2:
+            sonic_cp = float(cps)
+
     bl = None
+    bl_offset = None
     n_foil = int(getattr(m.foil, "N", x.size))
     if req.Re is not None and converged and len(getattr(m.post, "th", [])) >= n_foil:
         chord = float(m.geom.chord) or 1.0
-        # post.{th,ds,cf,Hk} are Nsys-long (foil nodes THEN wake nodes, per
-        # M.glob.Nsys = M.foil.N + M.wake.N) — slice to the foil-only prefix
-        # so these line up 1:1 with m.foil.x / x / cp above.
+        # post.{th,ds,sa,ue,uei,cf,Ret,Hk} are Nsys-long (foil nodes THEN wake
+        # nodes, per M.glob.Nsys = M.foil.N + M.wake.N) — slice to the
+        # foil-only prefix so these line up 1:1 with m.foil.x / x / cp above.
         theta = np.asarray(m.post.th, dtype=float)[:n_foil]
         dstar = np.asarray(m.post.ds, dtype=float)[:n_foil]
         cf = np.asarray(m.post.cf, dtype=float)[:n_foil]
         hk = np.asarray(m.post.Hk, dtype=float)[:n_foil]
+        sa = np.asarray(m.post.sa, dtype=float)[:n_foil]
+        ue = np.asarray(m.post.ue, dtype=float)[:n_foil]
+        uei = np.asarray(m.post.uei, dtype=float)[:n_foil]
+        ret = np.asarray(m.post.Ret, dtype=float)[:n_foil]
 
         def _surface(arr: np.ndarray) -> dict[str, list[float]]:
             lo, up = arr[: le_idx + 1], arr[le_idx:]
@@ -172,6 +192,10 @@ def run_analyze(req: Any) -> dict[str, Any]:
             "delta_star": _surface(dstar),
             "cf": _surface(cf),
             "Hk": _surface(hk),
+            "amplification": _surface(sa),
+            "ue": _surface(ue),
+            "uei": _surface(uei),
+            "Re_theta": _surface(ret),
             "transition_x": (
                 {"upper": float(xt[1, 1]) / chord, "lower": float(xt[0, 1]) / chord}
                 if xt is not None
@@ -179,11 +203,43 @@ def run_analyze(req: Any) -> dict[str, Any]:
             ),
         }
 
+        # Displacement-thickness offset drawn along outward surface normals
+        # (mfoil's mplot_boundary_layer: xzd = xz + n*ds, n = normalize(-ty,tx)
+        # from the panel tangents m.foil.t) — the airfoil "puffed out" by
+        # delta* the way mfoil's own results plot shows it, foil nodes only
+        # (no wake reflection: that's a plotting artifact specific to mfoil's
+        # own axes, not meaningful for a standalone airfoil-shape panel).
+        t = np.asarray(m.foil.t, dtype=float)[:, :n_foil] if hasattr(m.foil, "t") else None
+        if t is not None:
+            n_vec = np.vstack([-t[1], t[0]])
+            norms = np.linalg.norm(n_vec, axis=0)
+            norms[norms == 0] = 1.0
+            n_vec = n_vec / norms
+            xz = np.asarray(m.foil.x, dtype=float)[:, :n_foil]
+            ds_full = np.asarray(m.post.ds, dtype=float)[:n_foil]
+            xzd = xz + n_vec * ds_full
+            xd, yd = xzd[0], xzd[1]
+
+            def _surface_xy(xarr: np.ndarray, yarr: np.ndarray) -> list[list[float]]:
+                xs, ys = xarr[: le_idx + 1], yarr[: le_idx + 1]
+                if xs[0] > xs[-1]:
+                    xs, ys = xs[::-1], ys[::-1]
+                return np.stack([xs, ys], axis=1).tolist()
+
+            lo_pts = _surface_xy(xd[: le_idx + 1], yd[: le_idx + 1])
+            xs_up, ys_up = xd[le_idx:], yd[le_idx:]
+            if xs_up[0] > xs_up[-1]:
+                xs_up, ys_up = xs_up[::-1], ys_up[::-1]
+            up_pts = np.stack([xs_up, ys_up], axis=1).tolist()
+            bl_offset = {"lower": lo_pts, "upper": up_pts}
+
     return {
         "converged": converged,
         "cl": float(m.post.cl),
         "cd": float(m.post.cd),
         "cm": float(m.post.cm),
+        "cdf": float(m.post.cdf) if req.Re is not None and hasattr(m.post, "cdf") else None,
+        "cdp": float(m.post.cdp) if req.Re is not None and hasattr(m.post, "cdp") else None,
         "alpha": float(m.oper.alpha),
         "Re": req.Re,
         "Ma": req.Ma,
@@ -191,8 +247,12 @@ def run_analyze(req: Any) -> dict[str, Any]:
         "cp": cp.tolist(),
         "upper": {"x": x_up.tolist(), "cp": cp_up.tolist()},
         "lower": {"x": x_lo.tolist(), "cp": cp_lo.tolist()},
+        "upper_cpi": {"x": x_up.tolist(), "cp": cpi_up.tolist()} if cpi_up is not None else None,
+        "lower_cpi": {"x": x_lo.tolist(), "cp": cpi_lo.tolist()} if cpi_lo is not None else None,
+        "sonic_cp": sonic_cp,
         "coords": geom.T.tolist(),
         "bl": bl,
+        "bl_offset": bl_offset,
     }
 
 
@@ -294,7 +354,12 @@ _AIRFOIL_CACHE_FIT_N = 6  # cheap Bernstein order for the one-time corpus scan s
 _NACA_PRESETS = [
     "0006", "0009", "0010", "0012", "0015", "0018", "0021",
     "1408", "2408", "2412", "2415", "2418", "4412", "4415", "4418",
-    "6409", "6412", "23012", "23015", "23018", "63012", "64012",
+    "6409", "6412", "23012", "23015", "23018",
+    # NOT "63012"/"64012": those are 6-series designations (NACA 63-012,
+    # 64-012) and mfoil's 5-digit generator only supports the 2XY (mean-line
+    # camber) family — make_mfoil(naca="63012") raises AssertionError("5-digit
+    # NACA must begin with 2X0, X in 1-5"). Discovered via the Gallery's
+    # airfoil-corpus thumbnails all 400ing on these two ids.
 ]
 
 
@@ -768,8 +833,18 @@ def run_inverse(
     t0 = time.perf_counter()
     counters = EvalCounters()
 
+    def _phase(text: str) -> None:
+        if on_progress is not None:
+            on_progress(_phase_payload(text, t0))
+
     with MFOIL_LOCK:
         with instrument_evaluations(counters):
+            # prepare_cell (cins.benchmarks.pipeline, never edited — see
+            # CLAUDE.md) bundles fit -> target solve -> 2 presolve passes ->
+            # station selection internally with no progress hooks, so this is
+            # necessarily one coarse phase rather than the raw-target path's
+            # finer-grained breakdown (run_presolve_gate_raw above).
+            _phase("preparing (fit + presolve x2 + station selection)")
             prep = prepare_cell(cfg, counters, cell_name=cell_name, t0=t0)
             if prep.early_failure is not None:
                 ef = prep.early_failure
@@ -813,24 +888,20 @@ def run_inverse(
             def _emit_progress(stages: list[dict[str, Any]]) -> None:
                 if on_progress is None:
                     return
+                it = stages[-1]["it"] if stages else 0
                 on_progress(
-                    {
-                        "converged": False, "iterations": len(stages), "alpha": None,
-                        "A_upper": None, "A_lower": None, "coords": None,
-                        "residual_history": [], "convergence_order": None,
-                        "release_verify": None, "realisability": prep.realisability,
-                        "model_gap": prep.model_gap, "submap_cond": prep.submap_cond,
-                        "notes": ["running"], "dof_check_error": None,
-                        "wall_time_s": time.perf_counter() - t0, "diagnostics": [],
-                        "manifest": None, "stages": stages, "dof": None,
-                        "presolve_gate": None,
-                    }
+                    _phase_payload(
+                        f"newton it {it}", t0, stages=stages,
+                        realisability=prep.realisability, model_gap=prep.model_gap,
+                        submap_cond=prep.submap_cond,
+                    )
                 )
 
             diag = StageCapturingDiagnostics(
                 cfg, get_mfoil=lambda: prep.m, cp_target=prob.cp_target,
                 station_idx=prob.station_idx, on_stage=_emit_progress,
             )
+            _phase("newton it 0")
             res = solve_inverse(prep.m, prob, cfg, diag=diag)
 
             coords = coords_from_A(
@@ -939,15 +1010,59 @@ def build_inverse_raw_config(req: Any, n_upper: int, n_lower: int) -> CinsConfig
     return CinsConfig.model_validate(merged)
 
 
-def run_presolve_gate_raw(req: Any) -> dict[str, Any]:
+def _phase_payload(
+    phase: str,
+    t0: float,
+    *,
+    stages: list[dict[str, Any]] | None = None,
+    presolve_gate: dict[str, Any] | None = None,
+    realisability: float | None = None,
+    model_gap: float | None = None,
+    submap_cond: float | None = None,
+) -> dict[str, Any]:
+    """A full ``InverseResultPayload``-shaped placeholder used for progress
+    updates BEFORE the Newton loop starts (fit / target solve / presolve
+    passes / station selection / initial solve) — same schema the growing
+    ``stages`` list already uses (``_emit_progress`` below), just with a
+    ``phase`` string set so the frontend can show real status text instead of
+    a generic "presolving" placeholder (defect-fix: job hangs with no visible
+    progress — see app/backend/app/jobs.py's module docstring)."""
+    return {
+        "converged": False, "iterations": len(stages or []), "alpha": None,
+        "A_upper": None, "A_lower": None, "coords": None,
+        "residual_history": [], "convergence_order": None,
+        "release_verify": None, "realisability": realisability,
+        "model_gap": model_gap, "submap_cond": submap_cond,
+        "notes": [phase], "dof_check_error": None,
+        "wall_time_s": time.perf_counter() - t0, "diagnostics": [],
+        "manifest": None, "stages": stages or [], "dof": None,
+        "presolve_gate": presolve_gate, "phase": phase,
+    }
+
+
+def run_presolve_gate_raw(
+    req: Any,
+    on_progress: Callable[[dict[str, Any]], None] | None = None,
+    t0: float | None = None,
+) -> dict[str, Any]:
     """Just the T4 gate (no Newton solve) — used both standalone (so the UI
     can show the verdict before the user commits to a full inverse run) and
-    as the first step of ``run_inverse_raw`` itself."""
+    as the first step of ``run_inverse_raw`` itself. ``on_progress``/``t0``
+    are supplied only by ``run_inverse_raw`` (a job with phase reporting);
+    the standalone ``/api/inverse/gate`` call leaves them ``None``."""
+    t0 = t0 if t0 is not None else time.perf_counter()
+
+    def _phase(text: str) -> None:
+        if on_progress is not None:
+            on_progress(_phase_payload(text, t0))
+
+    _phase("fit: baseline CST fit")
     a_u0, a_l0, zeta_t_u, zeta_t_l = _baseline_from_spec(req.baseline, req.n)
     n_u, n_l = a_u0.size - 1, a_l0.size - 1
     cfg = build_inverse_raw_config(req, n_u, n_l)
     psi = cosine_spacing(_PSI_NPOINT)
 
+    _phase("target solve: interpolating target Cp to baseline stations")
     target_x = np.asarray(req.target.x, dtype=float)
     target_cp = np.asarray(req.target.to_cp(), dtype=float)
     target_res = InviscidCpResult(x=target_x, cp=target_cp, le_idx=int(np.argmin(target_x)))
@@ -965,7 +1080,8 @@ def run_presolve_gate_raw(req: Any) -> dict[str, Any]:
 
     a0 = np.concatenate([a_u0, a_l0])
     ps = None
-    for _ in range(2):  # two presolve passes, mirroring prepare_cell's own init="presolve" loop
+    for pass_i in range(2):  # 2 presolve passes, mirroring prepare_cell's own init="presolve" loop
+        _phase(f"presolve pass {pass_i + 1}/2 (inviscid Cp + sensitivity matrix)")
         base_res = solve_inviscid_cp(
             a0[: n_u + 1], a0[n_u + 1 :], zeta_t_u, zeta_t_l, psi, cfg
         )
@@ -993,6 +1109,7 @@ def run_presolve_gate_raw(req: Any) -> dict[str, Any]:
         "n_u": n_u,
         "n_l": n_l,
         "ps": ps,
+        "t0": t0,
         "gate": {
             "realisability": ps.realisability,
             "realisable": ps.realisable,
@@ -1015,7 +1132,12 @@ def run_inverse_raw(
     surface the realisability warning regardless of what happens next.
     ``req`` is an ``app.schemas.RawTargetInverseRequest``."""
     t0 = time.perf_counter()
-    gate_ctx = run_presolve_gate_raw(req)
+
+    def _phase(text: str) -> None:
+        if on_progress is not None:
+            on_progress(_phase_payload(text, t0))
+
+    gate_ctx = run_presolve_gate_raw(req, on_progress=on_progress, t0=t0)
     cfg = gate_ctx["cfg"]
     psi = gate_ctx["psi"]
     target_res = gate_ctx["target_res"]
@@ -1069,6 +1191,7 @@ def run_inverse_raw(
     # ``run_presolve_gate_raw``'s loop) so station selection and the
     # initial-guess geometry solved below are for the identical baseline —
     # avoids the node-index drift ``prepare_cell`` guards against.
+    _phase("station selection (QR pivot)")
     sens = build_sensitivity_matrix(a0[: n_u + 1], a0[n_u + 1 :], zeta_t_u, zeta_t_l, psi, cfg)
     n_pick = n_targets_required + req.n_stations_offset
     if n_pick <= 0 or n_pick > sens.x_stations.size:
@@ -1086,6 +1209,7 @@ def run_inverse_raw(
     cp_target = cp_t_at_a0[stations]
 
     with MFOIL_LOCK:
+        _phase("initial solve (viscous, presolved initial guess)")
         coords0 = coords_from_A(
             a0[: n_u + 1], a0[n_u + 1 :], zeta_t_u, zeta_t_l, psi, cfg.cst.N1, cfg.cst.N2
         )
@@ -1112,23 +1236,18 @@ def run_inverse_raw(
         def _emit_progress(stages: list[dict[str, Any]]) -> None:
             if on_progress is None:
                 return
-            on_progress(
-                {
-                    "converged": False, "iterations": len(stages), "alpha": None,
-                    "A_upper": None, "A_lower": None, "coords": None,
-                    "residual_history": [], "convergence_order": None,
-                    "release_verify": None, "realisability": gate["realisability"],
-                    "model_gap": None, "submap_cond": None, "notes": ["running"],
-                    "dof_check_error": None, "wall_time_s": time.perf_counter() - t0,
-                    "diagnostics": [], "manifest": None, "presolve_gate": gate,
-                    "stages": stages, "dof": None,
-                }
+            it = stages[-1]["it"] if stages else 0
+            payload = _phase_payload(
+                f"newton it {it}", t0, stages=stages, presolve_gate=gate,
+                realisability=gate["realisability"],
             )
+            on_progress(payload)
 
         diag = StageCapturingDiagnostics(
             cfg, get_mfoil=lambda: m, cp_target=prob.cp_target,
             station_idx=prob.station_idx, on_stage=_emit_progress,
         )
+        _phase("newton it 0")
         res = solve_inverse(m, prob, cfg, diag=diag)
 
         coords = coords_from_A(res.A_upper, res.A_lower, zeta_t_u, zeta_t_l, psi)
@@ -1208,6 +1327,24 @@ def _read_json(path: Path) -> Any | None:
         return None
 
 
+def _normalize_showcase_airfoil_id(raw: Any) -> str | None:
+    """The T8 panel manifests come from two different experiment generations:
+    the 117-cell UIUC sweep already stores ``t8_factors.airfoil`` as
+    ``"uiuc:<name>"`` (this app's own id scheme), but the earlier H1 NACA
+    panel (``experiments/results/t8/panel_0006/`` etc.) predates that
+    convention and stores a bare NACA digit string (``"0006"``) — passing
+    that straight to ``GET /api/airfoils/{id}/geometry`` 422s (unknown
+    prefix). Normalize both to this app's ``"uiuc:<name>"``/``"naca:<code>"``
+    id scheme so every panel row's thumbnail resolves."""
+    if not isinstance(raw, str) or not raw:
+        return None
+    if raw.startswith(("uiuc:", "naca:")):
+        return raw
+    if raw.isdigit() and len(raw) in (4, 5):
+        return f"naca:{raw}"
+    return None
+
+
 def run_showcase() -> dict[str, Any]:
     """Archived evidence for the Results Gallery: T7 self-consistency run
     (run.log numbers + diagnostics.json residual series, for Theater's replay
@@ -1247,6 +1384,9 @@ def run_showcase() -> dict[str, Any]:
             r = _read_json(d / "result.json")
             if r is None:
                 continue
+            airfoil_id = _normalize_showcase_airfoil_id(
+                (r.get("manifest") or {}).get("t8_factors", {}).get("airfoil")
+            )
             panel.append(
                 {
                     "cell_name": r.get("cell_name", d.name),
@@ -1255,6 +1395,11 @@ def run_showcase() -> dict[str, Any]:
                     "err_all_inf": r.get("err_all_inf"),
                     "wall_time_s": r.get("wall_time_s"),
                     "notes": r.get("notes", []),
+                    # lets the Gallery fetch a per-section geometry thumbnail
+                    # via GET /api/airfoils/{airfoil_id}/geometry (item 7 of
+                    # the app rich-features brief: "panel results with
+                    # per-section thumbnails").
+                    "airfoil_id": airfoil_id,
                 }
             )
 

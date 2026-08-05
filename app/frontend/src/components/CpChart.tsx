@@ -3,8 +3,7 @@
 // Plain inline SVG, no charting library.
 //
 // Justification (phase-1 scope, PRD FR-8/FR-9): the app needs exactly two
-// plots (a Cp-vs-x/c curve and an airfoil outline), both static per solve —
-// no brushing, zooming, or animated transitions. Recharts/visx pull in a
+// plots (a Cp-vs-x/c curve and an airfoil outline), both static per solve: // no brushing, zooming, or animated transitions. Recharts/visx pull in a
 // dependency tree (d3 scale/shape modules, React context providers) sized
 // for many-series interactive dashboards; for two fixed XY curves, hand-built
 // SVG with a handful of scale helpers is fewer lines than the *types* for a
@@ -20,6 +19,11 @@ import type { SurfaceCp } from "@/lib/api";
 interface CpChartProps {
   upper: SurfaceCp;
   lower: SurfaceCp;
+  /** Inviscid Cp overlay (mfoil plot_cpplus's dashed comparison curve). */
+  upperCpi?: SurfaceCp | null;
+  lowerCpi?: SurfaceCp | null;
+  /** Sonic Cp (m.param.cps): drawn as a dashed horizontal line when Ma>0. */
+  sonicCp?: number | null;
   width?: number;
   height?: number;
 }
@@ -37,9 +41,18 @@ function pathFor(x: number[], y: number[], sx: (v: number) => number, sy: (v: nu
   return x.map((xi, i) => `${i === 0 ? "M" : "L"}${sx(xi).toFixed(2)},${sy(y[i]).toFixed(2)}`).join(" ");
 }
 
-export default function CpChart({ upper, lower, width = 560, height = 360 }: CpChartProps) {
-  const { upperPath, lowerPath, xTicks, yTicks, sx, sy } = useMemo(() => {
-    const allCp = [...upper.cp, ...lower.cp];
+export default function CpChart({
+  upper,
+  lower,
+  upperCpi,
+  lowerCpi,
+  sonicCp,
+  width = 560,
+  height = 360,
+}: CpChartProps) {
+  const { upperPath, lowerPath, upperCpiPath, lowerCpiPath, sonicY, xTicks, yTicks, sx, sy } = useMemo(() => {
+    const allCp = [...upper.cp, ...lower.cp, ...(upperCpi?.cp ?? []), ...(lowerCpi?.cp ?? [])];
+    if (sonicCp != null) allCp.push(sonicCp);
     const cpMin = Math.min(...allCp, -0.2);
     const cpMax = Math.max(...allCp, 0.2);
     const pad = (cpMax - cpMin) * 0.08 || 0.1;
@@ -59,12 +72,15 @@ export default function CpChart({ upper, lower, width = 560, height = 360 }: CpC
     return {
       upperPath: pathFor(upper.x, upper.cp, sxFn, syInv),
       lowerPath: pathFor(lower.x, lower.cp, sxFn, syInv),
+      upperCpiPath : upperCpi ? pathFor(upperCpi.x, upperCpi.cp, sxFn, syInv) : null,
+      lowerCpiPath : lowerCpi ? pathFor(lowerCpi.x, lowerCpi.cp, sxFn, syInv) : null,
+      sonicY : sonicCp != null ? syInv(sonicCp) : null,
       xTicks: xt,
       yTicks: yt,
       sx: sxFn,
       sy: syInv,
     };
-  }, [upper, lower, width, height]);
+  }, [upper, lower, upperCpi, lowerCpi, sonicCp, width, height]);
 
   return (
     <svg
@@ -162,6 +178,29 @@ export default function CpChart({ upper, lower, width = 560, height = 360 }: CpC
         Cp (inverted)
       </text>
 
+      {/* sonic Cp (mfoil plot_cpplus: dashed, only meaningful for Ma>0) */}
+      {sonicY != null && (
+        <>
+          <line
+            x1={MARGIN.left}
+            x2={width - MARGIN.right}
+            y1={sonicY}
+            y2={sonicY}
+            stroke="#111827"
+            strokeDasharray="6 4"
+            strokeWidth={1.5}
+            className="dark:stroke-neutral-300"
+          />
+          <text x={width - MARGIN.right - 4} y={sonicY - 4} fontSize={10} textAnchor="end" className="fill-neutral-700 dark:fill-neutral-300">
+            sonic c_p
+          </text>
+        </>
+      )}
+
+      {/* inviscid Cp overlay (mfoil plot_cpplus: dashed comparison curve) */}
+      {upperCpiPath && <path d={upperCpiPath} fill="none" stroke="#3b82f6" strokeWidth={1.25} strokeDasharray="5 3" strokeOpacity={0.75} />}
+      {lowerCpiPath && <path d={lowerCpiPath} fill="none" stroke="#f97316" strokeWidth={1.25} strokeDasharray="5 3" strokeOpacity={0.75} />}
+
       {/* curves */}
       <path d={upperPath} fill="none" stroke="#3b82f6" strokeWidth={2} />
       <path d={lowerPath} fill="none" stroke="#f97316" strokeWidth={2} />
@@ -176,6 +215,14 @@ export default function CpChart({ upper, lower, width = 560, height = 360 }: CpC
         <text x={20} y={20} fontSize={11} className="fill-neutral-600 dark:fill-neutral-300">
           lower
         </text>
+        {(upperCpiPath || lowerCpiPath) && (
+          <>
+            <line x1={0} x2={16} y1={32} y2={32} stroke="#6b7280" strokeWidth={1.5} strokeDasharray="5 3" />
+            <text x={20} y={36} fontSize={11} className="fill-neutral-600 dark:fill-neutral-300">
+              inviscid c_p
+            </text>
+          </>
+        )}
       </g>
     </svg>
   );
