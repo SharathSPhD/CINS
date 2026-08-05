@@ -40,9 +40,45 @@ TARGET = "#f59e0b"
 GOOD = "#34d399"
 GRID = "#1e2b39"
 
-HOLD_FIRST = 18   # frames held on the starting shape
-TWEEN = 14        # interpolated frames between Newton iterations
-HOLD_LAST = 40    # frames held on the converged result
+HOLD_FIRST = 45   # frames held on the starting shape
+TWEEN = 46        # interpolated frames between Newton iterations
+HOLD_LAST = 80    # frames held on the converged result
+
+
+def ease(t: float) -> float:
+    """Smoothstep easing so the geometry motion reads as deliberate."""
+    return t * t * (3.0 - 2.0 * t)
+
+
+def split_surfaces(x, y):
+    """Split a closed airfoil loop into lower and upper branches.
+
+    The loop convention is TE-lower, then the leading edge, then TE-upper. Each
+    branch is returned sorted by increasing x so it can be used as the sample
+    grid of an interpolation.
+    """
+    i_le = int(np.argmin(x))
+    lo_x, lo_y = x[: i_le + 1][::-1], y[: i_le + 1][::-1]
+    up_x, up_y = x[i_le:], y[i_le:]
+    lo = np.argsort(lo_x)
+    up = np.argsort(up_x)
+    return (lo_x[lo], lo_y[lo]), (up_x[up], up_y[up])
+
+
+def surface_error(gx, gy, tx, ty):
+    """Signed normal-ish offset of a geometry from a target, per surface.
+
+    Interpolating against the whole loop is invalid because x is not monotonic
+    around it; doing so returns the thickness distribution rather than the
+    error. Each branch is therefore interpolated against the matching branch of
+    the target.
+    """
+    (t_lo_x, t_lo_y), (t_up_x, t_up_y) = split_surfaces(tx, ty)
+    i_le = int(np.argmin(gx))
+    err = np.empty_like(gy)
+    err[: i_le + 1] = gy[: i_le + 1] - np.interp(gx[: i_le + 1], t_lo_x, t_lo_y)
+    err[i_le:] = gy[i_le:] - np.interp(gx[i_le:], t_up_x, t_up_y)
+    return err
 
 
 class StageCapture(NewtonDiagnostics):
@@ -76,6 +112,11 @@ class StageCapture(NewtonDiagnostics):
 
 def run_capture(out_dir: Path) -> dict:
     cfg = load_config()
+    # The demo starts from the perturbed coefficient vector rather than the
+    # pre-solve result. Both are real configurations of the same pipeline; the
+    # perturbed start leaves a visible gap between the initial and the target
+    # geometry, which is what the animation needs to show.
+    cfg = cfg.model_copy(update={"t8": cfg.t8.model_copy(update={"init": "perturbed"})})
     counters = EvalCounters()
     with instrument_evaluations(counters):
         prep = prepare_cell(cfg, counters, cell_name="demo", config_path=None, t0=0.0)
@@ -151,17 +192,24 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
     cp_lo = min(cpt.min(), min(min(s["cp"]) for s in stages)) - 0.25
     cp_hi = max(cpt.max(), max(max(s["cp"]) for s in stages)) + 0.25
 
+    # Fixed y-scale for the surface-error panel, taken from the starting shape
+    # so the collapse to zero is visible against a constant reference.
+    x0 = np.array(stages[0]["x"])
+    y0 = np.array(stages[0]["y"])
+    err_span = max(float(np.max(np.abs(surface_error(x0, y0, tx, ty) * 1000.0))) * 1.25, 0.5)
+
     for k, (i, frac) in enumerate(seq):
         a = stages[i]
         b = stages[min(i + 1, len(stages) - 1)]
-        gx = np.array(a["x"]) * (1 - frac) + np.array(b["x"]) * frac
-        gy = np.array(a["y"]) * (1 - frac) + np.array(b["y"]) * frac
-        cp = np.array(a["cp"]) * (1 - frac) + np.array(b["cp"]) * frac
+        w = ease(frac)
+        gx = np.array(a["x"]) * (1 - w) + np.array(b["x"]) * w
+        gy = np.array(a["y"]) * (1 - w) + np.array(b["y"]) * w
+        cp = np.array(a["cp"]) * (1 - w) + np.array(b["cp"]) * w
 
         fig = plt.figure(figsize=(width / dpi, height / dpi), dpi=dpi, facecolor=BG)
-        gs = GridSpec(2, 2, figure=fig, height_ratios=[1.15, 1.0],
-                      hspace=0.32, wspace=0.18,
-                      left=0.06, right=0.97, top=0.86, bottom=0.09)
+        gs = GridSpec(2, 3, figure=fig, height_ratios=[1.15, 1.0],
+                      hspace=0.34, wspace=0.24,
+                      left=0.055, right=0.975, top=0.86, bottom=0.10)
 
         fig.text(0.06, 0.945, "Monolithic CST-Newton inverse solve",
                  color=FG, fontsize=21, fontweight="bold")
@@ -198,7 +246,20 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
         for t in leg2.get_texts():
             t.set_color(FG)
 
-        ax3 = fig.add_subplot(gs[1, 1])
+        axm = fig.add_subplot(gs[1, 1])
+        _style(axm, "Surface error against the target, magnified")
+        dy = surface_error(gx, gy, tx, ty) * 1000.0
+        axm.fill_between(gx, 0, dy, color=ACCENT, alpha=0.35, zorder=2)
+        axm.plot(gx, dy, color=ACCENT, lw=1.4, zorder=3)
+        axm.axhline(0.0, color=TARGET, lw=1.6, alpha=0.7, zorder=4)
+        axm.set_xlim(-0.03, 1.03)
+        axm.set_ylim(-err_span, err_span)
+        axm.set_xlabel("x / c", color=MUTED, fontsize=10)
+        axm.set_ylabel("surface offset (millichords)", color=MUTED, fontsize=10)
+        axm.text(0.02, 0.92, f"peak {np.max(np.abs(dy)):.3f} mc",
+                 transform=axm.transAxes, color=FG, fontsize=10, family="monospace")
+
+        ax3 = fig.add_subplot(gs[1, 2])
         _style(ax3, "Residual norm per iteration")
         shown = hist[: a["it"] + 1] if a["it"] + 1 <= len(hist) else hist
         ax3.semilogy(range(len(shown)), shown, color=GOOD, lw=2.2,
@@ -208,10 +269,8 @@ def render(payload: dict, out_dir: Path, width=1920, height=1080, dpi=120) -> in
         ax3.set_xlabel("Newton iteration", color=MUTED, fontsize=10)
         ax3.set_ylabel(r"$\|R\|$", color=MUTED, fontsize=10)
         if shown:
-            ax3.annotate(f"{shown[-1]:.2e}",
-                         xy=(len(shown) - 1, shown[-1]),
-                         xytext=(-14, 16), textcoords="offset points",
-                         color=GOOD, fontsize=11, family="monospace")
+            ax3.text(0.97, 0.06, f"{shown[-1]:.2e}", transform=ax3.transAxes,
+                     color=GOOD, fontsize=12, family="monospace", ha="right")
 
         if k >= len(seq) - HOLD_LAST:
             fig.text(0.5, 0.028,
