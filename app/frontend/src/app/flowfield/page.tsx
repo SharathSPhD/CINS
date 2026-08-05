@@ -199,11 +199,11 @@ export default function FlowFieldPage() {
           >
             {loading ? `Solving... (${elapsedS.toFixed(0)}s)`: "Solve"}
           </button>
-          {loading && elapsedS > 8 && (
+          {loading && elapsedS > 5 && (
             <div className="text-xs text-neutral-500">
-              Each grid point needs its own vendor panel-velocity evaluation: this is
-              inherently a few seconds, and much longer on a cold or free-tier backend
-              (up to ~90s before this is treated as failed).
+              This is normally well under a second once the backend is warm; a longer wait
+              usually means a free-tier backend is cold-starting. This will show an error
+              below instead of hanging if it does not come back within 30s.
             </div>
           )}
 
