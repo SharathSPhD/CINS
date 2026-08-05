@@ -12,9 +12,14 @@ app/frontend/.next
 .pytest_cache
 .ruff_cache
 experiments/results
+# ...but re-include the archived showcase evidence (Dockerfile COPYs it for
+# /api/showcase + /static; dockerignore is last-match-wins so ! works here)
+!experiments/results/t7_naca2412
+!experiments/results/t8
 docs
 paper
 site
+!site/gates.json
 *.md
 !README.md
 app/backend/.cache
