@@ -14,6 +14,19 @@ single-airfoil (NACA 2412) ablation matrix plus two extra single-airfoil cells (
 exist in the repo). Do not present panel-level convergence-fraction language in P1 without
 first running that panel.
 
+**Superseded (2026-08-04, post-review):** the pre-registered NACA panel above HAS now
+been run (`configs/experiments/panel_naca/*.yaml`, `experiments/results/t8/panel_*/`,
+19 cells, seed=42) — see `experiments/results/t8/ANALYSIS.md` "H1 addendum" and P1
+§5.6 ("H1: NACA panel generalization"). Result: 18/18 generable sections recovered
+(`err_free_inf` ≤ 1.5e-10, 3–7 iterations); 2 sections excluded (panel_0006: target
+generation itself non-convergent; panel_44012: 44XXX mean line not implemented by the
+vendor NACA5 generator). Wilson 95% LB at n=18 is 0.824, below the pre-registered ≥0.9
+criterion for interval-arithmetic reasons (n≥29 required for LB≥0.9 at 100% success),
+not a solver-performance shortfall. The single-airfoil-only caveat above still applies
+to every OTHER subsection of this digest (n-sweep, station-selection, flow-solve-count,
+etc.), which remain NACA-2412-only, N=1 ablations — only the H1 convergence claim itself
+has been upgraded to panel-level evidence.
+
 ---
 
 ## §5.1 Self-consistent recovery (T7 falsifiable test / winning configuration)

@@ -13,6 +13,8 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,graphicx,booktabs,siunitx,natbib}
 \usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 
 \graphicspath{{../experiments/results/t8/figures/}}
 
@@ -60,7 +62,17 @@ a real but modest reduction, not the two-to-three-orders-of-magnitude
 headline hypothesised a priori -- while retaining determinism, guaranteed
 local quadratic convergence, exact analytic constraint-row Jacobians, and
 per-iteration failure-mode diagnostics that the nested baseline has no
-analogue for.
+analogue for. A subsequent 20-section NACA panel evaluation, run at the
+winning configuration the ablation matrix identifies, recovers all 18
+generable sections to $\mathrm{err\_free\_inf}\leq1.5\times10^{-10}$; we
+report this alongside the interval-arithmetic reason its formal
+pre-registered Wilson-confidence criterion still fails at this panel size.
+We further place the architecture on a comparison table against MISES's own
+Modal-Inverse mode, the nearest prior CST-based inverse method, and the
+current generative/learned-surrogate inverse-design literature, on
+formulation class, cost, determinism, and constraint-handling grounds
+rather than a single flow-solve number, since the methods are not
+commensurable on that axis alone.
 \end{abstract}
 
 \section{Introduction}
@@ -106,6 +118,135 @@ Morris, Allen \& Rendall \citep{morris2010inverse}: there, CST is used to
 inside an outer iterative loop -- CST is the smoother, not an unknown in a
 Newton system. The present work does not repeat either of these; it combines
 a property of CST that neither prior use exploits.
+
+\subsection{Related work}
+\label{sec:related}
+
+\paragraph{Classical inverse design.} Inverse aerofoil design predates any
+of the parameterisations discussed below. Lighthill's conformal-mapping
+method \citep{lighthill1945new} is the founding well-posed formulation: a
+target speed distribution on the unit circle is mapped conformally to the
+physical aerofoil, with three integral \emph{closure conditions} -- closure
+of the contour, a fixed leading-edge radius, and a prescribed circulation --
+required for a solvable, self-consistent shape to exist at all. This
+closure-condition structure is the direct conceptual ancestor of
+\S\ref{sec:constraints}'s linear rows: both are answers to the same
+question, ``what makes an arbitrarily chosen target realisable by
+\emph{some} member of the design family,'' asked eighty years apart under
+very different geometric representations. Volpe \& Melnik
+\citep{volpe1986design} sharpened well-posedness for the transonic regime,
+showing that an inverse problem posed with pressure (rather than speed) as
+the target and with the wrong closure conditions is generically
+\emph{ill}-posed -- existence and uniqueness are not automatic once the
+target is chosen independently of the geometry family, a caveat that
+motivates the identifiability discussion of \S\ref{sec:ablations} in a
+completely different (discrete, finite-dimensional) setting. Eppler's design
+method \citep{eppler1980airfoil} and Selig \& Maughmer's PROFOIL
+\citep{selig1992multipoint} are the mature, still-used engineering
+descendants: both are multi-point conformal-mapping inverse solvers, target
+several operating conditions' pressure distributions simultaneously by
+blending mode functions, and both remain outside the Newton-coupled,
+viscous-inclusive family this paper and MISES belong to -- they close the
+inverse problem analytically at the potential-flow level, then couple to a
+boundary-layer method non-simultaneously, rather than solving flow and
+geometry as one system.
+
+\paragraph{Parameterisation comparison.} Sobieczky's PARSEC
+\citep{sobieczky1999parsec} parameterises an aerofoil by twelve
+directly-meaningful quantities (LE radius, thickness/camber extrema and
+their locations, TE angle and thickness) fitted by a polynomial basis --
+geometrically transparent in the same spirit as CST's endpoint identities
+(Eq.~\eqref{eq:endpoint}), but through a basis whose coefficients are not
+independent design freedoms in the same linear sense: PARSEC's basis
+functions depend on the target values themselves (the fit is re-solved per
+target), whereas CST's Bernstein basis $S_i(\psi)$ is fixed once $n$ is
+chosen, independent of what shape is being represented -- the property
+Eq.~\eqref{eq:dsurface-dA} depends on. Masters et al.'s benchmark
+\citep{masters2017geometric} is the field's reference comparison: over 2000
+aerofoils and several parameterisation families (CST, PARSEC, B-splines,
+Bezier, orthogonal/SVD/POD modes derived from a training database), CST is
+found to be among the most geometrically efficient \emph{analytic} (i.e.\
+not data-driven) families, needing roughly 10--14 coefficients per surface
+for sub-0.1\%-chord fitting error on typical sections, while purely
+data-driven SVD/POD modes fit an existing database more efficiently still
+at the cost of needing that database and losing CST's closed-form
+geometric-functional structure (\S\ref{sec:constraints}) entirely. This
+paper's choice of CST is therefore not merely convenience: it is the
+parameterisation Masters et al.'s own comparison identifies as the
+best-supported analytic basis, and the one whose particular algebraic
+property (linearity in $A$) this paper's contribution depends on.
+
+\paragraph{Newton-coupled viscous/inviscid solvers.} The architecture this
+paper appends CST to is Drela \& Giles's ISES lineage
+\citep{drela1987viscous}: a two-equation integral boundary-layer closure
+coupled \emph{simultaneously} (not iteratively) to a panel-method inviscid
+solution through a single global Newton system, with the $e^n$ transition
+model providing the closure that makes laminar-to-turbulent transition a
+smooth part of that system rather than a switched boundary condition.
+mfoil \citep{fidkowski2022coupled} is a modern, open, from-scratch
+reimplementation of exactly this architecture -- the ISES/XFOIL
+viscous-inviscid coupling without XFOIL's Fortran legacy code, in Python,
+with an exposed sparse global Jacobian -- which is precisely why it is the
+Stage 1 testbed here (\S\ref{sec:formulation}): the extended system of
+\S\ref{sec:newton-system} could not be built without an analysis code that
+already exposes its own $\partial R/\partial U$ block for direct
+augmentation. Section~5.5 of the dossier
+(docs/CST\_MISES\_Monolithic\_Inverse\_Design.md) additionally documents
+that MISES's Parametric-Inverse mode was designed from the outset to accept
+an arbitrary geometry-definition system via a black-box interface
+(\texttt{BPREAD}/\texttt{BPWRIT}/\texttt{BLDGEN}), i.e.\ the mechanism this
+paper's Stage 3 (\S\ref{sec:conclusions}) would use already exists in the
+target solver and has simply never been exercised with a CST-as-unknowns
+formulation.
+
+\paragraph{Modern learned inverse-design methods.} A distinct, much newer
+line of work learns the pressure-to-geometry map directly from data rather
+than solving a physics-based system at all. Conditional GANs
+\citep{yilmaz2020cgan} and, more recently, diffusion models -- a
+classifier-free-guided denoising diffusion model reporting a 34.4\%
+precision improvement over WGAN baselines on an airfoil-generation
+benchmark \citep{yu2025cddpm} -- learn a stochastic generative map from a
+target Cp (or aerodynamic-coefficient) vector to a geometry, trained
+offline on a large precomputed database, with inference reduced to a single
+(or few-step) forward network pass. A hybrid approach, LF-PINN
+\citep{lfpinn2024}, trains a physics-informed surrogate directly on mfoil's
+own low-fidelity flowfields -- the same solver used here -- and reports at
+least an order-of-magnitude online inference speedup relative to running
+mfoil directly, again after an offline training investment. These methods
+answer a different question well: given a large library of prior designs
+and target statistics resembling that library, produce a plausible geometry
+near-instantly. They do not provide a convergence guarantee, an exact
+constraint-row Jacobian, or a certificate that the returned geometry
+actually reproduces the requested Cp to any specified tolerance -- the
+network's output is evaluated \emph{after} the fact by running a flow
+solver on it, not constrained \emph{during} generation the way
+Eq.~\eqref{eq:kkt}'s equality rows are. \S\ref{sec:comparison}'s comparison
+table places this paper's architecture and the learned-inverse family on
+common columns (flow solves per design, determinism, constraint handling)
+explicitly, because the two are not competing solutions to the same
+technical problem so much as different points on an accuracy-guarantee
+vs.\ amortised-cost trade surface.
+
+\paragraph{Turbomachinery inverse design.} Lavagnoli
+\citep{lavagnoli2026datadriven} benchmarks Kolmogorov--Arnold Networks
+against MLP and Gaussian-process regressors for inverse turbine-passage
+design, trained on $\approx$30{,}000 blade profiles generated by an
+automated MISES-coupled optimisation pipeline (inlet flow angle
+$-50^\circ$ to $0^\circ$, outlet $50^\circ$--$75^\circ$); the trained
+network infers a loading-consistent geometry in $\approx$0.1\,s with a mean
+outlet-angle error of $0.086^\circ$. Structurally this is the same
+learned-surrogate pattern as the previous paragraph, specialised to
+cascades, and it is the closest published turbomachinery analogue of this
+paper's motivating problem (\S1) -- but it is once more amortised-cost
+statistical inference over a precomputed design database, not a
+per-target root-find with a convergence certificate. Notably, Lavagnoli's
+pipeline includes a predicted-RMS \emph{feasibility proxy} that flags
+statistically ill-posed inverse targets before training-set generation --
+the statistical-learning analogue of this paper's realisability guard
+(\S\ref{sec:presolve}), independently motivated by the same underlying
+problem (some targets are simply not achievable by the design family in
+use) but answered by a learned classifier rather than a closed-form
+linearisation.
 
 \paragraph{The precise novelty claim.} CST's surface parameterisation
 \begin{equation}
@@ -303,16 +444,37 @@ Equations:
   T(U) - Cp_{target} = 0 \;\;(M), \qquad
   G\cdot A - b = 0 \;\;(K),
 \end{equation}
-with the block Jacobian
+with the block Jacobian, dimensions annotated below each block for the T7
+winning configuration ($N_{tot}=230$ -- 200 airfoil-surface nodes plus wake,
+\S\ref{sec:falsifiable}; $n_A=18$; $M=16$; $K=0$; $n_\alpha=0$, so
+$J\in\mathbb{R}^{246\times246}$ overall):
 \begin{equation}
-  J = \begin{bmatrix}
-    \partial R/\partial U & \partial R/\partial A & \partial R/\partial \alpha \\
-    \partial T/\partial U & 0 & \partial T/\partial \alpha \\
-    0 & \partial G/\partial A & 0
-  \end{bmatrix}.
+  J = \left[
+  \begin{array}{c|c|c}
+    \displaystyle\underbrace{\partial R/\partial U}_{N_{tot}\times N_{tot}} &
+    \displaystyle\underbrace{\partial R/\partial A}_{N_{tot}\times n_A} &
+    \displaystyle\underbrace{\partial R/\partial \alpha}_{N_{tot}\times n_\alpha} \\[1.1em] \hline
+    \displaystyle\underbrace{\partial T/\partial U}_{M\times N_{tot}} &
+    \displaystyle\underbrace{0}_{M\times n_A} &
+    \displaystyle\underbrace{\partial T/\partial \alpha}_{M\times n_\alpha} \\[1.1em] \hline
+    \displaystyle\underbrace{0}_{K\times N_{tot}} &
+    \displaystyle\underbrace{\partial G/\partial A}_{K\times n_A} &
+    \displaystyle\underbrace{0}_{K\times n_\alpha}
+  \end{array}
+  \right]
+  \;\in\; \mathbb{R}^{(N_{tot}+M+K)\times(N_{tot}+n_A+n_\alpha)},
   \label{eq:jacobian-blocks}
 \end{equation}
-$\partial R/\partial U$ and $\partial R/\partial\alpha$ are mfoil's own
+square by Eq.~\eqref{eq:dof}'s construction-time assertion ($M+K=n_{A,\text{
+free}}+n_\alpha$, so the $M+K$ extra rows exactly balance the $n_A+n_\alpha$
+extra columns beyond the $N_{tot}\times N_{tot}$ flow block, which is itself
+always square). The $M\times n_A$ zero block in the middle column reflects
+that the target-Cp equations $T(U)-Cp_{target}$ depend on $A$ only
+\emph{through} $U$ (Cp is read off the converged flow state, not directly
+from geometry), so its entire $A$-sensitivity is carried through the
+$\partial R/\partial A$ column and the chain of Newton updates -- there is
+no direct $T$-vs-$A$ coupling to assemble. $\partial R/\partial U$ and
+$\partial R/\partial\alpha$ are mfoil's own
 analytic, sparsely-assembled blocks, reused unchanged. $\partial T/\partial
 U$ is a near-selection matrix (Cp at a node as a direct function of the
 panel/edge-velocity unknowns). $\partial G/\partial A = G$ is constant --
@@ -413,7 +575,78 @@ against the alternative of finite-differencing over $N_{panel}\gg n_A$ node
 coordinates, which would silently destroy the flow-solve-count argument this
 paper's Results section depends on. T5 gate closure verified the resulting
 Jacobian columns to 5--6 significant figures across a step-size sweep with no
-stencil discontinuities (docs/gates/T4-T7-closure.md, ``T5'').
+stencil discontinuities (docs/gates/T4-T7-closure.md, ``T5''). The step size
+itself ($\mathrm{fd\_step}=10^{-6}$, \texttt{configs/default.yaml}) is not
+hand-tuned per case: the T5 sweep varied it across several decades and
+confirmed the resulting FD-column agreement with the (independently
+verified, \S\ref{sec:derivatives} above) complex-step-safe partial block was
+flat across the sweep's central range, with no visible truncation/roundoff
+trade-off cliff at the scales exercised (docs/gates/T4-T7-closure.md,
+``T5'') -- i.e.\ $10^{-6}$ sits well inside a broad plateau, not at a
+knife-edge optimum a different problem instance would move.
+
+\subsection{Algorithmic summary}
+\label{sec:algorithms}
+
+Algorithm~\ref{alg:monolithic} states the full monolithic iteration --
+target generation through release-and-verify -- as pseudocode, making
+explicit where each of \S\ref{sec:newton-system}--\S\ref{sec:presolve}'s
+mechanisms (FD Jacobian assembly, joint under-relaxation, the trust region
+on $\Delta A$, the forced-transition shim) sits inside the loop; it is a
+direct pseudocode rendering of
+\texttt{src/cins/solver/newton.py::solve\_inverse} and
+\texttt{src/cins/benchmarks/pipeline.py::run\_pipeline}, not an idealisation
+of it. Algorithm~\ref{alg:qrpivot} states the QR-pivoted station-selection
+procedure identified as the identifiability guard in
+\S\ref{sec:ablations} (\texttt{src/cins/benchmarks/pipeline.py}, station-
+selection step), reusing the T4 pre-solve sensitivity matrix rather than
+building a second one.
+
+\begin{algorithm}
+\caption{Monolithic CST--Newton inverse iteration (\S\ref{sec:newton-system}--\S\ref{sec:presolve})}
+\label{alg:monolithic}
+\begin{algorithmic}[1]
+\Require target airfoil (for $A^\ast$ generation) or externally supplied $Cp_{target}$; Bernstein order $n$; \texttt{le\_treatment}; \texttt{transition.mode}
+\State Fit CST to reference geometry $\rightarrow A^\ast$ (\S\ref{sec:cst-linearity}); build $\partial\zeta/\partial A_i = C(\psi)S_i(\psi)$ once, cache (Eq.~\eqref{eq:dsurface-dA})
+\State Generate target: direct-solve at $A^\ast$ (forced transition if \texttt{mode=forced}, \S\ref{sec:transition}) $\rightarrow Cp_{target}^{\text{full}}$
+\State Perturb or randomize $A^\ast \rightarrow A_0$ (T8 \texttt{init} factor); assemble $G,b$ from \S\ref{sec:constraints}
+\If{\texttt{init = presolve}}
+  \For{2 passes} \Comment{T4 pre-solve, \S\ref{sec:presolve}}
+    \State Build sensitivity matrix $M$ at current $A_0$ (finite-difference or Beta-function analytic)
+    \State Solve KKT system Eq.~\eqref{eq:kkt} for $A_0$; record realisability, model\_gap (ADR-0004, two \emph{distinct} metrics)
+  \EndFor
+\EndIf
+\State Select $M$ target stations by QR pivoting (Algorithm~\ref{alg:qrpivot}) or evenly-spaced (T8 ablation)
+\State \textbf{Assert} $M+K=n_{A,\text{free}}+n_\alpha$ (Eq.~\eqref{eq:dof}, FM-1 guard) \Comment{raises before any Newton step if violated}
+\State Direct-solve flow at $A_0$ (converges $U_0$) \Comment{initial point for the extended Newton loop}
+\State $k \gets 0$
+\While{$\|R\|,\|T\|,\|G\| >$ \texttt{rtol} and $k <$ \texttt{max\_iter}} \Comment{D-1 per-block residual norms}
+  \State Assemble $\partial R/\partial U$, $\partial R/\partial\alpha$ from mfoil (analytic, unchanged)
+  \State Assemble $\partial R/\partial A$ by central finite differences over $A$ only (\S\ref{sec:derivatives}), $O(n_A)$ residual evaluations
+  \State Assemble $\partial T/\partial U$ (Cp-selection map), $\partial G/\partial A = G$ (constant)
+  \State Solve linearized system $J\,\delta \gets -[R;T-Cp_{target};G\cdot A-b]$ (Eq.~\eqref{eq:jacobian-blocks})
+  \State Compute joint under-relaxation $\omega\in(0,1]$: the smaller of mfoil's own $U$-limiter (Hk, $\theta$/$\delta^*$ bounds) and the CST trust region $\|\delta_A\|_\infty \leq$ \texttt{a\_trust\_radius} (\S\ref{sec:newton-system})
+  \State $U \gets U + \omega\,\delta_U$; $A \gets A + \omega\,\delta_A$; $\alpha \gets \alpha + \omega\,\delta_\alpha$ (if free)
+  \State Rebuild geometry from updated $A$ (apply\_geometry, \S\ref{sec:cst-linearity}); record D-2..D-6 diagnostics
+  \State $k \gets k+1$
+\EndWhile
+\State \textbf{Release-and-verify} (\S\ref{sec:transition}): un-force transition; direct-solve at converged $A$; assert $\Delta c_l, \Delta c_d$ against the natural-mode target within gate
+\State \Return $A$, iteration count $k$, residual history, release-and-verify record
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{QR-pivoted target-station selection (\S\ref{sec:ablations})}
+\label{alg:qrpivot}
+\begin{algorithmic}[1]
+\Require sensitivity matrix $M\in\mathbb{R}^{N_{cand}\times n_A}$ from the T4 pre-solve (\S\ref{sec:presolve}); free-coefficient index set $\mathcal{F}$; required station count $M_{req} = n_{A,\text{free}} - K + n_\alpha$
+\State Restrict candidates to nodes at or aft of the prescribed-LE fraction (FM-3 mitigation, \S\ref{sec:fm})
+\State Form the candidate submap $\tilde M \gets M[\text{candidates},\, \mathcal{F}]$
+\State Column-pivoted QR: $\tilde M^\top P = QR$, giving a pivot ordering $P$ by decreasing contribution to $\tilde M^\top$'s numerical rank
+\State Select the first $M_{req}$ pivoted candidate indices $\rightarrow$ target stations
+\State \Return sorted station index set; report $\mathrm{cond}(\tilde M[\text{stations},:])$ (D-3-class diagnostic, \emph{distinct} from $\mathrm{cond}(J)$, ADR-0004)
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Forced-transition onset closure}
 \label{sec:transition}
@@ -655,6 +888,48 @@ Source: \texttt{experiments/results/t8/figures/h3\_convergence\_overlay.png}.}
 \label{fig:h3}
 \end{figure}
 
+The Newton residual history in Figure~\ref{fig:h3} is a scalar summary;
+Figures~\ref{fig:t7-geometry}--\ref{fig:t7-flow} give the geometry- and
+flow-field-level view of the same result, regenerated directly from a fresh
+re-run of the winning configuration (\texttt{src/cins/benchmarks/paper\_
+figures.py}, never hand-plotted). Figure~\ref{fig:t7-geometry} overlays the
+target and Newton-recovered aerofoil outlines -- visually indistinguishable
+at full-chord scale, with the LE-region inset showing the same at the scale
+where FM-3 (\S\ref{sec:fm}) would be visible if the prescribed-LE mitigation
+were absent -- alongside a per-coefficient recovery-error bar chart making
+explicit which two of eighteen coefficients are pinned rather than
+recovered (\S\ref{sec:presolve}'s free-16/prescribed-2 framing).
+Figure~\ref{fig:t7-cp} compares target and recovered $C_p$ both as a full
+curve and restricted to the 16 QR-pivoted stations the Newton system
+actually solved against, confirming the coefficient-level agreement of
+Table~\ref{tab:t7} is not an artifact of comparing at only the fitted
+stations. Figure~\ref{fig:t7-flow} shows the converged, released
+(natural-transition) flow solution at the recovered geometry -- $C_p$ and
+boundary-layer displacement thickness $\delta^*/c$ -- the physical state
+the release-and-verify $\Delta c_l=8.0\times10^{-13}$ check of
+Table~\ref{tab:t7} was computed from.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{paper/fig_t7_geometry_overlay.png}
+\caption{Target vs.\ Newton-recovered geometry, T7 winning configuration (NACA 2412, $n{=}8$/side), with LE-region inset and per-coefficient recovery-error bar chart (gray = prescribed by \texttt{le\_treatment}, not Newton-recovered). Source: \texttt{experiments/results/t8/figures/paper/fig\_t7\_geometry\_overlay.png}.}
+\label{fig:t7-geometry}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{paper/fig_t7_cp_comparison.png}
+\caption{Target vs.\ recovered-geometry $C_p$ (forced-transition, aero sign convention: $y$-axis inverted): full curve (left) and the 16 QR-pivoted target stations only (right). Source: \texttt{experiments/results/t8/figures/paper/fig\_t7\_cp\_comparison.png}.}
+\label{fig:t7-cp}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{paper/fig_t7_flow_solution.png}
+\caption{Converged flow solution at the recovered geometry: natural-transition release-and-verify $C_p$ (left) and displacement thickness $\delta^*/c$ (right). Source: \texttt{experiments/results/t8/figures/paper/fig\_t7\_flow\_solution.png}.}
+\label{fig:t7-flow}
+\end{figure}
+
 \section{Ablations and results}
 \label{sec:results}
 % <- T8; ablations from paper/results_digest.md; identifiability LEADS.
@@ -672,12 +947,18 @@ Every number in this section traces to a \texttt{result.json} or
 \texttt{experiments/results/t8/ANALYSIS.md}). All values are $N{=}1$
 (single \texttt{seed=42} run per cell); no confidence intervals are reported
 because none are statistically defensible at $N{=}1$, per
-\texttt{docs/STATS\_PROTOCOL.md}'s Stage-1-lite scoping. T8 as executed is a
-single-airfoil (NACA 2412) ablation matrix plus two extra single-airfoil
-cells (0012, 4415) -- \textbf{not} the pre-registered $\approx$20-section
-NACA panel (\texttt{configs/experiments/panel\_naca.yaml} does not exist in
-this repository). Panel-level convergence-\emph{fraction} language is
-deliberately avoided throughout this section for that reason.
+\texttt{docs/STATS\_PROTOCOL.md}'s Stage-1-lite scoping. The $n$-sweep,
+station-selection, and other single-factor \emph{ablation} tables in this
+section are a single-airfoil (NACA 2412) matrix plus two extra
+single-airfoil cells (0012, 4415) -- deliberately narrow, $N{=}1$-per-cell
+comparisons designed to isolate one factor at a time, not a panel study.
+Panel-level convergence-\emph{fraction} language is deliberately avoided in
+those subsections for that reason. \S\ref{sec:h1-panel} is the one
+exception: it reports the pre-registered $\approx$20-section NACA panel
+(\texttt{configs/experiments/panel\_naca/*.yaml}), run subsequently at the
+winning configuration identified by this section's ablations, and its
+Wilson-interval convergence-fraction claim is reported there on its own
+terms.
 
 \subsection{Station-selection identifiability -- the central methodological result}
 \label{sec:ablations}
@@ -826,16 +1107,24 @@ correct error string and zero Newton iterations spent -- the FM-1 guard
 (Eq.~\eqref{eq:dof}) catches deliberate over/under-determination cleanly, no
 silent corruption, no wrong answer (experiments/results/t8/ANALYSIS.md~\S4).
 
-\subsection{Airfoil generalization}
+\subsection{H1: NACA panel generalization}
+\label{sec:h1-panel}
 
-Table~\ref{tab:airfoils} adds two additional NACA sections to the 2412
-baseline. This is $N{=}1$ per airfoil and 2 additional airfoils only --
-encouraging, but explicitly \emph{not} a generalization claim
-(paper/results\_digest.md~\S5.2).
+Table~\ref{tab:airfoils} adds two additional single-airfoil cells
+(0012, 4415) to the 2412 baseline reported throughout
+\S\ref{sec:falsifiable}; that 3-airfoil table alone is $N{=}1$ per section
+and explicitly not a generalization claim
+(paper/results\_digest.md~\S5.2). It was subsequently superseded by the
+pre-registered H1 evaluation itself, run post-review after the T8 ablation
+matrix closed (experiments/results/t8/ANALYSIS.md, ``H1 addendum''):
+the winning configuration (\S\ref{sec:falsifiable}) applied to a 20-section
+NACA panel spanning 9--25\% thickness and 0--6\% camber across both 4- and
+5-digit families (\texttt{configs/experiments/panel\_naca/*.yaml},
+\texttt{seed=42}).
 
 \begin{table}[h]
 \centering
-\caption{Airfoil generalization. Source: paper/results\_digest.md~\S5.2.}
+\caption{Three-airfoil detail (baseline + 2 extras). Source: paper/results\_digest.md~\S5.2.}
 \label{tab:airfoils}
 \begin{tabular}{lcccc}
 \toprule
@@ -847,6 +1136,62 @@ Airfoil & Iterations & $\mathrm{err\_all\_inf}$ & Submap $\mathrm{cond}$ & Model
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Result: 18/18 generable sections recovered, at $\mathrm{err\_free\_inf}\leq1.5\times10^{-10}$
+in 3--7 Newton iterations each.} Two of the 20 pre-registered sections
+produced no result and are excluded under the pre-registered \S6-class
+exclusion rules (experiments/results/t8/ANALYSIS.md, ``H1 addendum,''
+Deviation~11), not counted as failures:
+\texttt{panel\_0006} -- the forced-trip \emph{target} generation itself
+fails to converge for this 6\%-thin section at a 5\% trip location, so no
+inverse problem was ever posed (a direct-solve non-convergence exclusion,
+exactly the pre-registered rule's intended case, not an architecture
+failure); and \texttt{panel\_44012} -- the vendor NACA 5-digit geometry
+generator does not implement the 44XXX mean-line family, a pre-registration
+defect (the target list included a section outside the implemented geometry
+generator), not a solver failure. Figure~\ref{fig:h1-gallery} shows 6
+representative recovered sections spanning this range -- thin symmetric
+(0009), thick symmetric (0025), the cambered baseline (2412), a thick
+cambered section (4415), a reflex-camber NACA5 (23012), and a high-camber
+section (6412) -- target and recovered outlines are visually
+indistinguishable at this scale, consistent with the $\leq1.5\times10^{-10}$
+coefficient-level agreement.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{paper/fig_h1_panel_gallery.png}
+\caption{H1 panel gallery: 6 representative recovered sections (thin/thick/cambered/NACA5), target vs.\ recovered geometry, annotated with each cell's $\mathrm{err\_all\_inf}$ and iteration count from its \texttt{result.json}. Source: \texttt{experiments/results/t8/figures/paper/fig\_h1\_panel\_gallery.png} (regenerated by \texttt{src/cins/benchmarks/paper\_figures.py::fig\_h1\_panel\_gallery}); scalar annotations from \texttt{experiments/results/t8/panel\_*/result.json}.}
+\label{fig:h1-gallery}
+\end{figure}
+
+\paragraph{Honest interval arithmetic (the pre-registered criterion still
+fails, on a technicality).} At $n_{\text{eff}}=18$ successes out of 18
+eligible trials, the Wilson 95\% lower bound is $\mathbf{0.824}$ --
+\emph{below} the pre-registered criterion (Wilson LB $\geq0.9$), even
+though every eligible section succeeded. This is not a solver shortfall: a
+Wilson lower bound of 0.9 is mathematically unattainable at $n=18$ or
+$n=20$ regardless of outcome (it requires $n\geq29$ all-success trials);
+the pre-registered target and the pre-registered panel size were mutually
+inconsistent, a pre-registration defect reported here rather than silently
+worked around (experiments/results/t8/ANALYSIS.md, Deviation~12). Treating
+the excluded \texttt{panel\_0006} as a failure rather than an exclusion
+instead gives 18/19 (0.947), Wilson LB 0.754 -- still short of 0.9, for the
+same $n$-too-small reason. \textbf{H1 verdict:} the architecture converges
+and recovers the true coefficients on every panel section it could be
+legitimately posed on; the formal pre-registered statistical criterion
+fails on interval arithmetic, not on solver performance -- the UIUC
+extension to $\approx$100 sections (\S\ref{sec:conclusions}, future work)
+is sized to be able to certify Wilson LB $\geq0.9$ if the observed 100\%
+success rate holds.
+% PLACEHOLDER-UIUC-PANEL: a first-pass 117-section UIUC panel run exists
+% (experiments/results/t8/panel_uiuc_*/), but 87/117 cells are being RERUN
+% after a loader TE-gap fix (uiuc-panel loader) and are NOT yet trustworthy.
+% Do NOT quote any UIUC point estimate, Wilson bound, or per-section number
+% in this paper until that rerun is complete and archived with a manifest
+% (docs/GATES.md condition 4). When ready: replace this comment with a UIUC
+% panel paragraph/table mirroring \S\ref{sec:h1-panel}'s NACA-panel format,
+% sourced from the completed experiments/results/t8/panel_uiuc_*/result.json
+% artifacts, and update the H1 verdict above (currently NACA-panel-only).
 
 \subsection{Flow-solve count vs.\ nested optimization}
 \label{sec:h2}
@@ -952,6 +1297,99 @@ from $O(10^{-4})$ to the $\sim10^{-10}$ floor in exactly 2 Newton steps, a
 $\sim$150x-per-step reduction rate not consistent with linear convergence
 (experiments/results/t8/ANALYSIS.md~\S3).
 
+\subsection{Comparative positioning against the wider inverse-design landscape}
+\label{sec:comparison}
+
+Table~\ref{tab:comparison} places this paper's architecture against five
+other approaches to the same underlying problem (given a target surface
+pressure or speed distribution, recover a geometry that produces it), each
+representing a structurally distinct formulation class. Rows (i)--(ii) are
+this paper's own measured, fair-paired numbers (\S\ref{sec:h2}); rows
+(iii)--(vi) are drawn from the cited literature and are explicitly marked
+\emph{qualitative} wherever the source does not report a directly
+comparable quantitative metric -- no number in this table that is not
+either a repo artifact (row (i)--(ii)) or attributed to a specific cited
+source is asserted.
+
+\begin{table}[h]
+\centering
+\caption{Comparative positioning: formulation class, cost, and guarantees. ``qual.'' = qualitative, no directly comparable published metric; a dash indicates the property does not apply to that formulation class.}
+\label{tab:comparison}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lp{2.6cm}p{2.6cm}p{2.9cm}p{2.9cm}p{2.4cm}p{2.9cm}}
+\toprule
+Method & Formulation class & Flow solves per design & Determinism / uniqueness guard & Constraint handling & License / availability & Demonstrated precision \\
+\midrule
+(i) \textbf{This work} (CINS monolithic, \S\ref{sec:formulation}) &
+  constrained root-finding, single square Newton system &
+  \textbf{43--120} (measured, T7 winning config, two init strategies; \S\ref{sec:h2}) &
+  deterministic Newton; QR-pivoted station selection is an explicit, measured identifiability guard (\S\ref{sec:ablations}) &
+  exact linear equality rows ($G\cdot A=b$), zero-cost Jacobian block &
+  open (this repo; mfoil MIT-licensed \citep{fidkowski2022coupled}) &
+  $\|A-A^*\|_\infty=1.08\times10^{-11}$, self-consistency (Table~\ref{tab:t7}) \\
+(ii) Nested LM baseline (\texttt{scipy.least\_squares}, \S\ref{sec:h2}) &
+  outer-loop nonlinear least-squares optimization &
+  \textbf{347--373} (measured, same paired cases; \S\ref{sec:h2}) &
+  deterministic given fixed init/tolerances; no analogous uniqueness guard -- relies on local LM convergence only &
+  none built-in (bound/scale only; no analytic constraint rows in this configuration) &
+  open (SciPy \citep{virtanen2020scipy}) &
+  converges to \texttt{xtol}, same coefficient-level target (paired with row (i)) \\
+(iii) MISES Modal-Inverse \citep{drela1990viscous} &
+  constrained root-finding, mode-shape amplitudes appended to the same global Newton system &
+  1 Newton solve per design (architecturally identical to row (i)); exact count not published &
+  deterministic Newton; no published uniqueness/identifiability study of mode-count vs.\ target-sampling analogous to \S\ref{sec:ablations} &
+  mode amplitudes are heuristic bump functions, not analytic geometric functionals (\S\ref{sec:related}) &
+  gated: free for academic (faculty-signed) use, \$10k commercial license \citep{drela1990viscous}; no open-source port exists &
+  qual.\ -- production-validated on transonic cascades over decades, no single benchmark number available for direct comparison \\
+(iv) CST-smoothing inverse \citep{morris2010inverse} &
+  iterative outer loop; CST used as a \emph{post-hoc smoother} on a pressure-residual-driven shape correction, solver-agnostic &
+  qual.\ -- multiple outer iterations, count depends on wrapped solver (not reported as a fixed number in the source) &
+  deterministic given fixed settings; no formal uniqueness guard reported &
+  no analytic constraint rows; correction is smoothed but not constrained to a design-parameter manifold &
+  method description only (solver-agnostic; no released code cited) &
+  qual.\ -- subsonic and transonic cases shown converging; no coefficient-recovery-style benchmark reported \\
+(v) Learned generative inverse (cGAN \citep{yilmaz2020cgan}; CDDPM \citep{yu2025cddpm}; LF-PINN \citep{lfpinn2024}) &
+  amortised statistical inference, offline-trained generative or surrogate map &
+  $\approx$0 \emph{online} per design after training; training-set generation requires $O(10^3\text{--}10^5)$ offline flow solves (typical for this literature; per-paper counts vary and are not aggregated here) &
+  \emph{not} deterministic for GAN/diffusion variants (stochastic sampling); LF-PINN's surrogate is deterministic but is an approximation, not an exact solve; \textbf{no convergence guarantee or exact-recovery certificate for any variant} &
+  none intrinsic to generation; plausible-geometry constraints are learned from the training distribution, not enforced algebraically &
+  open-source code released with most cited papers; requires a training database &
+  CDDPM: \textbf{34.4\% precision improvement over WGAN baselines} \citep{yu2025cddpm} (relative metric, not absolute geometric-recovery error); LF-PINN: $\geq$10x online speedup vs.\ direct mfoil analysis, $\approx$19\% mean pressure-field improvement over the low-fidelity surrogate \citep{lfpinn2024} \\
+(vi) Adjoint target-$C_p$ optimization (SU2 \citep{economon2016su2}) &
+  gradient-based PDE-constrained optimization (primal + adjoint pairs per design-cycle iteration) &
+  qual.\ -- $O(10\text{--}100)$ primal/adjoint pairs typical for shape optimization of this scale (case- and tolerance-dependent; no single number attributable to a specific published target-$C_p$ inverse case) &
+  deterministic gradient descent to a \emph{local} optimum; no uniqueness guard -- this is precisely the ``adjoint target-$C_p$ matching \emph{is} optimization'' point the dossier uses SU2 as a control rather than a competing test (docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S6.3) &
+  general nonlinear constraints via adjoint sensitivities; flexible but iterative, not closed-form &
+  open source (LGPL) \citep{economon2016su2} &
+  qual.\ -- mature, widely validated on shape-optimization benchmarks; not run in this study, no head-to-head number available \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+Three patterns are worth stating explicitly. First, only rows (i) and (iii)
+are architecturally root-finding rather than optimization or amortised
+inference -- the distinction this paper's Introduction (\S\ref{sec:related})
+argues is not cosmetic, since a converged root-find has a residual-norm
+certificate a converged optimization or a sampled generative output does
+not. Second, the flow-solve-count column spans roughly four orders of
+magnitude across the table not because the methods disagree about a shared
+quantity, but because ``flow solve'' means a different thing in each
+formulation class (a Newton linearisation vs.\ an LM outer iteration vs.\ an
+offline training epoch vs.\ a primal/adjoint pair) -- exactly the currency-
+matching discipline \S\ref{sec:h2} enforces for the one comparison (row (i)
+vs.\ row (ii)) this paper actually measured; rows (iii)--(vi) are reported
+qualitatively for this reason, not omitted. Third, the license/availability
+column is not incidental context: it is the practical reason MISES's
+built-in Modal-Inverse mode (row (iii)), despite being architecturally
+identical to this paper's contribution, has not seen the open comparative
+study this table attempts -- a \$10k-gated, non-open-source solver is
+simply not reproducible science, which is also why mfoil
+\citep{fidkowski2022coupled} rather than MISES is this paper's Stage 1
+testbed (\S\ref{sec:formulation}) and why the Stage 3 extension
+(\S\ref{sec:conclusions}) targets porting the architecture \emph{into}
+MISES rather than requiring readers to already have a MISES license to
+reproduce this paper's own results.
+
 \section{Discussion}
 \label{sec:discussion}
 % TRIZ contradiction-resolution thread (docs/triz/); honest limits (dossier \S11):
@@ -1007,14 +1445,23 @@ resolution structure.
 \subsection{Limitations}
 
 \begin{itemize}
-\item \textbf{Single-airfoil-family, $N{=}1$ ablations.} T8 as executed is a
-  single-airfoil (NACA 2412) ablation matrix plus two additional single-
-  airfoil cells (0012, 4415), all at \texttt{seed=42}, one run per cell.
-  This is Stage-1-lite evidence, explicitly \emph{not} the pre-registered
-  $\approx$20-section NACA panel plus $\approx$100-section stratified UIUC
-  panel (\texttt{configs/experiments/panel\_naca.yaml} does not exist in
-  this repository). No panel-level convergence-fraction or Wilson-CI claim
-  is made anywhere in this paper for exactly this reason.
+\item \textbf{Single-airfoil-family, $N{=}1$ \emph{ablations} (the $n$-sweep,
+  station-selection, and other single-factor tables of
+  \S\ref{sec:ablations}--\S\ref{sec:h2}).} These remain NACA-2412-only,
+  \texttt{seed=42}, one run per cell -- Stage-1-lite evidence by design, and
+  no confidence interval is reported for any of them. This caveat does
+  \emph{not} extend to the H1 convergence claim itself
+  (\S\ref{sec:h1-panel}), which was subsequently upgraded to genuine
+  panel-level evidence (18/18 generable sections across a 20-section NACA
+  panel, Wilson LB 0.824); the remaining gap against the original
+  pre-registration is the $\approx$117-section stratified UIUC panel. A
+  first-pass run of this panel exists, but at the time of writing 87/117
+  cells are being re-run following a loader trailing-edge-gap fix and are
+  not yet trustworthy enough to quote (see the
+  \texttt{\% PLACEHOLDER-UIUC-PANEL} marker, \S\ref{sec:h1-panel}); once
+  complete, it would be needed to certify Wilson LB $\geq0.9$ and to
+  extend the ablation-level ($n$-sweep, station-selection, flow-solve-count)
+  findings beyond NACA-family sections.
 \item \textbf{Subcritical, isolated airfoil.} All results use mfoil's
   Kármán--Tsien compressibility correction (subcritical only) on an
   isolated airfoil -- no cascade periodicity, no pitch/stagger, no AVDR
@@ -1085,13 +1532,205 @@ this requires writing $C(\psi)S_i(\psi)$ into MISES's mode-file format, with
 no Fortran modification, and would demonstrate the hypothesis in a
 transonic, viscous, real-cascade solver at near-zero implementation cost if
 Route~A succeeds. Before either extension, the pre-registered NACA/UIUC
-panel evaluation (STATS\_PROTOCOL~\S3) should be run to replace this paper's
-Stage-1-lite, $N{=}1$ ablation evidence with a defensible Wilson-CI
-convergence-fraction claim -- the single largest gap between what this
-paper can currently claim and what was originally pre-registered.
-% TODO before submission: run configs/experiments/panel_naca.yaml (does not
-% yet exist; write per STATS_PROTOCOL \S3.1's frozen list) for an actual H1
-% Wilson-CI result. Source: benchmarks/REPORT.md "Recommendations for P1" #5.
+panel evaluation (STATS\_PROTOCOL~\S3) should be completed to replace the
+remaining Stage-1-lite, $N{=}1$ \emph{ablation} evidence (\S\ref{sec:h2}'s
+flow-solve-count comparison, the $n$-sweep, station-selection ablations)
+with panel-level evidence at the same standard the NACA panel
+(\S\ref{sec:h1-panel}) already met for the core convergence claim -- the
+single largest remaining gap between what this paper can currently claim
+and what was originally pre-registered.
+% TODO before submission: the NACA half of this panel evaluation is DONE
+% (\S\ref{sec:h1-panel}, 18/18 generable sections). The UIUC half
+% (configs/experiments/panel_uiuc/*.yaml, ~117 sections) has a first-pass
+% run (experiments/results/t8/panel_uiuc_*/) but 87/117 cells are being
+% re-run after a loader trailing-edge-gap fix; do not quote UIUC numbers
+% until that rerun is archived with a manifest. See the
+% \texttt{\% PLACEHOLDER-UIUC-PANEL} marker in \S\ref{sec:h1-panel}.
+% Source: benchmarks/REPORT.md "Recommendations for P1" #5.
+
+\appendix
+
+\section{Beta-function area-row derivation}
+\label{app:area}
+
+\S\ref{sec:constraints} states the inscribed-area constraint row as a
+closed-form Beta function without deriving it; this appendix supplies the
+algebra (source: docs/CST\_MISES\_Monolithic\_Inverse\_Design.md~\S3.4).
+The per-surface area under Eq.~\eqref{eq:surfaces} is
+\begin{equation}
+  \mathcal{A}_{\text{surf}} = \int_0^1 \zeta(\psi)\,d\psi
+  = \int_0^1 \Big[C(\psi)\sum_i A_i S_i(\psi) + \psi\,\zeta_T\Big]\,d\psi
+  = \sum_i A_i \int_0^1 C(\psi)S_i(\psi)\,d\psi + \frac{\zeta_T}{2},
+\end{equation}
+using linearity of the integral (itself a consequence of
+Eq.~\eqref{eq:surfaces}'s linearity in $A$, \S\ref{sec:cst-linearity}) and
+$\int_0^1\psi\,d\psi=1/2$ for the trailing-edge term. The remaining integral,
+per basis function $S_i(\psi)=K_i\psi^i(1-\psi)^{n-i}$ with
+$K_i=\binom{n}{i}$ and $C(\psi)=\psi^{N_1}(1-\psi)^{N_2}$, is
+\begin{align}
+  \int_0^1 C(\psi)S_i(\psi)\,d\psi
+    &= K_i \int_0^1 \psi^{N_1}(1-\psi)^{N_2}\,\psi^i(1-\psi)^{n-i}\,d\psi \\
+    &= K_i \int_0^1 \psi^{\,i+N_1}(1-\psi)^{\,n-i+N_2}\,d\psi.
+\end{align}
+The Euler integral of the first kind is, by definition,
+$B(p,q) = \int_0^1 t^{p-1}(1-t)^{q-1}\,dt$ for $\Re(p),\Re(q)>0$. Matching
+exponents, $p-1 = i+N_1 \Rightarrow p = i+N_1+1$ and
+$q-1 = n-i+N_2 \Rightarrow q = n-i+N_2+1$, giving exactly
+Eq.~\eqref{eq:area-beta}:
+\begin{equation}
+  \int_0^1 C(\psi)S_i(\psi)\,d\psi = K_i\,B(i+N_1+1,\;n-i+N_2+1).
+\end{equation}
+For the default round-nose/sharp-tail class ($N_1=0.5$, $N_2=1.0$), this is
+$K_i\,B(i+1.5,\,n-i+2)$ -- always well-defined since $i+1.5>0$ and
+$n-i+2>0$ for every $i\in\{0,\dots,n\}$, so no term in the sum is singular
+despite the class function's own $\sqrt\psi$ non-analyticity at $\psi=0$
+(\S\ref{sec:constraints}'s point that the LE singularity affects flow-
+residual \emph{rows}, not CST's own geometric \emph{functionals}, which stay
+perfectly regular). Stacking one such row per coefficient (upper and lower
+surface separately, since the CST convention stores lower-surface
+coefficients with their natural negative sign, \texttt{src/cins/CLAUDE.md})
+gives the full area constraint row $g$ in $g\cdot A = b$, with $b$ the
+target inscribed area (or, for the T7/T8 self-consistency protocol, the
+area of the CST fit itself, per the target-consistent-RHS discipline
+$b=g\cdot A^\ast$ this project's session memory records as a T4 lesson: the
+constraint right-hand side must always be built from what the reference
+geometry \emph{actually has}, never from an idealised or rounded value, or
+the constraint row itself introduces a spurious residual floor no Newton
+iteration can remove).
+
+\section{DOF accounting worked example (T7 configuration)}
+\label{app:dof}
+
+Eq.~\eqref{eq:dof} ($M+K=n_{A,\text{free}}+n_\alpha$) is an assertion, not a
+derived quantity (\S\ref{sec:newton-system}); this appendix works it for the
+T7 winning configuration and states the general rule it specialises.
+
+\paragraph{The T7 case.} $n=8$ per side $\Rightarrow$ 9 coefficients per
+surface, 18 total ($A_{u,0..8}$, $A_{l,0..8}$). \texttt{le\_treatment=
+prescribed} removes 2 of these from the free set --
+$A_{u,0}$ and $A_{l,0}$ are geometrically fixed to the reference fit's own
+values, not Newton unknowns (\S\ref{sec:falsifiable}) -- leaving
+$n_{A,\text{free}}=16$. Because $A_{u,0}/A_{l,0}$ are prescribed directly
+rather than tied by an equality row, no separate shared-LE constraint row is
+needed for this configuration: $K=0$. $\alpha$ is fixed for the
+self-consistency protocol (removing the camber--$\alpha$ null direction,
+\S\ref{sec:ablations}): $n_\alpha=0$. Eq.~\eqref{eq:dof} therefore requires
+$M = 16 + 0 - 0 = 16$ target-station equations -- exactly the QR-pivoted
+station count reported throughout \S\ref{sec:falsifiable}--\S\ref{sec:ablations}
+(\texttt{experiments/results/t7\_naca2412/diagnostics.json}, \texttt{static.
+dof\_accounting}: \texttt{n\_A\_free=16, M=16, K=0}).
+
+\paragraph{The general rule.} Restating Eq.~\eqref{eq:dof} in full generality:
+for $n$ Bernstein coefficients per surface (2 surfaces, so $2(n+1)$ raw
+coefficients), $c_{LE}\in\{0,1\}$ constraint rows tying the leading-edge
+coefficients (shared-LE row, used only when \texttt{le\_treatment=none} or
+\texttt{lem}, not when \texttt{prescribed} pins the coefficients directly),
+$p_{LE}\in\{0,2\}$ coefficients removed by prescription (2 when
+\texttt{le\_treatment=prescribed}, else 0), and any additional geometric
+constraint rows $K_{\text{extra}}$ (TE thickness, inscribed area, curvature,
+\S\ref{sec:constraints}):
+\begin{equation}
+  n_{A,\text{free}} = 2(n+1) - p_{LE}, \qquad K = c_{LE} + K_{\text{extra}},
+  \qquad M = n_{A,\text{free}} + n_\alpha - K.
+\end{equation}
+This is the Stage-1 (isolated-airfoil) specialisation of the dossier's
+original rigid-body bookkeeping
+(\S\ref{sec:newton-system}'s $\mathrm{DOF}=2(n+1)-1_{\text{shared LE}}-
+1_{\text{TE fixed}}+3_{\text{scale/rotate/translate}}+1_{\text{stagger or
+}\alpha}$): the three rigid overall modes are not exposed as free Newton
+unknowns in this implementation (chord, position and rotation are fixed by
+convention, not solved for), so they contribute neither to
+$n_{A,\text{free}}$ nor to $M$, and Eq.~\eqref{eq:dof} is the resulting
+simpler, directly-assertable statement. The rule's lineage is Lighthill's
+own well-posedness bookkeeping \citep{lighthill1945new}: a conformal-mapping
+inverse solve is well-posed only when the number of free shape parameters
+exactly matches the number of independent closure conditions (contour
+closure, LE radius, circulation) the target and geometry family jointly
+admit -- Eq.~\eqref{eq:dof} is that same counting argument, discretised for
+a finite-dimensional CST basis and asserted programmatically rather than
+checked by hand.
+
+\section{The onset-closure Jacobian rows}
+\label{app:onset}
+
+\S\ref{sec:transition} describes \texttt{\_residual\_transition\_forced}
+(ADR-0003) narratively; this appendix states its Jacobian-row structure
+explicitly, since it is the one residual block in this paper's extended
+system that is not simply reused unchanged from mfoil
+(\S\ref{sec:newton-system}). At a forced-transition onset station with
+endpoint states $U_1$ (upstream, still formally laminar-indexed) and $U_2$
+(downstream, freshly turbulent), the vendor three-row station residual is
+$R=[R_{\text{mom}},\,R_{\text{shape}},\,R_{\text{lag}}]$
+(\texttt{mfoil.py}, \texttt{residual\_station}). Rows 0--1
+(momentum, shape parameter) are vendor's own ordinary turbulent closure
+evaluated directly across $[x_1,x_2]$ -- unchanged code path, so their
+$U$- and $x$-Jacobian blocks are exactly mfoil's own
+$\partial R_{\text{mom},\text{shape}}/\partial U_{1,2}$,
+$\partial R_{\text{mom},\text{shape}}/\partial x$, reused verbatim. Row 2
+(shear-lag) is replaced with the onset condition
+$U_2[2] - c_{ttr}(U_2) = 0$, where $c_{ttr}$ is the same transition-
+correlation root-shear-stress function (\texttt{get\_cttr}) vendor's own
+\texttt{update\_transition} uses to initialise a newly-turbulent node.
+Because $c_{ttr}$ is a function of $U_2$ (specifically $\theta,H_k,Re_\theta,
+u_e$ at the downstream node) only, its Jacobian row has the structure
+\begin{equation}
+  R_U[2,\,0{:}4] = 0 \quad(\text{no } U_1 \text{ dependence}), \qquad
+  R_U[2,\,4{:}8] = e_{sa} - \left.\frac{\partial c_{ttr}}{\partial U_2}\right|_{U_2},
+  \qquad R_x[2,\,:] = 0,
+\end{equation}
+where $e_{sa}=[0,0,1,0]$ selects the shear-lag component of $U_2$ and
+$\partial c_{ttr}/\partial U_2$ is \texttt{get\_cttr}'s own analytic
+derivative block (\texttt{cttr\_U}), already computed by vendor code for the
+identical purpose inside \texttt{update\_transition} -- reused, not
+re-derived. The row's independence from $U_1$ and from $x$ is not an
+approximation: it follows structurally from $c_{ttr}$'s own functional
+form, which was verified by direct inspection of \texttt{get\_cttr}
+(ADR-0003, ``Modeling choice''), and it is what makes this replacement
+row well-defined at a station where the natural (unforced) closure's
+internal $x_t$-solve has no solution (\S\ref{sec:transition}).
+
+\section{Reproducibility statement}
+\label{app:repro}
+
+\begin{itemize}
+\item \textbf{Repository.} \url{https://github.com/SharathSPhD/CINS.git}
+  (branch \texttt{main} at every gate closure, per this project's workflow
+  discipline). \texttt{vendor/mfoil/mfoil.py} \citep{fidkowski2022coupled}
+  is vendored unmodified (MIT license) and is never edited; all solver
+  access is through \texttt{src/cins/solver/mfoil\_adapter.py}.
+\item \textbf{Manifest scheme.} Every experiment run in this paper writes
+  an immutable manifest under \texttt{experiments/results/} recording the
+  git SHA, a hash of the fully-resolved \texttt{configs/*.yaml} used, the
+  random seed (\texttt{experiment.seed}, \texttt{42} throughout), and
+  enough metadata to regenerate the run byte-for-byte
+  (\texttt{docs/GATES.md} condition~4). No number in this paper is
+  hand-edited; every table cell traces to a \texttt{result.json} or
+  \texttt{diagnostics.json} artifact under \texttt{experiments/results/},
+  cited inline by path throughout \S\ref{sec:falsifiable}--
+  \S\ref{sec:results}.
+\item \textbf{One-command regeneration.} T8 ablation-matrix figures (D-6
+  overlay, $n$-sweep, flow-solve bar chart, station-selection comparison):
+  \texttt{.venv/bin/python -m cins.benchmarks.figures}. This paper's new
+  geometry/Cp/flow-solution/H1-gallery figures
+  (\S\ref{sec:falsifiable}, \S\ref{sec:h1-panel}): \texttt{.venv/bin/python
+  -m cins.benchmarks.paper\_figures} -- both re-run the underlying
+  monolithic solves fresh rather than reading cached scalars, since neither
+  \texttt{t7\_naca2412/diagnostics.json} nor any \texttt{t8/*/result.json}
+  stores the CST coefficient vectors or field distributions themselves
+  (only scalar summaries; verified directly against the on-disk schema
+  before writing \texttt{paper\_figures.py}, not assumed). Individual T7/T8
+  cells: \texttt{.venv/bin/python experiments/run\_t7.py} and
+  \texttt{.venv/bin/python -m cins.benchmarks.runner} respectively. Tests:
+  \texttt{python -m pytest tests/ -q}.
+\item \textbf{Gate-closure evidence.} \texttt{docs/gates/T2-closure.md},
+  \texttt{T3-closure.md}, \texttt{T4-T7-closure.md} record the six-condition
+  gate-closure contract (\texttt{docs/GATES.md}) for each corresponding
+  task, including adversarial-review findings and their resolution;
+  \texttt{docs/adr/ADR-0001} through \texttt{ADR-0004} record the four
+  binding architectural decisions this paper's Formulation section depends
+  on (scipy shim, vendor NACA5 shim, forced-transition shim, realisability
+  semantics).
+\end{itemize}
 
 \bibliographystyle{plainnat}
 \bibliography{p1_refs}

@@ -45,3 +45,46 @@
 @techreport{kulfanlem,
   author = {Kulfan, Brenda M.}, title = {Modification of {CST} Airfoil Representation Methodology},
   institution = {Boeing}, year = {2010}}
+
+% --- Added at the P1 deepening pass (lit survey §2, comparison table §5.6) ---
+% Verified via web search 2026-08-04; source list docs/CST_MISES_Monolithic_Inverse_Design.md §5.
+
+@techreport{eppler1980airfoil,
+  author = {Eppler, Richard and Somers, Dan M.},
+  title = {A Computer Program for the Design and Analysis of Low-Speed Airfoils},
+  institution = {NASA}, number = {TM-80210}, year = {1980}}
+
+@article{selig1992multipoint,
+  author = {Selig, Michael S. and Maughmer, Mark D.},
+  title = {Multipoint Inverse Airfoil Design Method Based on Conformal Mapping},
+  journal = {AIAA Journal}, volume = {30}, number = {5}, pages = {1162--1170}, year = {1992},
+  doi = {10.2514/3.11046}}
+
+@article{sobieczky1999parsec,
+  author = {Sobieczky, Helmut},
+  title = {Parametric Airfoils and Wings},
+  journal = {Notes on Numerical Fluid Mechanics}, volume = {68}, pages = {71--88}, year = {1999},
+  doi = {10.1007/978-3-322-89952-1_4}}
+
+@inproceedings{yilmaz2020cgan,
+  author = {Yilmaz, Erdem and German, Brian},
+  title = {Conditional Generative Adversarial Network Framework for Airfoil Inverse Design},
+  booktitle = {AIAA AVIATION 2020-3185}, year = {2020}, doi = {10.2514/6.2020-3185}}
+
+@article{yu2025cddpm,
+  author = {Yu, Y. and others},
+  title = {Generative Method for Aerodynamic Optimization Based on Classifier-Free Guided Denoising Diffusion Probabilistic Model},
+  journal = {Structural and Multidisciplinary Optimization}, year = {2025},
+  doi = {10.1007/s00158-025-04111-x}, note = {arXiv:2503.07056; reports a 34.4\% precision improvement over WGAN baselines on airfoil-generation tasks}}
+
+@article{lfpinn2024,
+  author = {Wang, Y. and others},
+  title = {Physics-Informed Machine Learning Using Low-Fidelity Flowfields for Inverse Airfoil Shape Design},
+  journal = {AIAA Journal}, volume = {62}, number = {8}, pages = {2846--2861}, year = {2024},
+  doi = {10.2514/1.J063570}, note = {surrogate trained on mfoil low-fidelity flowfields; reports $\geq$10x online inference speedup vs. direct analysis, at the cost of offline training}}
+
+@article{economon2016su2,
+  author = {Economon, Thomas D. and Palacios, Francisco and Copeland, Sean R. and Lukaczyk, Trent W. and Alonso, Juan J.},
+  title = {{SU2}: An Open-Source Suite for Multiphysics Simulation and Design},
+  journal = {AIAA Journal}, volume = {54}, number = {3}, pages = {828--846}, year = {2016},
+  doi = {10.2514/1.J053813}}
