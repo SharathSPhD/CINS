@@ -228,4 +228,49 @@ def load_airfoil_dat(path: str | Path) -> NDArray:
 
     X = _normalize_chord(X)
     X = _fix_orientation(X)
+    X = _ensure_min_te_gap(X)
     return np.ascontiguousarray(X, dtype=np.float64)
+
+
+# Minimum trailing-edge gap, in chords. Sharp-TE sections (duplicated or
+# coincident endpoints — common in the UIUC corpus) make mfoil's build_wake
+# TE-tangent sign test (`assert t[0] > 0`, mfoil.py:748) evaluate on numerical
+# noise: the wake-direction connector n = x_last − x_first is ~0 and its sign
+# is arbitrary, killing ~half of viscous solves (observed: 63/117 UIUC panel
+# cells, 2026-08-05). Opening the TE to a small finite gap is the standard
+# panel-code remedy (XFOIL's TGAP); 2e-4 c is well under fit/gate tolerances.
+MIN_TE_GAP = 2.0e-4
+
+
+def _ensure_min_te_gap(X: NDArray, min_gap: float = MIN_TE_GAP) -> NDArray:
+    """Open a sharp/near-sharp trailing edge to a minimum finite gap.
+
+    The loop convention is TE-lower (first column) -> LE -> TE-upper (last).
+    If the endpoints coincide (duplicated sharp-TE point) the duplicate is
+    dropped first; then, if the remaining gap is below ``min_gap``, both TE
+    endpoints are displaced symmetrically along the local thickness direction
+    (approximated by the mean of the two TE panel normals) to reach it.
+    """
+    if np.hypot(*(X[:, -1] - X[:, 0])) < 1e-12 and X.shape[1] > 4:
+        X = X[:, :-1]  # drop exact duplicate closing point
+    gap_vec = X[:, -1] - X[:, 0]
+    gap = float(np.hypot(*gap_vec))
+    if gap >= min_gap:
+        return X
+    # local thickness direction: perpendicular to the mean TE tangent
+    t_lo = X[:, 0] - X[:, 1]
+    t_up = X[:, -1] - X[:, -2]
+    t_mean = t_lo / (np.hypot(*t_lo) or 1.0) + t_up / (np.hypot(*t_up) or 1.0)
+    nrm = np.hypot(*t_mean)
+    if nrm < 1e-12:
+        d = np.array([0.0, 1.0])  # degenerate: open vertically
+    else:
+        t_mean /= nrm
+        d = np.array([-t_mean[1], t_mean[0]])
+        if d[1] < 0:
+            d = -d  # +d points toward the upper surface
+    need = 0.5 * (min_gap - gap)
+    X = X.copy()
+    X[:, 0] -= need * d   # lower TE point moves down
+    X[:, -1] += need * d  # upper TE point moves up
+    return X
