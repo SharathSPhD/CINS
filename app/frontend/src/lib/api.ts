@@ -428,7 +428,19 @@ export interface ShowcaseResponse {
   manifest_note: string;
 }
 
-export function showcase(): Promise<ShowcaseResponse> {
+// The Gallery shows archived results only, so this needs no backend. Reading
+// the pre-generated asset first (scripts/gen_showcase.py, kept in step with
+// GET /api/showcase because it is produced by the same run_showcase) means a
+// cold free-tier container no longer leaves the page on "Loading archived
+// results..." for the length of a spin-up. The endpoint stays as the fallback
+// so a deployment without the asset still works.
+export async function showcase(): Promise<ShowcaseResponse> {
+  try {
+    const res = await fetchWithTimeout("/showcase.json", {}, 8000);
+    if (res.ok) return (await res.json()) as ShowcaseResponse;
+  } catch {
+    // fall through to the API
+  }
   return getJson("/api/showcase");
 }
 
