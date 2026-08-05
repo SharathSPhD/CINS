@@ -304,7 +304,9 @@ export interface FlowFieldResponse {
 // vectorizing. 30s gives ~3x margin over the ~8-10s worst case estimated for
 // the Render free tier (roughly 20x slower than local) plus room for a
 // free-tier cold start, without reintroducing the old "stuck at 90s" wait.
-const FLOWFIELD_TIMEOUT_MS = 30_000;
+// The free-tier backend takes ~8.5 s for the default grid, roughly 20x
+// local. 30 s sat on that boundary and tripped every time.
+const FLOWFIELD_TIMEOUT_MS = 90_000;
 
 export function flowfield(req: FlowFieldRequest): Promise<FlowFieldResponse> {
   return postJson("/api/flowfield", req, FLOWFIELD_TIMEOUT_MS);

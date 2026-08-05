@@ -9,7 +9,6 @@ import ArchivedResidualChart from "@/components/ArchivedResidualChart";
 // never a live solve.
 
 import { useEffect, useMemo, useState } from "react";
-import AirfoilShape from "@/components/AirfoilShape";
 import FlowFieldCanvas from "@/components/FlowFieldCanvas";
 import {
   airfoilGeometry,
@@ -55,11 +54,7 @@ function makeLimiter(maxConcurrent: number) {
 }
 
 const limitThumbFetch = makeLimiter(6);
-const limitFlowFieldSolve = makeLimiter(2);
 
-function throttledAirfoilGeometry(id: string): ReturnType<typeof airfoilGeometry> {
-  return limitThumbFetch(() => airfoilGeometry(id));
-}
 
 export default function GalleryPage() {
   const [data, setData] = useState<ShowcaseResponse | null>(null);
@@ -104,15 +99,24 @@ export default function GalleryPage() {
       <section className="mt-8">
         <h2 className="text-lg font-medium">Flow field showcase</h2>
         <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-          Live inviscid velocity/Cp fields (each solved on load: not archived) across a spread of
-          camber, thickness, and angle of attack. Open <a href="/flowfield" className="underline underline-offset-2">Flow Field</a> to
-          drive any of the 123 UIUC sections or a NACA code yourself.
+          Inviscid velocity and pressure fields across a spread of camber, thickness and angle
+          of attack. These are stored renders, so this page never waits on a solve. Open{" "}
+          <a href="/flowfield" className="underline underline-offset-2">Flow Field</a> to drive
+          any of the 123 UIUC sections or a NACA code yourself.
         </p>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <FlowFieldShowcaseCard title="NACA 2412, alpha=6°" naca="2412" alpha={6} colorBy="cp" />
-          <FlowFieldShowcaseCard title="NACA 0012, alpha=10°" naca="0012" alpha={10} colorBy="speed" />
-          <FlowFieldShowcaseCard title="Eppler 212, alpha=4°" airfoilId="uiuc:e212" alpha={4} colorBy="cp" />
-          <FlowFieldShowcaseCard title="Clark-K, alpha=4°" airfoilId="uiuc:clarkk" alpha={4} colorBy="speed" />
+          {[
+            ["naca2412_a6", "NACA 2412, alpha 6°, Cp"],
+            ["naca0012_a10", "NACA 0012, alpha 10°, |V|"],
+            ["e212_a4", "Eppler 212, alpha 4°, Cp"],
+            ["clarkk_a4", "Clark-K, alpha 4°, |V|"],
+          ].map(([file, label]) => (
+            <figure key={file} className="rounded-lg border border-neutral-200 dark:border-neutral-800 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element -- static render served by the backend */}
+              <img src={`/static/figures/flowfield/${file}.png`} alt={label} className="w-full h-auto" />
+              <figcaption className="px-2 py-1 text-xs text-neutral-500">{label}</figcaption>
+            </figure>
+          ))}
         </div>
       </section>
 
@@ -160,9 +164,6 @@ export default function GalleryPage() {
             <tbody>
               {rows.map((p) => (
                 <tr key={p.cell_name} className="odd:bg-neutral-50 dark:odd:bg-neutral-900/40 align-middle">
-                  <td className="px-3 py-1 w-24">
-                    {p.airfoil_id && <PanelThumb airfoilId={p.airfoil_id} />}
-                  </td>
                   <td className="px-3 py-1 font-mono">{p.cell_name}</td>
                   <td className="px-3 py-1">
                     <span className={p.converged ? "text-emerald-600 dark:text-emerald-400": "text-red-600 dark:text-red-400"}>
@@ -236,62 +237,6 @@ export default function GalleryPage() {
 // app rich-features brief: "colored field visuals").
 // --------------------------------------------------------------------------- //
 
-function FlowFieldShowcaseCard({
-  title,
-  naca,
-  airfoilId,
-  alpha,
-  colorBy,
-}: {
-  title: string;
-  naca?: string;
-  airfoilId?: string;
-  alpha: number;
-  colorBy: "speed" | "cp";
-}) {
-  const [field, setField] = useState<FlowFieldResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      try {
-        const req = naca
-          ? { naca, alpha }
-         : { coords: (await throttledAirfoilGeometry(airfoilId as string)).coords, alpha };
-        const res = await limitFlowFieldSolve(() => flowfield(req));
-        if (!cancelled) setField(res);
-      } catch (err) {
-        if (!cancelled) setError(describeError(err));
-      }
-    }
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [naca, airfoilId, alpha]);
-
-  return (
-    <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
-      <div className="text-xs font-medium mb-1">{title}</div>
-      {field ? (
-        <FlowFieldCanvas field={field} colorBy={colorBy} showStreamlines width={480} height={300} />
-      ): error ? (
-        <div className="text-xs text-red-600 dark:text-red-400 py-8 text-center">{error}</div>
-      ): (
-        <div className="text-xs text-neutral-400 py-8 text-center animate-pulse">solving...</div>
-      )}
-    </div>
-  );
-}
-
-// --------------------------------------------------------------------------- //
-// Airfoil corpus: every NACA preset + all 123 UIUC sections with a real
-// shape thumbnail (fetched lazily, paginated) and a search box (item 7:
-// "many airfoils"). Thumbnails fetch geometry on demand rather than eagerly
-// for all ~145 entries, so the page stays responsive.
-// --------------------------------------------------------------------------- //
-
 function AirfoilCorpusSection() {
   const [catalog, setCatalog] = useState<AirfoilListResponse | null>(null);
   const [q, setQ] = useState("");
@@ -347,57 +292,19 @@ function AirfoilCorpusSection() {
 }
 
 function AirfoilThumb({ item }: { item: AirfoilListItem }) {
-  const [coords, setCoords] = useState<number[][] | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    throttledAirfoilGeometry(item.id)
-      .then((g) => {
-        if (!cancelled) setCoords(g.coords);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [item.id]);
-
+  // Presentational only. Drawing each outline meant one geometry request per
+  // airfoil, 143 of them against a shared free-tier backend, which is what made
+  // this page sit on "loading". Everything shown here comes from the single
+  // /api/airfoils response already in hand.
   return (
-    <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-2">
-      {coords ? (
-        <AirfoilShape coords={coords} width={220} height={90} />
-      ): (
-        <div className="h-[90px] flex items-center justify-center text-[10px] text-neutral-400">
-          {failed ? "failed to load" : "loading..."}
-        </div>
-      )}
-      <div className="mt-1 flex items-center justify-between text-[10px] text-neutral-500">
-        <span className="font-mono truncate">{item.name}</span>
-        {item.thickness != null && <span>{(item.thickness * 100).toFixed(1)}%t</span>}
+    <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 px-2 py-1.5">
+      <div className="font-mono text-xs truncate">{item.name}</div>
+      <div className="mt-0.5 flex gap-2 text-[10px] text-neutral-500">
+        {item.thickness != null && <span>{(item.thickness * 100).toFixed(1)}% t/c</span>}
+        {item.camber != null && <span>{(item.camber * 100).toFixed(1)}% camber</span>}
       </div>
     </div>
   );
 }
 
-// Compact geometry thumbnail for a T8 panel-sweep table row.
-function PanelThumb({ airfoilId }: { airfoilId: string }) {
-  const [coords, setCoords] = useState<number[][] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    throttledAirfoilGeometry(airfoilId)
-      .then((g) => {
-        if (!cancelled) setCoords(g.coords);
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [airfoilId]);
-
-  if (!coords) return <div className="h-6 w-20 bg-neutral-100 dark:bg-neutral-900 rounded" />;
-  return <AirfoilShape coords={coords} width={80} height={24} />;
-}
 

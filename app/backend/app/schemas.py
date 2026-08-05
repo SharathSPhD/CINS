@@ -240,8 +240,11 @@ class FlowFieldGrid(BaseModel):
     # evaluator (app/backend/app/flowfield.py): 120x80 renders a visibly
     # sharper picture and is still ~0.35s locally (measured), well inside
     # engine._FLOWFIELD_MAX_CELLS's live-response budget.
-    nx: int = Field(120, ge=5, le=200)
-    ny: int = Field(80, ge=5, le=200)
+    # 60x40 measures ~8.5 s on the free-tier backend; 120x80 is four times
+    # the cells and lands past the client timeout, so it is available on
+    # request but is not the default.
+    nx: int = Field(60, ge=5, le=200)
+    ny: int = Field(40, ge=5, le=200)
     x_min: float = -0.5
     x_max: float = 1.5
     y_min: float = -0.6
