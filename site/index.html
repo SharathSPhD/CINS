@@ -38,6 +38,7 @@
   <ol>
     <li><a href="#hook" data-scene-link="hook"><span class="dot" aria-hidden="true"></span><span class="lab">Open</span></a></li>
     <li><a href="#problem" data-scene-link="problem"><span class="dot" aria-hidden="true"></span><span class="lab">The problem</span></a></li>
+    <li><a href="#coupling" data-scene-link="coupling"><span class="dot" aria-hidden="true"></span><span class="lab">The flow model</span></a></li>
     <li><a href="#cst-linearity" data-scene-link="cst-linearity"><span class="dot" aria-hidden="true"></span><span class="lab">CST is linear</span></a></li>
     <li><a href="#newton-system" data-scene-link="newton-system"><span class="dot" aria-hidden="true"></span><span class="lab">One square system</span></a></li>
     <li><a href="#falsifiable" data-scene-link="falsifiable"><span class="dot" aria-hidden="true"></span><span class="lab">The falsifiable test</span></a></li>
@@ -142,6 +143,115 @@
     </div>
   </section>
 
+  <section id="coupling" class="scene" data-scene="coupling">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">02</span><span class="rule" aria-hidden="true"></span>The flow model</p>
+        <h2>Coupled, not iterated</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          mfoil is not an inviscid solver corrected afterward by a boundary-layer patch. It
+          solves a panel-method inviscid solution and a two-equation integral boundary-layer
+          closure <em>simultaneously</em>, as one system, advanced by a single global
+          Newton&ndash;Raphson iteration with an analytically assembled, sparse Jacobian. That
+          coupling is why it was chosen as the Stage 1 testbed, not an incidental property of
+          whichever solver happened to be at hand.
+        </p>
+        <p class="reveal">
+          The distinction matters because this project's whole argument depends on appending
+          CST columns to an existing Jacobian. An analysis code that solves the inviscid pass,
+          then the boundary layer, then iterates between them until they agree, has no single
+          global Jacobian to append to. mfoil already exposes &part;R/&part;U as a sparse
+          matrix; the extended system of Act II could not be built without that.
+        </p>
+
+        <div class="coupling-diagram reveal">
+          <div class="cd-box">
+            <p class="cd-label">Inviscid panel solution</p>
+            <p class="cd-detail">Linear-vorticity panels, freestream and stagnation-point
+            formulation. Produces an edge velocity u<sub>e,inv</sub> at every surface node from
+            the current geometry alone.</p>
+          </div>
+          <div class="cd-link" aria-hidden="true">
+            <span class="cd-arrow">&#8644;</span>
+            <span class="cd-via">via &delta;*</span>
+          </div>
+          <div class="cd-box">
+            <p class="cd-label">Integral boundary layer</p>
+            <p class="cd-detail">Momentum-integral and shape-parameter equations march along
+            each surface, closing on &theta; and &delta;* at every node.</p>
+          </div>
+        </div>
+
+        <p class="reveal">
+          Displacement thickness is the variable that actually does the coupling. Each surface
+          node carries four unknowns solved together in one Newton step: momentum thickness
+          &theta;, displacement thickness &delta;*, an amplification or shear-lag variable that
+          tracks transition, and the edge velocity u<sub>e</sub>. Three residual rows close
+          &theta;, &delta;* and the transition variable. The fourth is not one of those three;
+          it is a mass-conservation row written directly in terms of &delta;*:
+        </p>
+
+        <div class="eqn-block reveal">
+          <div class="eqn-row eqn">u<sub>e</sub> = u<sub>e,inv</sub> + <span class="rm">ue_m</span>&thinsp;&middot;&thinsp;(&delta;*&thinsp;u<sub>e</sub>)</div>
+          <div class="eqn-label">&delta;*&thinsp;u<sub>e</sub> is a transpiration mass flow induced by the boundary layer's
+          own growth; <span class="rm">ue_m</span> is mfoil's panel mass-influence matrix, the
+          same object that assembles the inviscid solution. Source: docs/mfoil_internals.md
+          &sect;1.3, citing mfoil.py's <code>solve_glob</code>.</div>
+        </div>
+
+        <p class="reveal">
+          The boundary layer does not correct the panel solution after the fact; it thickens
+          the effective body the panel method sees, through a transpiration term built from its
+          own state. Solving that row alongside the three boundary-layer rows and the panel
+          equations, in one Newton system, is what "coupled" means here, as opposed to the
+          older practice of alternating an inviscid solve and a boundary-layer sweep until they
+          stop changing.
+        </p>
+
+        <div class="table-scroll reveal">
+        <table class="data">
+          <caption>The boundary-layer state mfoil actually reports, per surface node</caption>
+          <thead><tr><th>Quantity</th><th>Symbol</th><th>Role</th></tr></thead>
+          <tbody>
+            <tr><td>Momentum thickness</td><td class="num">&theta;</td><td>closed by the momentum-integral residual row</td></tr>
+            <tr><td>Displacement thickness</td><td class="num">&delta;*</td><td>closed by the shape-parameter row; the coupling variable above</td></tr>
+            <tr><td>Skin friction coefficient</td><td class="num">c<sub>f</sub></td><td>evaluated from the closure correlations at the converged state</td></tr>
+            <tr><td>Kinematic shape parameter</td><td class="num">H<sub>k</sub> = &delta;*/&theta;</td><td>the transition/separation proxy; floor-clamped near 1.0 on the airfoil, tighter in the wake</td></tr>
+          </tbody>
+        </table>
+        </div>
+
+        <div class="fig-grid reveal">
+          <figure class="fig">
+            <img src="assets/img/flowfield-naca2412.png" alt="Inviscid pressure-coefficient field around a NACA 2412 section, computed from mfoil's own panel-influence coefficients." loading="lazy" width="1080" height="660">
+            <figcaption>The inviscid half alone: panel-method C<sub>p</sub> field around NACA 2412, &alpha;=6&deg;. <span class="src">experiments/results/t8/figures/flowfield/naca2412_a6.png</span></figcaption>
+          </figure>
+          <figure class="fig">
+            <img src="assets/img/t7-flow-solution.png" alt="Converged coupled flow solution: pressure coefficient and boundary-layer displacement thickness at the recovered geometry." loading="lazy" width="2200" height="900">
+            <figcaption>The coupled solution: C<sub>p</sub> and &delta;*/c reported together from the same converged Newton state. <span class="src">experiments/results/t8/figures/paper/fig_t7_flow_solution.png</span></figcaption>
+          </figure>
+        </div>
+
+        <div class="callout callout-caveat reveal">
+          <p class="callout-label">Why the transition closure gets pinned</p>
+          <p>
+            The amplification/shear-lag row above uses an e<sup>n</sup> transition closure that
+            is continuous, C&#8304;, but not C&#185;, in the design variables: the residual has a
+            kink exactly where a station crosses from laminar to turbulent. A Newton method
+            wants a continuous Jacobian; a kink makes it chatter or stall in a way that looks
+            geometric but is thermodynamic. The mitigation, forcing the trip location during
+            the inverse Newton iterations and releasing it to solve naturally only afterward,
+            for verification, is not a simplification of the physics. It is what keeps this
+            particular row differentiable while the CST columns are being solved for. Act III
+            shows the release-and-verify step this makes possible.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ============================== ACT II ============================== -->
   <section class="act" data-act="Act II">
     <div class="act-inner reveal">
@@ -153,9 +263,9 @@
   </section>
 
   <section id="cst-linearity" class="scene" data-scene="cst-linearity">
-    <div class="reading">
+    <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">02</span><span class="rule" aria-hidden="true"></span>The geometry</p>
+        <p class="eyebrow"><span class="num">03</span><span class="rule" aria-hidden="true"></span>The geometry</p>
         <h2>A shape linear in its own coefficients</h2>
       </header>
       <div class="scene-body">
@@ -177,6 +287,62 @@
           <div class="eqn-row eqn">&zeta;<sub>u</sub>(&psi;) = <span class="rm">C</span>(&psi;)&thinsp;<span class="rm">S</span><sub>u</sub>(&psi;) + &psi;&thinsp;&zeta;<sub>T,u</sub></div>
           <div class="eqn-row eqn">&zeta;<sub>l</sub>(&psi;) = <span class="rm">C</span>(&psi;)&thinsp;<span class="rm">S</span><sub>l</sub>(&psi;) + &psi;&thinsp;&zeta;<sub>T,l</sub></div>
           <div class="eqn-label"><span class="rm">S</span><sub>u</sub>(&psi;) = &sum;<sub>i=0</sub><sup>n</sup> A<sub>u,i</sub> <span class="rm">S</span><sub>i</sub>(&psi;), and likewise for the lower surface. &zeta;<sub>T,u</sub> = +t<sub>TE</sub>/2, &zeta;<sub>T,l</sub> = &minus;t<sub>TE</sub>/2.</div>
+        </div>
+
+        <h3 class="reveal">Drawn, not just written</h3>
+        <p class="reveal">
+          Every claim in this project rests on that decomposition, so it is worth seeing rather
+          than only reading. The class function sets the silhouette, round nose, sharp tail; the
+          Bernstein terms are a fixed basis; the coefficients A are the only thing that changes
+          from one airfoil to the next.
+        </p>
+
+        <div class="cst-viz reveal">
+          <div class="cst-viz-row">
+            <div class="cst-canvas-card">
+              <canvas id="cst-canvas-class" width="640" height="360" role="img" aria-label="The CST class function, psi to the power 0.5 times one minus psi, vanishing at both ends with an infinite slope at the leading edge."></canvas>
+              <p class="cst-viz-caption">Class function <span class="mono">C(&psi;) = &psi;<sup>0.5</sup>(1&minus;&psi;)<sup>1.0</sup></span>. Zero at both ends; the &radic;&psi; term gives the round nose its infinite initial slope, the (1&minus;&psi;) term gives the tail its finite one.</p>
+            </div>
+            <div class="cst-canvas-card">
+              <canvas id="cst-canvas-shape" width="640" height="360" role="img" aria-label="The nine Bernstein basis terms of order eight, shown faintly, summing to the weighted shape function for NACA 2412's upper surface, shown as a bold curve."></canvas>
+              <p class="cst-viz-caption">The nine order-8 Bernstein terms <span class="mono">S<sub>i</sub>(&psi;)</span> (faint), and their sum weighted by NACA&nbsp;2412's real upper-surface A (bold): <span class="mono">S<sub>u</sub>(&psi;) = &sum; A<sub>u,i</sub> S<sub>i</sub>(&psi;)</span>.</p>
+            </div>
+          </div>
+          <div class="cst-canvas-card wide">
+            <canvas id="cst-canvas-surface" width="1320" height="420" role="img" aria-label="The resulting upper and lower airfoil surfaces for NACA 2412 and NACA 6409, computed as the class function times the shape function plus the trailing edge term."></canvas>
+            <p class="cst-viz-caption">The resulting surface, <span class="mono">&zeta;(&psi;) = C(&psi;)&thinsp;S(&psi;) + &psi;&thinsp;&zeta;<sub>T</sub></span>, for both real sections below. Same class function, same Bernstein basis; only A differs.</p>
+          </div>
+        </div>
+
+        <h3 class="reveal">Two real sections, fitted</h3>
+        <p class="reveal">
+          An order-8 Bernstein fit (n=8, nine coefficients per surface) to two sections from the
+          project's own airfoil corpus: NACA 2412 (2% camber, the falsifiable-test airfoil used
+          throughout this page) and NACA 6409 (6% camber, a high-camber section from the same
+          corpus). Fit RMS is 3.99&times;10<sup>&minus;5</sup>c and 9.60&times;10<sup>&minus;5</sup>c respectively.
+        </p>
+
+        <div class="cst-canvas-card reveal">
+          <canvas id="cst-canvas-bars" width="1320" height="480" role="img" aria-label="Bar chart of the nine upper-surface and nine lower-surface CST coefficients for NACA 2412 and NACA 6409."></canvas>
+          <p class="cst-viz-caption">Fitted CST coefficients A<sub>0</sub>&hellip;A<sub>8</sub>, upper and lower surface, both sections.
+          <span class="src">app/frontend/public/corpus.json (order-8 CST fit, 143 sections; ids naca:2412 and naca:6409)</span></p>
+        </div>
+
+        <div class="callout callout-note reveal">
+          <p class="callout-label">Why the endpoint and integral coefficients matter</p>
+          <p>
+            A<sub>0</sub> alone fixes the leading-edge radius, and the fit closes it almost
+            exactly: NACA 2412's A<sub>0,upper</sub>=0.17954 gives R<sub>LE</sub>=A<sub>0</sub><sup>2</sup>/2=0.016117c,
+            against 0.016117c read directly off the fitted geometry. A<sub>n</sub> fixes the
+            trailing-edge boat-tail angle the same way: A<sub>8,upper</sub>=0.20657 combined with
+            the fitted TE offset &zeta;<sub>T,u</sub>=0.00126c gives tan&beta;=0.2053,
+            &beta;&asymp;11.6&deg;, again a single coefficient read, not a nonlinear angular
+            search variable. The inscribed area is a linear functional of the full coefficient
+            vector with closed-form Beta-function weights (&sect;3.4 of the dossier); computed
+            that way for NACA 2412's fit it agrees with a numerical quadrature of the same
+            surface to 1&times;10<sup>&minus;14</sup>. Each of these becomes one exact row in the
+            constraint block G&middot;A=b (Act II), not a penalty term evaluated on a rebuilt mesh.
+          </p>
         </div>
 
         <div class="callout callout-key reveal">
@@ -229,7 +395,7 @@
   <section id="newton-system" class="scene" data-scene="newton-system">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">03</span><span class="rule" aria-hidden="true"></span>The system</p>
+        <p class="eyebrow"><span class="num">04</span><span class="rule" aria-hidden="true"></span>The system</p>
         <h2>One square system, not two nested loops</h2>
       </header>
       <div class="scene-body">
@@ -331,7 +497,7 @@
   <section id="falsifiable" class="scene" data-scene="falsifiable">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">04</span><span class="rule" aria-hidden="true"></span>The test</p>
+        <p class="eyebrow"><span class="num">05</span><span class="rule" aria-hidden="true"></span>The test</p>
         <h2>Recovering a known airfoil from its own pressure distribution</h2>
       </header>
       <div class="scene-body">
@@ -434,7 +600,7 @@
   <section id="identifiability" class="scene" data-scene="identifiability">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">05</span><span class="rule" aria-hidden="true"></span>Station selection</p>
+        <p class="eyebrow"><span class="num">06</span><span class="rule" aria-hidden="true"></span>Station selection</p>
         <h2>Converged is not the same as correct</h2>
       </header>
       <div class="scene-body">
@@ -490,7 +656,7 @@
   <section id="naca-panel" class="scene" data-scene="naca-panel">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">06</span><span class="rule" aria-hidden="true"></span>Generalization</p>
+        <p class="eyebrow"><span class="num">07</span><span class="rule" aria-hidden="true"></span>Generalization</p>
         <h2>Eighteen of eighteen generable NACA sections</h2>
       </header>
       <div class="scene-body">
@@ -539,7 +705,7 @@
   <section id="flow-solves" class="scene" data-scene="flow-solves">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">07</span><span class="rule" aria-hidden="true"></span>Cost</p>
+        <p class="eyebrow"><span class="num">08</span><span class="rule" aria-hidden="true"></span>Cost</p>
         <h2>Fewer flow solves than a tuned nested optimizer</h2>
       </header>
       <div class="scene-body">
@@ -585,7 +751,7 @@
   <section id="conditioning" class="scene" data-scene="conditioning">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">08</span><span class="rule" aria-hidden="true"></span>Limits</p>
+        <p class="eyebrow"><span class="num">09</span><span class="rule" aria-hidden="true"></span>Limits</p>
         <h2>A conditioning cliff at Bernstein order twelve</h2>
       </header>
       <div class="scene-body">
@@ -659,7 +825,7 @@
   <section id="next" class="scene" data-scene="next">
     <div class="reading">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">09</span><span class="rule" aria-hidden="true"></span>The cascade</p>
+        <p class="eyebrow"><span class="num">10</span><span class="rule" aria-hidden="true"></span>The cascade</p>
         <h2>From an isolated airfoil to a cascade</h2>
       </header>
       <div class="scene-body">

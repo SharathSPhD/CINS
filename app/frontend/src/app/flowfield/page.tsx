@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import AirfoilShape from "@/components/AirfoilShape";
+import BLChart from "@/components/BLChart";
 import FlowFieldCanvas from "@/components/FlowFieldCanvas";
 import {
   airfoilGeometry,
+  analyze,
   describeError,
   flowfield,
   listAirfoils,
   type AirfoilListItem,
   type AirfoilListResponse,
+  type AnalyzeResponse,
   type FlowFieldResponse,
 } from "@/lib/api";
 
@@ -18,6 +22,7 @@ export default function FlowFieldPage() {
   const [naca, setNaca] = useState("2412");
   const [customCoords, setCustomCoords] = useState<number[][] | null>(null);
   const [alpha, setAlpha] = useState(4.0);
+  const [re, setRe] = useState<number | "">("");
   const [colorBy, setColorBy] = useState<"speed" | "cp">("speed");
   const [showStreamlines, setShowStreamlines] = useState(true);
 
@@ -32,6 +37,18 @@ export default function FlowFieldPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Viscous half of the same coupled solve, via the existing /api/analyze
+  // endpoint: mfoil couples the inviscid field and the boundary layer
+  // through the displacement thickness, and that coupling is why mfoil was
+  // chosen (see CLAUDE.md). The color field above stays inviscid (a
+  // separate change adds the viscous source term to the field itself); this
+  // panel is what /api/analyze already returns for the same airfoil/alpha,
+  // so the page stops presenting itself as inviscid-only without claiming
+  // the field is something it is not yet.
+  const [blResult, setBlResult] = useState<AnalyzeResponse | null>(null);
+  const [blLoading, setBlLoading] = useState(false);
+  const [blError, setBlError] = useState<string | null>(null);
 
   useEffect(() => {
     listAirfoils()
@@ -72,19 +89,49 @@ export default function FlowFieldPage() {
     heartbeatRef.current = setInterval(() => {
       setElapsedS((Date.now() - startedAt) / 1000);
     }, 500);
-    try {
-      const req = customCoords ? { coords : customCoords, alpha }: { naca, alpha };
-      const res = await flowfield(req);
-      if (requestId !== requestIdRef.current) return; // superseded by a newer request
-      setField(res);
-    } catch (err) {
-      if (requestId !== requestIdRef.current) return;
-      setError(describeError(err));
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setLoading(false);
-        if (heartbeatRef.current) clearInterval(heartbeatRef.current);
-      }
+
+    const baseReq = customCoords ? { coords: customCoords, alpha } : { naca, alpha };
+
+    const fieldPromise = flowfield(baseReq)
+      .then((res) => {
+        if (requestId !== requestIdRef.current) return;
+        setField(res);
+      })
+      .catch((err) => {
+        if (requestId !== requestIdRef.current) return;
+        setError(describeError(err));
+      });
+
+    // Viscous boundary-layer distributions for the SAME airfoil/alpha, via
+    // the coupled mfoil solve: only fired when a Reynolds number is given
+    // (blank stays inviscid, matching the field above).
+    let blPromise: Promise<void> = Promise.resolve();
+    if (re !== "") {
+      setBlLoading(true);
+      setBlError(null);
+      blPromise = analyze({ ...baseReq, Re: re })
+        .then((res) => {
+          if (requestId !== requestIdRef.current) return;
+          setBlResult(res);
+        })
+        .catch((err) => {
+          if (requestId !== requestIdRef.current) return;
+          setBlResult(null);
+          setBlError(describeError(err));
+        })
+        .finally(() => {
+          if (requestId === requestIdRef.current) setBlLoading(false);
+        });
+    } else {
+      setBlResult(null);
+      setBlError(null);
+      setBlLoading(false);
+    }
+
+    await Promise.allSettled([fieldPromise, blPromise]);
+    if (requestId === requestIdRef.current) {
+      setLoading(false);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     }
   }
 
@@ -103,8 +150,19 @@ export default function FlowFieldPage() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Flow Field</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-        Inviscid velocity field (vendor <code>inviscid_velocity</code>) rendered as a |V| or Cp
-        heatmap with client-side RK2 streamline tracing: works for any NACA code or UIUC section.
+        mfoil is a coupled viscous-inviscid solver, and that coupling is why it was chosen for
+        this project. The colour field below is the <strong>inviscid</strong> part (vendor{" "}
+        <code>inviscid_velocity</code>), rendered as a |V| or Cp heatmap with client-side RK2
+        streamline tracing, for any NACA code or UIUC section.
+      </p>
+      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+        Give a Reynolds number below and this page also runs the same solve with the boundary
+        layer on (the existing <code>/api/analyze</code> endpoint) and shows its{" "}
+        <strong>viscous</strong> half alongside the field: momentum/displacement thickness growing
+        along the chord, with the transition location marked. Displacement thickness{" "}
+        <code>delta*</code> is what couples the two halves of the solve. The colour field itself
+        stays inviscid for now: adding the viscous source contribution to the field is a separate
+        change.
       </p>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[280px_1fr]">
@@ -160,6 +218,20 @@ export default function FlowFieldPage() {
               value={alpha}
               onChange={(e) => onAlphaChange(Number(e.target.value))}
               className="w-full"
+            />
+          </label>
+
+          <label className="block">
+            <span className="block text-xs font-medium text-neutral-600 dark:text-neutral-400 mb-1">
+              Reynolds number (blank = inviscid boundary layer, no BL panels)
+            </span>
+            <input
+              type="number"
+              step="1000"
+              className={inputCls}
+              value={re}
+              onChange={(e) => setRe(e.target.value === "" ? "" : Number(e.target.value))}
+              placeholder="1000000"
             />
           </label>
 
@@ -223,8 +295,67 @@ export default function FlowFieldPage() {
               {loading ? `Solving... (${elapsedS.toFixed(0)}s elapsed)`: "Run a solve to see the flow field."}
             </div>
           )}
+
+          {re !== "" && <BoundaryLayerPanel loading={blLoading} error={blError} result={blResult} />}
         </div>
       </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------- //
+// Viscous half of the coupled solve: theta/delta*/cf/Hk distributions and the
+// transition location, from the SAME /api/analyze call this page already
+// makes when a Reynolds number is given. Reuses BLChart (Analyze page) so the
+// two pages read the boundary layer the same way.
+// --------------------------------------------------------------------------- //
+
+function BoundaryLayerPanel({
+  loading,
+  error,
+  result,
+}: {
+  loading: boolean;
+  error: string | null;
+  result: AnalyzeResponse | null;
+}) {
+  if (loading && !result) {
+    return (
+      <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3 text-sm text-neutral-500">
+        Running the coupled viscous solve...
+      </div>
+    );
+  }
+  if (error) return <ErrorBox message={`Boundary-layer solve failed: ${error}`} />;
+  if (!result?.bl) return null;
+
+  const tx = result.bl.transition_x;
+
+  return (
+    <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-3">
+      <h2 className="text-sm font-medium mb-1">Boundary layer (viscous half of the coupled solve)</h2>
+      <p className="text-xs text-neutral-500 mb-2">
+        The field above is inviscid; this is the viscous half of the same solve at Re ={" "}
+        {result.Re != null ? result.Re.toExponential(2) : "?"}, coupled to it through the
+        displacement thickness. cl = {result.cl.toFixed(4)}, cd = {result.cd.toFixed(5)} (cdf ={" "}
+        {result.cdf != null ? result.cdf.toFixed(5) : ","}, cdp ={" "}
+        {result.cdp != null ? result.cdp.toFixed(5) : ","}).
+      </p>
+      {tx && (
+        <p className="text-xs text-neutral-500 mb-2">
+          transition (e^n): upper x/c = {tx.upper.toFixed(3)}, lower x/c = {tx.lower.toFixed(3)}{" "}
+          (marked as dashed vertical lines below).
+        </p>
+      )}
+      <BLChart bl={result.bl} />
+      {result.bl_offset && (
+        <div className="mt-3">
+          <div className="text-xs font-medium mb-1">
+            Displacement-thickness offset (the coupling term the inviscid edge condition sees)
+          </div>
+          <AirfoilShape coords={result.coords} blOffset={result.bl_offset} height={140} />
+        </div>
+      )}
     </div>
   );
 }

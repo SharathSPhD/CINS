@@ -48,7 +48,13 @@ from cins.solver.mfoil_adapter import (
     release_transition,
     set_forced_transition,
 )
-from cins.solver.newton import InverseProblem, assert_square, solve_inverse
+from cins.solver.newton import (
+    InverseProblem,
+    assert_square,
+    interpolate_cp_at_stations,
+    solve_inverse,
+    stations_from_indices,
+)
 from cins.solver.presolve import (
     InviscidCpResult,
     build_sensitivity_matrix,
@@ -898,7 +904,8 @@ def run_inverse(
 
             prob = InverseProblem(
                 cp_target=prep.cp_target,
-                station_idx=prep.stations,
+                station_surface=prep.station_surface,
+                station_x=prep.station_x,
                 A0_upper=prep.a0[: prep.n + 1],
                 A0_lower=prep.a0[prep.n + 1 :],
                 zeta_T_u=prep.fit.zeta_T_upper,
@@ -925,7 +932,7 @@ def run_inverse(
 
             diag = StageCapturingDiagnostics(
                 cfg, get_mfoil=lambda: prep.m, cp_target=prob.cp_target,
-                station_idx=prob.station_idx, on_stage=_emit_progress,
+                station_idx=prep.stations, on_stage=_emit_progress,
             )
             _phase("newton it 0")
             res = solve_inverse(prep.m, prob, cfg, diag=diag)
@@ -1020,16 +1027,26 @@ def _baseline_from_spec(baseline: Any, n: int) -> tuple[np.ndarray, np.ndarray, 
 
 def build_inverse_raw_config(req: Any, n_upper: int, n_lower: int) -> CinsConfig:
     """Overlay an ``app.schemas.RawTargetInverseRequest`` onto
-    ``configs/default.yaml``. Raw-target mode deliberately keeps the geometry
-    simple (``le_treatment: none``, natural transition) rather than the
-    dossier's forced-trip T7 self-consistency setup: this is a user-drawn
-    target, not a re-derivation of a known airfoil's own Cp, so there is no
-    "natural" trip location to match against (documented in app/README.md)."""
+    ``configs/default.yaml``.
+
+    Transition is pinned during the Newton iterations, as in the T7 protocol.
+    An earlier version left it natural on the reasoning that a user-drawn
+    target has no trip location to match against, but ADR-0003 is about the
+    Jacobian rather than about matching a known airfoil: the e^n closure is C0
+    in the design variables, so a trip that migrates between iterations puts a
+    kink in the very derivatives Newton depends on. The trip is released before
+    the verification solve, which reports the recovered geometry under natural
+    transition.
+
+    ``le_treatment`` stays ``none``: the T8 ablation recovered coefficients to
+    6.5e-10 with it (``t8_le_none``), so prescribing the leading edge is not
+    required for convergence here, and a user-drawn target carries no
+    prescribed nose radius to impose."""
     base = load_config().model_dump()
     overrides: dict[str, Any] = {
         "operating": {"alpha_deg": req.alpha_deg, "Re": req.Re},
         "cst": {"n_upper": n_upper, "n_lower": n_lower, "le_treatment": "none"},
-        "transition": {"mode": "free"},
+        "transition": {"mode": "forced"},
         "t8": {"alpha_free": req.alpha_free},
     }
     merged = _deep_merge(base, overrides)
@@ -1231,8 +1248,19 @@ def run_inverse_raw(
     except ValueError as exc:
         return _early(["DOF check failed"], dof_check_error=str(exc))
 
-    cp_t_at_a0 = interpolate_cp_to_stations(target_res, sens.baseline)
-    cp_target = cp_t_at_a0[stations]
+    # Physical (surface, x/c) station, not the a0-baseline node index (see
+    # cins.solver.newton module docstring): a fixed index stops addressing the
+    # same station once the geometry moves during the Newton iterations, which
+    # is the ordinary case for a user-drawn target far from the baseline.
+    # cp_target is interpolated directly off the target's own raw curve at
+    # that x -- equivalent to (and replacing) the old
+    # interpolate_cp_to_stations(...)[stations] two-step.
+    station_surface, station_x = stations_from_indices(
+        sens.x_stations, stations, le_idx=sens.baseline.le_idx
+    )
+    cp_target = interpolate_cp_at_stations(
+        target_res.x, target_res.cp, station_surface, station_x
+    )
 
     with MFOIL_LOCK:
         _phase("initial solve (viscous, presolved initial guess)")
@@ -1245,9 +1273,32 @@ def run_inverse_raw(
         if not m.glob.conv:
             return _early(["flow solve at the presolved initial guess failed to converge"])
 
+        # The Newton iterations run with transition pinned (ADR-0003): mfoil's
+        # e^n closure is C0 in the design variables, so letting the trip migrate
+        # between iterations puts a kink in the Jacobian. The pattern is frozen
+        # here and released before the verification solve below, which is the
+        # same order the T7 protocol uses.
+        forced = cfg.transition.mode == "forced"
+        if forced:
+            set_forced_transition(m, cfg.transition.xtr_upper, cfg.transition.xtr_lower)
+            mfoil_module().solve_coupled(m)
+            if not m.glob.conv:
+                release_transition()
+                return _early(["flow solve failed to converge with transition pinned"])
+
+        # How far the target sits from what this viscous solve can produce.
+        # The gate's realisability answers the inviscid question (ADR-0004), so
+        # a target drawn in a different physical model gates as realisable and
+        # then cannot be reached: this number is what makes that visible.
+        cp_now = np.asarray(m.post.cp, dtype=float)[: m.foil.N]
+        model_gap = float(
+            np.linalg.norm(cp_now[stations] - cp_target) / max(np.linalg.norm(cp_target), 1e-12)
+        )
+
         prob = InverseProblem(
             cp_target=cp_target,
-            station_idx=stations,
+            station_surface=station_surface,
+            station_x=station_x,
             A0_upper=a0[: n_u + 1],
             A0_lower=a0[n_u + 1 :],
             zeta_T_u=zeta_t_u,
@@ -1271,7 +1322,7 @@ def run_inverse_raw(
 
         diag = StageCapturingDiagnostics(
             cfg, get_mfoil=lambda: m, cp_target=prob.cp_target,
-            station_idx=prob.station_idx, on_stage=_emit_progress,
+            station_idx=stations, on_stage=_emit_progress,
         )
         _phase("newton it 0")
         res = solve_inverse(m, prob, cfg, diag=diag)
@@ -1310,7 +1361,7 @@ def run_inverse_raw(
         "convergence_order": res.convergence_order,
         "release_verify": release_verify,
         "realisability": gate["realisability"],
-        "model_gap": None,
+        "model_gap": model_gap,
         "submap_cond": (
             float(np.linalg.cond(sens.M[stations][:, free_idx])) if stations.size else None
         ),

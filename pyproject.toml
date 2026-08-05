@@ -27,6 +27,9 @@ dev = [
   "pytest-cov>=4.1",
   "hypothesis>=6.90",
   "ruff>=0.4",
+  # experiments/capture_ui.py drives the running application to regenerate the
+  # screenshots the demo video is built from. Needs `playwright install chromium`.
+  "playwright>=1.44",
 ]
 
 [tool.setuptools.packages.find]

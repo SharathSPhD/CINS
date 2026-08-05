@@ -4,6 +4,7 @@ import ArchivedResidualChart from "@/components/ArchivedResidualChart";
 
 import { useEffect, useRef, useState } from "react";
 import AirfoilShape from "@/components/AirfoilShape";
+import CstPanel from "@/components/CstPanel";
 import TheaterStage from "@/components/TheaterStage";
 import {
   airfoilGeometry,
@@ -17,9 +18,11 @@ import {
   type BaselineSpec,
   type DofAccounting,
   type InverseJobResponse,
+  type InverseResultPayload,
   type RawTargetGate,
   type ShowcaseResponse,
 } from "@/lib/api";
+import { loadCorpus, type CorpusAirfoil } from "@/lib/corpus";
 
 const POLL_INTERVAL_MS = 1500;
 
@@ -249,7 +252,15 @@ function NacaTargetPanel() {
       </form>
 
       {error && <ErrorBox message={error} />}
-      {jobId && <JobStatus jobId={jobId} job={job} targetCoords={targetCoords} alphaFree={false} />}
+      {jobId && (
+        <JobStatus
+          jobId={jobId}
+          job={job}
+          targetCoords={targetCoords}
+          alphaFree={false}
+          targetAirfoilCode={airfoil}
+        />
+      )}
     </div>
   );
 }
@@ -276,6 +287,11 @@ function RawTargetPanel() {
   const [points, setPoints] = useState<TargetPoint[]>([]);
   const [templateLoading, setTemplateLoading] = useState(false);
   const [csvUnits, setCsvUnits] = useState<"cp" | "ue">("cp");
+  // Tracks which NACA code (if any) the current target curve came from
+  // unmodified, so a completed solve can show recovered-vs-target CST
+  // coefficients: cleared on upload or manual edit, since the curve no
+  // longer has a known parametric target once it diverges from the template.
+  const [targetSourceNaca, setTargetSourceNaca] = useState<string | null>(null);
 
   const [alphaDeg, setAlphaDeg] = useState(2.0);
   const [alphaFree, setAlphaFree] = useState(true);
@@ -311,6 +327,7 @@ function RawTargetPanel() {
       const pts = res.x.map((x, i) => ({ x, cp: res.cp[i] }));
       setPoints(pts);
       setGate(null);
+      setTargetSourceNaca(templateNaca);
     } catch (err) {
       setError(describeError(err));
     } finally {
@@ -340,6 +357,7 @@ function RawTargetPanel() {
         setPoints(parsed);
         setGate(null);
         setError(null);
+        setTargetSourceNaca(null);
       } catch (err) {
         setError(String(err));
       }
@@ -350,6 +368,7 @@ function RawTargetPanel() {
 
   function updatePoint(i: number, field: "x" | "cp", value: number) {
     setPoints((prev) => prev.map((p, idx) => (idx === i ? { ...p, [field] : value }: p)));
+    setTargetSourceNaca(null);
   }
 
   function buildRawRequest() {
@@ -611,7 +630,9 @@ function RawTargetPanel() {
 
       <div className="space-y-6">
         {gate && <GateCard gate={gate} />}
-        {jobId && <JobStatus jobId={jobId} job={job} alphaFree={alphaFree} />}
+        {jobId && (
+          <JobStatus jobId={jobId} job={job} alphaFree={alphaFree} targetAirfoilCode={targetSourceNaca} />
+        )}
         {!gate && !jobId && (
           <div className="text-sm text-neutral-500 border border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-8 text-center">
             Load a target curve, then check realisability or run the inverse solve.
@@ -671,11 +692,14 @@ function JobStatus({
   job,
   targetCoords,
   alphaFree,
+  targetAirfoilCode,
 }: {
   jobId: string;
   job: InverseJobResponse | null;
   targetCoords?: number[][] | null;
   alphaFree?: boolean;
+  /** NACA code the target curve came from unmodified, if known (drives the CST recovered-vs-target readout). */
+  targetAirfoilCode?: string | null;
 }) {
   const stages = job?.result?.stages ?? [];
   const dof: DofAccounting | null | undefined = job?.result?.dof;
@@ -752,7 +776,58 @@ function JobStatus({
           )}
         </div>
       )}
+
+      {job?.status === "done" && job.result?.A_upper && job.result?.A_lower && (
+        <RecoveredVsTargetCst result={job.result} targetAirfoilCode={targetAirfoilCode} />
+      )}
     </div>
+  );
+}
+
+// Recovered vs target CST coefficients (item 2 of the app rich-features
+// brief): once a solve completes, show what the Newton system actually
+// recovered next to the target's own CST fit, the same way CstPanel shows
+// it everywhere else. The target's coefficients come from the airfoil
+// corpus (public/corpus.json) when the target curve is known to have come
+// from an unmodified NACA code; otherwise (custom/uploaded targets) only
+// the recovered coefficients are shown.
+function RecoveredVsTargetCst({
+  result,
+  targetAirfoilCode,
+}: {
+  result: InverseResultPayload;
+  targetAirfoilCode?: string | null;
+}) {
+  const [corpus, setCorpus] = useState<CorpusAirfoil[] | null>(null);
+
+  useEffect(() => {
+    loadCorpus()
+      .then((c) => setCorpus(c.airfoils))
+      .catch(() => setCorpus(null));
+  }, []);
+
+  if (!result.A_upper || !result.A_lower) return null;
+
+  const targetId = targetAirfoilCode
+    ? `naca:${targetAirfoilCode.replace(/^NACA\s*/i, "").trim()}`
+    : null;
+  const target = targetId ? (corpus?.find((a) => a.id === targetId) ?? null) : null;
+
+  return (
+    <CstPanel
+      title="CST coefficients: recovered vs target"
+      primary={{ label: "recovered", A_upper: result.A_upper, A_lower: result.A_lower }}
+      compare={
+        target
+          ? {
+              label: target.name,
+              A_upper: target.A_upper,
+              A_lower: target.A_lower,
+              fitRms: target.fit_rms,
+            }
+          : null
+      }
+    />
   );
 }
 

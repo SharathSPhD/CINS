@@ -156,14 +156,37 @@ rather than one generated from a NACA code's own self-consistency Cp:
   use `le_treatment: none` and **natural** (free) transition, not the
   dossier's "T7 winning configuration" (`prescribed` LE + forced trip,
   `.remember/t7-winning-configuration.md`) — there is no natural trip
-  location to match for a user-drawn target. Empirically (manual runs during
-  development, not yet a gate test) this converges correctly for
-  self-consistent identity-case targets but can take many more Newton
-  iterations (small trust-region steps) than the tuned T7 recipe for
-  less-consistent targets; `newton.max_iter` (default 50) bounds the wait,
-  and a non-convergent result is still returned honestly
-  (`converged: false`) rather than fabricated. Retuning the trust-region /
-  omega selection for this mode is deferred — see "Deferred" below.
+  location to match for a user-drawn target.
+- **Status: this path does not converge.**
+  `app/backend/tests/test_inverse_raw.py::test_inverse_raw_recovers_self_consistent_target`
+  builds a target from a viscous, tripped solve of the CST reconstruction
+  itself, so the answer is known and representable. It is marked `xfail` with
+  its assertions intact rather than removed or relaxed, so the limitation
+  stays visible and the test reports the day it passes. What has been
+  measured so far:
+  - Transition treatment is not the cause. Pinning the trip does not close
+    the Cp gap, it widens it slightly, from 9.2 to 10.6 percent relative.
+  - Station identity is not the cause. Stations moved from panel-node index
+    to `(surface, x)` with interpolation, which fixed the demo (NACA 0012
+    onto 2412, 19.98 millichords apart, 10 iterations to 7.5e-12) and left
+    this unchanged.
+  - With `alpha_free` fixed the solve reaches iteration 24 and the extended
+    Jacobian is then exactly singular.
+  - Under target continuation from a perturbed start, the full residual
+    falls to 2.08e-10 against an rtol of 1e-10: a stall just above tolerance,
+    not a divergence. At that point the coefficients sit 7.2e-2 from the
+    generating set, having started 9.3e-3 away.
+
+  A near-zero residual reached at coefficients an order of magnitude further
+  out is the signature of a weakly identified system rather than a solver
+  that cannot make progress. The leading edge is the open suspect: the one
+  structural difference between this configuration and the T7 recipe that
+  recovers A* to 1e-11 is that T7 prescribes `A_u0`/`A_l0` (dossier FM-3)
+  instead of solving for them, and drops the shared-LE constraint row with
+  them. That is the next thing to test, not an established cause.
+- The API reports this faithfully: a non-convergent result returns
+  `converged: false` with the iteration history rather than a fabricated
+  geometry, and `newton.max_iter` (default 50) bounds the wait.
 - Coordinate import: `load_airfoil_dat` (Selig/Lednicer autodetect) backs
   `GET /api/airfoils/{id}/geometry` for `uiuc:<name>` ids, so any of the 123
   UIUC sections can be used as a baseline or as an analyze/fit target;
@@ -269,14 +292,17 @@ phase-1 local-dev scope, not an oversight.
   corpus (`GET /api/airfoils/{id}/geometry`) but there is no upload endpoint
   for a brand-new file the user supplies; only a target-*Cp*-curve CSV
   upload exists (Inverse view).
-- BL distributions (theta/delta*/cf/Hk vs x, transition marker) added to
-  `/api/analyze`'s response for viscous solves — not implemented; `m.post`
-  already carries these fields internally (`vendor/mfoil/mfoil.py`) but the
-  endpoint/schema/frontend tabs were not built this pass.
-- Newton trust-region/omega tuning for `/api/inverse/raw`'s
-  `le_treatment: none` + free-transition configuration — see "Scope cut"
-  note above; the dossier's tuned "T7 winning configuration" is
-  `prescribed` LE + forced transition, which `naca_target` mode still uses.
+- Convergence of `/api/inverse/raw`. The open item, with the evidence
+  gathered so far recorded under "Scope cut" above. The next experiment is
+  the prescribed-LE variant, since that is what separates this configuration
+  from the T7 recipe that converges; after that, a viscous-aware pre-solve
+  (the sensitivity matrix is currently built from the inviscid panel
+  operator, so a viscous target starts further out than `naca_target` mode
+  does).
+- Coupled viscous flow field. `app/backend/app/flowfield.py` evaluates the
+  inviscid velocity field, verified against the vendor to 7.66e-15; the
+  displacement-thickness source contribution is not yet added, so the
+  rendered field is inviscid while the BL panels beside it are coupled.
 - Cascade (pitch/stagger/periodicity) inputs, MISES-backed transonic solve,
   multi-user collaboration, public gallery — all explicitly "Later" in
   `docs/PRD.md` §3.5.

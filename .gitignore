@@ -15,3 +15,11 @@ paper/*.log
 paper/*.out
 paper/*.bbl
 paper/*.blg
+
+# Demo video intermediates: ~790 MB of per-frame PNGs and the padded canvases
+# ffmpeg reads. Regenerable with experiments/make_demo_frames.py and
+# make_demo_video.py; the encoded deliverables in site/assets/demo/ are tracked.
+experiments/results/demo/frames/
+experiments/results/demo/frames_vertical/
+experiments/results/demo/wide/
+experiments/results/demo/vertical/

@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import AirfoilShape from "@/components/AirfoilShape";
+import CstPanel from "@/components/CstPanel";
 import { ApiError, geometryFromCst, type DerivedGeometry, type FitResponse } from "@/lib/api";
 
 const DEBOUNCE_MS = 150;
@@ -118,6 +119,22 @@ export default function CstStudio({ fit }: CstStudioProps) {
           />
         </div>
       )}
+
+      <div className="mt-4">
+        <CstPanel
+          title="CST parameterization (live)"
+          primary={{
+            label: "current",
+            A_upper: aUpper,
+            A_lower: aLower,
+            zetaTUpper: fit.zeta_T_upper,
+            zetaTLower: fit.zeta_T_lower,
+            fitRms: fit.rms,
+          }}
+          N1={fit.N1}
+          N2={fit.N2}
+        />
+      </div>
     </div>
   );
 }

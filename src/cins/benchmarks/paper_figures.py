@@ -154,7 +154,8 @@ def run_monolithic_cell(cfg: CinsConfig, cell_name: str) -> SolvedCell:
                     f"{cell_name}: prepare_cell early-failed: {prep.early_failure.notes}"
                 )
             prob = InverseProblem(
-                cp_target=prep.cp_target, station_idx=prep.stations,
+                cp_target=prep.cp_target,
+                station_surface=prep.station_surface, station_x=prep.station_x,
                 A0_upper=prep.a0[: prep.n + 1], A0_lower=prep.a0[prep.n + 1 :],
                 zeta_T_u=prep.fit.zeta_T_upper, zeta_T_l=prep.fit.zeta_T_lower, psi=prep.psi,
                 G=prep.G, b=prep.b, free_idx=prep.free_idx, alpha0=cfg.operating.alpha_deg,

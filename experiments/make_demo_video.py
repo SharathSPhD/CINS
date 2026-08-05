@@ -118,7 +118,8 @@ def build_timeline(anim_dir: Path, ui_dir: Path, work: Path,
 
     c2 = tmp / "c2.png"
     card("The inverse solve, iteration by iteration",
-         "Geometry, sampled pressures and the residual, recorded from a real run.",
+         "A symmetric section grows camber onto a cambered target: geometry, the "
+         "flow field, sampled pressures and the residual, recorded from a real run.",
          c2, size)
     emit(c2, int(2.2 * FPS))
 

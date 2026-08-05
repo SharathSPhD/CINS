@@ -48,7 +48,14 @@ from cins.solver.mfoil_adapter import (
     release_transition,
     set_forced_transition,
 )
-from cins.solver.newton import InverseProblem, assert_square, select_target_stations, solve_inverse
+from cins.solver.newton import (
+    InverseProblem,
+    assert_square,
+    interpolate_cp_at_stations,
+    select_target_stations,
+    solve_inverse,
+    stations_from_indices,
+)
 from cins.solver.presolve import (
     InviscidCpResult,
     build_sensitivity_matrix,
@@ -160,8 +167,8 @@ class PreparedCell:
 
     ``early_failure`` is set (and every other field left at its default) when
     preparation itself hit a designed clean-failure path (FM-1 dof_offset, a
-    non-converging direct/perturbed solve, the x-correspondence guard) — the
-    caller must check it before using the rest of the dataclass.
+    non-converging direct/perturbed solve) — the caller must check it before
+    using the rest of the dataclass.
     """
 
     m: Any = None  # mfoil instance, converged viscous state AT a0
@@ -171,7 +178,11 @@ class PreparedCell:
     free_idx: np.ndarray | None = None
     G: np.ndarray | None = None
     b: np.ndarray | None = None
-    stations: np.ndarray | None = None
+    stations: np.ndarray | None = None  # node indices on the a0-baseline sensitivity grid
+    # (QR-pivot selection criterion only — NOT used to address Cp during the Newton solve
+    # any more; see station_surface/station_x, which carry the physical station instead).
+    station_surface: np.ndarray | None = None  # (M,) "lower"/"upper" per station
+    station_x: np.ndarray | None = None  # (M,) x/c of each station, physical (see newton.py)
     cp_target: np.ndarray | None = None
     target_cp_result: InviscidCpResult | None = None  # (x, cp, le_idx) at TARGET geometry's
     # own paneling — control.py's nested baseline re-panels independently per trial and must
@@ -200,6 +211,19 @@ def prepare_cell(
     selection + convergence at A0), shared by the monolithic and nested
     control solves. Must be called inside an open ``instrument_evaluations``
     context so the flow solves/residual evals performed here are counted.
+
+    Station identity (2026-08-05 fix): a station is now a physical (surface,
+    x/c) location (``station_surface``/``station_x``, ``cins.solver.newton
+    .stations_from_indices``), not the a0-baseline node index that happened
+    to sit there. The former nearest-x remap and its 2e-5/1e-3 guards are
+    gone: they existed only to patch up index correspondence between the
+    baseline used for station *selection* and the target's own paneling, and
+    an x-based station makes that correspondence unnecessary rather than
+    approximate. ``cp_target`` is assigned by linearly interpolating the
+    TARGET's own Cp curve at each station's x (``interpolate_cp_at_stations``)
+    instead of indexing ``cp_ref`` by the selection-time node index -- exact
+    for the target's own representation rather than a nearest-node guess, and
+    no longer dependent on how far A0 sits from A*.
     """
     t0 = t0 if t0 is not None else time.perf_counter()
     notes: list[str] = []
@@ -326,8 +350,11 @@ def prepare_cell(
         m_cand = sens.M[cand][:, free_idx]
         _, _, piv = _qr(m_cand.T, pivoting=True)
         stations = np.sort(cand[piv[:n_pick]])
+        x_baseline, le_baseline = x_sens, sens.baseline.le_idx
     else:  # "even"
         stations = select_target_stations(m, cfg, n_pick)
+        x_baseline = np.asarray(m.foil.x[0], dtype=float)
+        le_baseline = int(np.argmin(x_baseline))
 
     sub = sens.M[stations][:, free_idx]
     submap_cond = float(np.linalg.cond(sub)) if sub.size else None
@@ -344,7 +371,16 @@ def prepare_cell(
             notes=[f"FM-1 ablation: dof_offset={cfg.t8.dof_offset:+d} deliberately mis-squares "
                    "the extended system; caught cleanly per STATS_PROTOCOL §4"],
             counters=counters))
-    cp_target = cp_ref[stations]
+
+    # Physical (surface, x/c) station, not the a0-baseline node index (module
+    # docstring): freeze it here, then assign cp_target by interpolating the
+    # TARGET's own Cp curve at that x -- exact for the target's own paneling,
+    # unlike the old index-based cp_ref[stations] lookup.
+    station_surface, station_x = stations_from_indices(x_baseline, stations, le_idx=le_baseline)
+    cp_target_full = cp_ref[: x_target_nodes.size]  # drop any wake-node padding on post.cp
+    cp_target = interpolate_cp_at_stations(
+        x_target_nodes, cp_target_full, station_surface, station_x
+    )
 
     # --- 6. converge flow at the perturbed/random start ------------------------------
     apply_geometry(m, a0[: n + 1], a0[n + 1 :], fit.zeta_T_upper, fit.zeta_T_lower, psi)
@@ -355,47 +391,13 @@ def prepare_cell(
             notes=[f"init={cfg.t8.init}: flow solve at A0 failed to converge"],
             counters=counters))
 
-    x_mismatch = float(np.max(np.abs(m.foil.x[0, stations] - x_target_nodes[stations])))
-    if x_mismatch >= 2e-5:
-        # Re-map each station to the nearest-x node on the same surface (local
-        # ±5-index search keeps upper/lower sides distinct). The identity map
-        # only holds when re-paneling barely moves nodes (winning config); at
-        # other n / larger perturbations the drift exceeded the guard (v2 sweep:
-        # 2.4e-5..2e-4 on n06/n12/init_perturbed) — remap instead of failing.
-        # Pairing matters: station_idx addresses CURRENT-geometry nodes (where the
-        # solver reads Cp); the target value stays the TARGET geometry's Cp at the
-        # originally selected station. Dedupe keeps the first pair per node.
-        n_foil = m.foil.N
-        pairs: dict[int, float] = {}
-        for s_idx in stations:
-            lo, hi = max(0, s_idx - 5), min(n_foil, s_idx + 6)
-            j = lo + int(np.argmin(np.abs(m.foil.x[0, lo:hi] - x_target_nodes[s_idx])))
-            pairs.setdefault(j, float(cp_ref[s_idx]))
-        if len(pairs) < n_pick:
-            return PreparedCell(early_failure=_early_result(
-                cfg, cell_name, config_path, t0,
-                notes=[f"station remap collapsed {n_pick}->{len(pairs)} stations"],
-                counters=counters))
-        order = np.argsort(list(pairs.keys()))
-        stations = np.array(list(pairs.keys()))[order]
-        cp_target = np.array(list(pairs.values()))[order]
-        x_mismatch = float(np.max(np.abs(
-            m.foil.x[0, stations]
-            - np.array([x_target_nodes[s] for s in pairs.keys()])[order]
-        )))
-        notes.append(f"stations remapped by nearest-x; residual max|dx/c|={x_mismatch:.2e}")
-        if x_mismatch >= 1e-3:
-            return PreparedCell(early_failure=_early_result(
-                cfg, cell_name, config_path, t0,
-                notes=[f"station x-correspondence unrecoverable: {x_mismatch:.2e} >= 1e-3"],
-                counters=counters))
-
     target_cp_result = InviscidCpResult(
         x=x_target_nodes, cp=cp_ref, le_idx=int(np.argmin(x_target_nodes))
     )
     return PreparedCell(
         m=m, fit=fit, a_star=a_star, a0=a0, free_idx=free_idx, G=G, b=b,
-        stations=stations, cp_target=cp_target, target_cp_result=target_cp_result, n=n, psi=psi,
+        stations=stations, station_surface=station_surface, station_x=station_x,
+        cp_target=cp_target, target_cp_result=target_cp_result, n=n, psi=psi,
         nat_cl=nat_cl, nat_cd=nat_cd, realisability=realisability, model_gap=model_gap,
         submap_cond=submap_cond, notes=notes,
     )
@@ -439,7 +441,8 @@ def _run_pipeline_inner(cfg, cell_name, config_path, run_dir, t0, counters) -> C
             return prep.early_failure
 
         prob = InverseProblem(
-            cp_target=prep.cp_target, station_idx=prep.stations,
+            cp_target=prep.cp_target,
+            station_surface=prep.station_surface, station_x=prep.station_x,
             A0_upper=prep.a0[: prep.n + 1], A0_lower=prep.a0[prep.n + 1 :],
             zeta_T_u=prep.fit.zeta_T_upper, zeta_T_l=prep.fit.zeta_T_lower, psi=prep.psi,
             G=prep.G, b=prep.b, free_idx=prep.free_idx, alpha0=cfg.operating.alpha_deg,

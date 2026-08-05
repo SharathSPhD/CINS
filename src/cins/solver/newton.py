@@ -10,10 +10,18 @@ Jacobian blocks:
     ⎢ T_U        0        0    ⎥     J_Uα  : analytic (clalpha_residual, ue rows)
     ⎣  0         0        G    ⎦     J_UA  : central FD over A (T1-mandated)
 
-Target rows compare Cp(U) at fixed node indices with the prescribed target, so
-they depend on geometry only through U (∂T/∂A = 0 at fixed state). Stations in
-the prescribed-LE region are excluded (FM-3 mitigation: the pathological rows
-are removed, dossier §3.5 fix 3).
+Target rows compare Cp(U) at fixed PHYSICAL stations -- a (surface, x/c) pair,
+not a panel node index -- with the prescribed target (2026-08-05 fix: a node
+index only means the same station while the geometry never moves; the whole
+point of an inverse solve is that it does). The current Cp at a station is
+linearly interpolated between the two panel nodes bracketing its x on the
+CURRENT geometry's own surface, so a station keeps its physical meaning as A
+(and therefore the paneling) changes across Newton iterations. This still
+depends on geometry only through U at fixed A (∂T/∂A = 0 at fixed state): the
+interpolation weight is a function of node x-positions, which are held fixed
+within one Newton linearization exactly like every other geometry-dependent
+quantity in this block. Stations in the prescribed-LE region are excluded
+(FM-3 mitigation: the pathological rows are removed, dossier §3.5 fix 3).
 """
 
 from __future__ import annotations
@@ -37,8 +45,10 @@ log = logging.getLogger(__name__)
 class InverseProblem:
     """Fully-specified monolithic inverse problem (all arrays validated)."""
 
-    cp_target: np.ndarray          # (M,) target Cp at the selected station node indices
-    station_idx: np.ndarray        # (M,) airfoil node indices of the target stations
+    cp_target: np.ndarray          # (M,) target Cp at the selected stations
+    station_surface: np.ndarray    # (M,) "lower"/"upper" -- which surface each station is on
+    station_x: np.ndarray          # (M,) x/c of each station on its own surface (physical,
+                                    # NOT a panel node index -- see module docstring)
     A0_upper: np.ndarray           # (n_u+1,) initial upper coefficients
     A0_lower: np.ndarray           # (n_l+1,) initial lower coefficients
     zeta_T_u: float
@@ -154,18 +164,142 @@ def _flow_jacobian_blocks(m):
     return j_uu.tocsr(), j_ualpha
 
 
-def _target_rows(m, station_idx: np.ndarray, cp_target: np.ndarray):
-    """T(U) = Cp(ue at stations) − Cp_target, with analytic ∂T/∂U (cp_ue on the
-    ue slot of each station's state column)."""
+def _split_ascending_with_nodes(
+    x: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Split full-loop node indices 0..N-1 into lower/upper x-ascending
+    branches, each carrying its ORIGINAL node index (needed to address the
+    right ue slot in the flow-state vector). Same split-at-argmin(x),
+    reverse-the-descending-branch convention as
+    ``cins.solver.presolve._split_ascending`` / ``app.engine._split_ascending``.
+
+    Returns (idx_lower_asc, x_lower_asc, idx_upper_asc, x_upper_asc).
+    """
+    le_idx = int(np.argmin(x))
+    idx_lo = np.arange(le_idx + 1)
+    idx_up = np.arange(le_idx, x.size)
+    x_lo, x_up = x[idx_lo], x[idx_up]
+    if x_lo.size >= 2 and x_lo[0] > x_lo[-1]:
+        idx_lo, x_lo = idx_lo[::-1], x_lo[::-1]
+    if x_up.size >= 2 and x_up[0] > x_up[-1]:
+        idx_up, x_up = idx_up[::-1], x_up[::-1]
+    return idx_lo, x_lo, idx_up, x_up
+
+
+def _bracket(x_branch: np.ndarray, x_t: float) -> tuple[int, float, bool]:
+    """Locate the x-ascending bracket [j, j+1] of ``x_branch`` containing
+    ``x_t``, returning the lower index, the interpolation weight
+    ``w`` (``value = (1-w)*v[j] + w*v[j+1]``), and whether ``x_t`` had to be
+    clamped to a branch endpoint (fell outside ``[x_branch[0], x_branch[-1]]``).
+    """
+    clamped = bool(x_t < x_branch[0] or x_t > x_branch[-1])
+    xt = float(np.clip(x_t, x_branch[0], x_branch[-1]))
+    j = int(np.searchsorted(x_branch, xt, side="right") - 1)
+    j = max(0, min(j, x_branch.size - 2))
+    dx = x_branch[j + 1] - x_branch[j]
+    w = (xt - x_branch[j]) / dx if dx > 1e-14 else 0.0
+    return j, float(np.clip(w, 0.0, 1.0)), clamped
+
+
+def stations_from_indices(
+    x: np.ndarray, indices: np.ndarray, le_idx: int | None = None
+) -> tuple[np.ndarray, np.ndarray]:
+    """Convert panel-node indices on a given geometry's x array into (surface,
+    x) pairs anchored to that geometry's OWN node positions.
+
+    A target station used to be identified by which array slot it lived in;
+    that slot's physical location drifts whenever the geometry changes (the
+    inverse-design problem's whole point), which silently corrupted the
+    target value once the drift exceeded a node spacing. Producers now call
+    this once, at station-selection time, to freeze the physical (surface,
+    x/c) location instead. ``le_idx`` (leading-edge node, ``argmin(x)`` by
+    default) sets the lower/upper split, matching
+    ``_split_ascending_with_nodes``.
+    """
+    x = np.asarray(x, dtype=float)
+    indices = np.asarray(indices, dtype=int)
+    if le_idx is None:
+        le_idx = int(np.argmin(x))
+    surface = np.where(indices <= le_idx, "lower", "upper")
+    return surface, x[indices]
+
+
+def interpolate_cp_at_stations(
+    x_src: np.ndarray,
+    cp_src: np.ndarray,
+    station_surface: np.ndarray,
+    station_x: np.ndarray,
+) -> np.ndarray:
+    """Linearly interpolate a full-loop ``(x_src, cp_src)`` curve onto
+    arbitrary (surface, x) query stations, per surface (split at
+    ``argmin(x_src)``, x-ascending -- same convention as ``_target_rows``).
+
+    Producers use this to assign the prescribed target Cp value at an
+    x-based station directly from the target's own curve, replacing the old
+    nearest-node-index remap (which assumed the two geometries' panel grids
+    stayed aligned by index -- exactly the assumption this whole change
+    removes).
+    """
+    idx_lo, x_lo, idx_up, x_up = _split_ascending_with_nodes(np.asarray(x_src, dtype=float))
+    cp_src = np.asarray(cp_src, dtype=float)
+    cp_lo, cp_up = cp_src[idx_lo], cp_src[idx_up]
+    station_x = np.asarray(station_x, dtype=float)
+    out = np.empty(station_x.shape[0])
+    for k in range(station_x.shape[0]):
+        if station_surface[k] == "lower":
+            out[k] = np.interp(station_x[k], x_lo, cp_lo)
+        else:
+            out[k] = np.interp(station_x[k], x_up, cp_up)
+    return out
+
+
+def _target_rows(m, station_surface: np.ndarray, station_x: np.ndarray, cp_target: np.ndarray):
+    """T(U) = Cp(interpolated at (surface, x) stations) - Cp_target.
+
+    Each station is addressed by its physical (surface, x/c) location, not a
+    panel node index (module docstring). The current Cp is linearly
+    interpolated between the two nodes bracketing that x on the CURRENT
+    geometry's own surface (``_split_ascending_with_nodes``).
+
+    Analytic Jacobian: ``get_cp`` is pointwise (``cp[i] = f(ue[i])``, no
+    cross-node coupling) and the interpolation weight ``w`` is a function of
+    node x-positions only (geometry, held fixed within one Newton
+    linearization -- T_A = 0 exactly as before, see module docstring), so
+
+        cp_i = (1-w) * cp[j] + w * cp[j+1]
+        d(cp_i)/d(ue[j])   = (1-w) * cp_ue[j]
+        d(cp_i)/d(ue[j+1]) =   w   * cp_ue[j+1]
+
+    Each row therefore has TWO nonzeros (one per bracketing node's ue slot,
+    index ``4*node+3``) instead of one. Falls back to the branch endpoint
+    (w=0 or 1) when a station's x lies outside the current geometry's range
+    on that surface; the count of stations that clamped is logged.
+    """
     mod = mfoil_module()
     nsys = m.glob.Nsys
+    x_all = np.asarray(m.foil.x[0], dtype=float)
     ue_all = m.glob.U[3]
     cp_all, cp_ue_all = mod.get_cp(ue_all, m.param)
-    r_t = cp_all[station_idx] - cp_target
-    t_u = sparse.lil_matrix((len(station_idx), 4 * nsys))
-    for k, i in enumerate(station_idx):
-        t_u[k, 4 * i + 3] = cp_ue_all[i]
-    return np.asarray(r_t), t_u.tocsr()
+
+    idx_lo, x_lo, idx_up, x_up = _split_ascending_with_nodes(x_all)
+    branches = {"lower": (idx_lo, x_lo), "upper": (idx_up, x_up)}
+
+    n_st = len(station_x)
+    r_t = np.empty(n_st)
+    t_u = sparse.lil_matrix((n_st, 4 * nsys))
+    n_clamped = 0
+    for k in range(n_st):
+        idx_b, x_b = branches[station_surface[k]]
+        j, w, clamped = _bracket(x_b, float(station_x[k]))
+        n_clamped += int(clamped)
+        node_j, node_j1 = int(idx_b[j]), int(idx_b[j + 1])
+        cp_i = (1.0 - w) * cp_all[node_j] + w * cp_all[node_j1]
+        r_t[k] = cp_i - cp_target[k]
+        t_u[k, 4 * node_j + 3] += (1.0 - w) * cp_ue_all[node_j]
+        t_u[k, 4 * node_j1 + 3] += w * cp_ue_all[node_j1]
+    if n_clamped:
+        log.info("_target_rows: %d/%d stations clamped to a branch endpoint", n_clamped, n_st)
+    return r_t, t_u.tocsr()
 
 
 def solve_inverse(
@@ -186,7 +320,7 @@ def solve_inverse(
     n_u = len(prob.A0_upper)
     A = np.concatenate([prob.A0_upper, prob.A0_lower]).astype(float)
     n_free = len(prob.free_idx)
-    n_t, n_k = len(prob.station_idx), prob.G.shape[0]
+    n_t, n_k = len(prob.station_x), prob.G.shape[0]
     assert_square(n_free, n_t, n_k, prob.alpha_free)
     n_alpha = 1 if prob.alpha_free else 0
 
@@ -208,7 +342,7 @@ def solve_inverse(
     for it in range(cfg.newton.max_iter):
         # --- assemble residuals -------------------------------------------
         r_flow = flow_residual(m)                       # (4Nsys,) rebuilds R/R_U
-        r_t, t_u = _target_rows(m, prob.station_idx, prob.cp_target)
+        r_t, t_u = _target_rows(m, prob.station_surface, prob.station_x, prob.cp_target)
         r_g = prob.G @ A - prob.b
 
         r_full = np.concatenate([r_flow, r_t, r_g])

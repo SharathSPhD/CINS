@@ -12,12 +12,22 @@ interface AirfoilShapeProps {
   blOffset?: { upper: number[][]; lower: number[][] } | null;
   width?: number;
   height?: number;
+  /** Padding around the shape, in SVG units. Smaller for compact thumbnails. */
+  margin?: number;
+  /** Hide the x/c tick labels (compact thumbnails don't have room). */
+  showTicks?: boolean;
 }
 
-const MARGIN = 20;
-
-export default function AirfoilShape({ coords, blOffset, width = 560, height = 200 }: AirfoilShapeProps) {
+export default function AirfoilShape({
+  coords,
+  blOffset,
+  width = 560,
+  height = 200,
+  margin = 20,
+  showTicks = true,
+}: AirfoilShapeProps) {
   const { path, blUpperPath, blLowerPath, xTicks, sx, sy } = useMemo(() => {
+    const MARGIN = margin;
     const allPts = blOffset ? [...coords, ...blOffset.upper, ...blOffset.lower] : coords;
     const xs = allPts.map((p) => p[0]);
     const ys = allPts.map((p) => p[1]);
@@ -47,7 +57,7 @@ export default function AirfoilShape({ coords, blOffset, width = 560, height = 2
       sx: sxFn,
       sy: syFn,
     };
-  }, [coords, blOffset, width, height]);
+  }, [coords, blOffset, width, height, margin]);
 
   return (
     <svg
@@ -68,20 +78,21 @@ export default function AirfoilShape({ coords, blOffset, width = 560, height = 2
       <path d={path} fill="#3b82f620" stroke="#111827" className="dark:stroke-neutral-200" strokeWidth={1.5} />
       {blUpperPath && <path d={blUpperPath} fill="none" stroke="#3b82f6" strokeWidth={1.5} />}
       {blLowerPath && <path d={blLowerPath} fill="none" stroke="#f97316" strokeWidth={1.5} />}
-      {xTicks.map((t) => (
-        <text
-          key={t}
-          x={sx(t)}
-          y={height - 4}
-          fontSize={10}
-          textAnchor="middle"
-          className="fill-neutral-500 dark:fill-neutral-400"
-        >
-          {t.toFixed(2)}
-        </text>
-      ))}
+      {showTicks &&
+        xTicks.map((t) => (
+          <text
+            key={t}
+            x={sx(t)}
+            y={height - 4}
+            fontSize={10}
+            textAnchor="middle"
+            className="fill-neutral-500 dark:fill-neutral-400"
+          >
+            {t.toFixed(2)}
+          </text>
+        ))}
       {blOffset && (
-        <g transform={`translate(${width - MARGIN - 130}, 8)`}>
+        <g transform={`translate(${width - margin - 130}, 8)`}>
           <line x1={0} x2={14} y1={0} y2={0} stroke="#3b82f6" strokeWidth={1.5} />
           <text x={18} y={4} fontSize={10} className="fill-neutral-600 dark:fill-neutral-300">
             {"δ* upper"}
