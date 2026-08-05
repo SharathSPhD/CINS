@@ -1,4 +1,4 @@
-"""Thin wrapper over ``cins`` (the deterministic engine core) — the "FastAPI
+"""Thin wrapper over ``cins`` (the deterministic engine core): the "FastAPI
 backend" layer of the kundali architecture (docs/PRD.md §3.2). No physics or
 numerics lives here: every array in/out of this module passes straight
 through to ``cins.cst`` / ``cins.solver`` / ``cins.benchmarks.pipeline``
@@ -10,12 +10,12 @@ Newton solve.
 
 Concurrency guard (ADR-0003 consequence): mfoil's forced-transition shim
 (``set_forced_transition``/``release_transition``) reassigns MODULE-LEVEL
-vendor functions, so it is process-global — any two solves running forced
+vendor functions, so it is process-global: any two solves running forced
 transition concurrently in this process would corrupt each other's state.
 ``MFOIL_LOCK`` below is held around every code path that may install the
 shim (``/api/inverse``'s pipeline, and ``/api/analyze`` when
-``transition.mode == "forced"``); other endpoints (``fit`` — pure numpy,
-touches no mfoil state; plain ``analyze``/``presolve`` — independent mfoil
+``transition.mode == "forced"``); other endpoints (``fit``: pure numpy,
+touches no mfoil state; plain ``analyze``/``presolve``: independent mfoil
 instances, natural transition only) do not need it.
 """
 
@@ -79,12 +79,12 @@ def _split_ascending(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Split a full-loop (x, val) pair at ``le_idx`` into two x-ascending
     surfaces, mirroring ``cins.solver.presolve``'s private ``_split_ascending``
-    (duplicated here — a few lines — rather than importing a private symbol
+    (duplicated here: a few lines: rather than importing a private symbol
     across the app/engine boundary)."""
 
     def _asc(xx: np.ndarray, vv: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         if xx.size >= 2 and xx[0] > xx[-1]:
-            return xx[::-1], vv[::-1]
+            return xx[:-1], vv[:-1]
         return xx, vv
 
     x_lo, v_lo = _asc(x[: le_idx + 1], val[: le_idx + 1])
@@ -148,9 +148,9 @@ def run_analyze(req: Any) -> dict[str, Any]:
     geom = np.asarray(m.geom.xpoint, dtype=float)  # (2, N)
 
     # Inviscid Cp overlay (mfoil's plot_cpplus draws this dashed alongside the
-    # solid viscous/inviscid Cp — m.post.cpi is computed by calc_force
+    # solid viscous/inviscid Cp: m.post.cpi is computed by calc_force
     # regardless of viscous/inviscid mode, cost-free here) and the sonic Cp
-    # line (m.param.cps, only meaningful for Ma>0 — plot_cpplus only draws it
+    # line (m.param.cps, only meaningful for Ma>0: plot_cpplus only draws it
     # when it falls within the current Cp range).
     cpi = np.asarray(m.post.cpi, dtype=float) if hasattr(m.post, "cpi") else None
     cpi_lo = cpi_up = None
@@ -168,7 +168,7 @@ def run_analyze(req: Any) -> dict[str, Any]:
     if req.Re is not None and converged and len(getattr(m.post, "th", [])) >= n_foil:
         chord = float(m.geom.chord) or 1.0
         # post.{th,ds,sa,ue,uei,cf,Ret,Hk} are Nsys-long (foil nodes THEN wake
-        # nodes, per M.glob.Nsys = M.foil.N + M.wake.N) — slice to the
+        # nodes, per M.glob.Nsys = M.foil.N + M.wake.N): slice to the
         # foil-only prefix so these line up 1:1 with m.foil.x / x / cp above.
         theta = np.asarray(m.post.th, dtype=float)[:n_foil]
         dstar = np.asarray(m.post.ds, dtype=float)[:n_foil]
@@ -181,8 +181,8 @@ def run_analyze(req: Any) -> dict[str, Any]:
 
         def _surface(arr: np.ndarray) -> dict[str, list[float]]:
             lo, up = arr[: le_idx + 1], arr[le_idx:]
-            lo = lo[::-1] if x[: le_idx + 1][0] > x[: le_idx + 1][-1] else lo
-            up = up[::-1] if x[le_idx:][0] > x[le_idx:][-1] else up
+            lo = lo[:-1] if x[: le_idx + 1][0] > x[: le_idx + 1][-1] else lo
+            up = up[:-1] if x[le_idx:][0] > x[le_idx:][-1] else up
             return {"lower": lo.tolist(), "upper": up.tolist()}
 
         xt = m.vsol.Xt if hasattr(m.vsol, "Xt") else None
@@ -205,7 +205,7 @@ def run_analyze(req: Any) -> dict[str, Any]:
 
         # Displacement-thickness offset drawn along outward surface normals
         # (mfoil's mplot_boundary_layer: xzd = xz + n*ds, n = normalize(-ty,tx)
-        # from the panel tangents m.foil.t) — the airfoil "puffed out" by
+        # from the panel tangents m.foil.t): the airfoil "puffed out" by
         # delta* the way mfoil's own results plot shows it, foil nodes only
         # (no wake reflection: that's a plotting artifact specific to mfoil's
         # own axes, not meaningful for a standalone airfoil-shape panel).
@@ -223,13 +223,13 @@ def run_analyze(req: Any) -> dict[str, Any]:
             def _surface_xy(xarr: np.ndarray, yarr: np.ndarray) -> list[list[float]]:
                 xs, ys = xarr[: le_idx + 1], yarr[: le_idx + 1]
                 if xs[0] > xs[-1]:
-                    xs, ys = xs[::-1], ys[::-1]
+                    xs, ys = xs[:-1], ys[:-1]
                 return np.stack([xs, ys], axis=1).tolist()
 
             lo_pts = _surface_xy(xd[: le_idx + 1], yd[: le_idx + 1])
             xs_up, ys_up = xd[le_idx:], yd[le_idx:]
             if xs_up[0] > xs_up[-1]:
-                xs_up, ys_up = xs_up[::-1], ys_up[::-1]
+                xs_up, ys_up = xs_up[:-1], ys_up[:-1]
             up_pts = np.stack([xs_up, ys_up], axis=1).tolist()
             bl_offset = {"lower": lo_pts, "upper": up_pts}
 
@@ -270,7 +270,7 @@ def derived_geometry_quantities(
     N1: float = 0.5,
     N2: float = 1.0,
 ) -> dict[str, float]:
-    """Named engineering quantities computed directly from CST coefficients —
+    """Named engineering quantities computed directly from CST coefficients ,
     closed form, no quadrature (dossier §3.2-3.4): LE radius (R_LE = A_u0^2/2,
     constraints.le_radius_row's own identity, chord=1), TE wedge half-angles
     (inverse of constraints.te_wedge_row's exact TE-slope identity, N2=1),
@@ -350,14 +350,14 @@ _AIRFOIL_CACHE_FIT_N = 6  # cheap Bernstein order for the one-time corpus scan s
 
 # Curated NACA generator presets (4-digit: thickness/camber read directly off
 # the code per NACA's own definition, no solve needed; 5-digit design-cl
-# families included without a camber figure — dossier scope is 4-digit).
+# families included without a camber figure: dossier scope is 4-digit).
 _NACA_PRESETS = [
     "0006", "0009", "0010", "0012", "0015", "0018", "0021",
     "1408", "2408", "2412", "2415", "2418", "4412", "4415", "4418",
     "6409", "6412", "23012", "23015", "23018",
     # NOT "63012"/"64012": those are 6-series designations (NACA 63-012,
     # 64-012) and mfoil's 5-digit generator only supports the 2XY (mean-line
-    # camber) family — make_mfoil(naca="63012") raises AssertionError("5-digit
+    # camber) family: make_mfoil(naca="63012") raises AssertionError("5-digit
     # NACA must begin with 2X0, X in 1-5"). Discovered via the Gallery's
     # airfoil-corpus thumbnails all 400ing on these two ids.
 ]
@@ -446,7 +446,7 @@ def get_airfoil_geometry(airfoil_id: str) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- #
-# /api/airfoils/upload — user-supplied .dat file (Selig or Lednicer, item 6)
+# /api/airfoils/upload: user-supplied .dat file (Selig or Lednicer, item 6)
 # --------------------------------------------------------------------------- #
 
 
@@ -455,7 +455,7 @@ def run_airfoil_upload(filename: str, content: bytes) -> dict[str, Any]:
     same Selig/Lednicer autodetect as the UIUC corpus loader) and return
     geometry + a CST fit, ready to drive Analyze/FlowField/Inverse from the
     browser. Writes to a scratch temp file since ``load_airfoil_dat`` reads
-    from a ``Path`` — no ``src/cins`` code is touched or duplicated."""
+    from a ``Path``: no ``src/cins`` code is touched or duplicated."""
     suffix = Path(filename).suffix or ".dat"
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
         tmp.write(content)
@@ -626,7 +626,7 @@ def _build_constraint_rows(
             g, te_coeff = area_row(n_upper, n_lower)
             # area = g@A + te_coeff@[zeta_T_u, zeta_T_l]; solved per-baseline
             # below once zeta_T is known, so stash te_coeff on the row tuple's
-            # b via a closure is not possible here (rows are plain (g,b) —
+            # b via a closure is not possible here (rows are plain (g,b) ,
             # resolved by the caller, which has zeta_T in scope).
             rows.append((g, c.target_area, te_coeff))  # type: ignore[arg-type]
         else:  # pragma: no cover - pydantic Literal already restricts this
@@ -687,7 +687,7 @@ def run_presolve(req: Any, cfg: CinsConfig | None = None) -> dict[str, Any]:
         "target_kind": req.target.kind,
         # model_gap (ADR-0004 metric 2) needs a matched viscous baseline solve,
         # which only naturally exists inside the /api/inverse pipeline's own
-        # T4 presolve step (see run_inverse below) — not computed standalone
+        # T4 presolve step (see run_inverse below): not computed standalone
         # here. Documented in app/README.md.
         "model_gap": None,
         "n_stations": int(cp_target_at_baseline.size),
@@ -695,7 +695,7 @@ def run_presolve(req: Any, cfg: CinsConfig | None = None) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- #
-# /api/inverse — stage capture for the frontend "Inverse Design Theater"
+# /api/inverse: stage capture for the frontend "Inverse Design Theater"
 # --------------------------------------------------------------------------- #
 
 _STAGE_DECIMATE = 80  # geometry points snapshotted per stage (item 1 of the brief)
@@ -703,18 +703,18 @@ _STAGE_DECIMATE = 80  # geometry points snapshotted per stage (item 1 of the bri
 
 class StageCapturingDiagnostics(NewtonDiagnostics):
     """App-side subclass of ``cins.diagnostics.recorder.NewtonDiagnostics``
-    (src/cins itself is NEVER edited — see CLAUDE.md) that ADDITIONALLY
+    (src/cins itself is NEVER edited: see CLAUDE.md) that ADDITIONALLY
     snapshots, on every ``record_iteration`` call ``cins.solver.newton.
     solve_inverse`` makes, enough state for the frontend to animate the solve
     live: a decimated airfoil outline, current vs target Cp at the target
     stations, alpha, and the R/T/G norms already being recorded. Snapshots
     reflect mfoil's state as of the START of that Newton iteration (i.e. after
-    the PREVIOUS iteration's geometry update, or the initial guess for it=0) —
+    the PREVIOUS iteration's geometry update, or the initial guess for it=0) ,
     ``solve_inverse`` calls ``record_iteration`` before applying that
     iteration's update.
 
     ``get_mfoil`` is a zero-arg closure returning the live ``mfoil`` instance
-    ``solve_inverse`` is mutating in place (the same object passed to it) —
+    ``solve_inverse`` is mutating in place (the same object passed to it) ,
     the object identity never changes mid-solve, only its internal state, so
     a closure captured once at construction stays valid for the whole run.
     """
@@ -839,7 +839,7 @@ def run_inverse(
 
     with MFOIL_LOCK:
         with instrument_evaluations(counters):
-            # prepare_cell (cins.benchmarks.pipeline, never edited — see
+            # prepare_cell (cins.benchmarks.pipeline, never edited: see
             # CLAUDE.md) bundles fit -> target solve -> 2 presolve passes ->
             # station selection internally with no progress hooks, so this is
             # necessarily one coarse phase rather than the raw-target path's
@@ -953,7 +953,7 @@ def run_inverse(
             "alpha": res.alpha,
             "A_upper": res.A_upper.tolist(),
             "A_lower": res.A_lower.tolist(),
-            "coords": coords.T.tolist(),  # (N,2) — friendlier for JSON/plotting
+            "coords": coords.T.tolist(),  # (N,2): friendlier for JSON/plotting
             "residual_history": [float(x) for x in res.residual_norms],
             "convergence_order": res.convergence_order,
             "release_verify": release_verify,
@@ -972,7 +972,7 @@ def run_inverse(
 
 
 # --------------------------------------------------------------------------- #
-# /api/inverse/raw — user-defined target Cp (product requirement: target
+# /api/inverse/raw: user-defined target Cp (product requirement: target
 # editor / CSV import / coordinate import), reusing the same job store as
 # /api/inverse (app/jobs.py, same GET /api/inverse/{job_id} poll route).
 # --------------------------------------------------------------------------- #
@@ -996,7 +996,7 @@ def build_inverse_raw_config(req: Any, n_upper: int, n_lower: int) -> CinsConfig
     """Overlay an ``app.schemas.RawTargetInverseRequest`` onto
     ``configs/default.yaml``. Raw-target mode deliberately keeps the geometry
     simple (``le_treatment: none``, natural transition) rather than the
-    dossier's forced-trip T7 self-consistency setup — this is a user-drawn
+    dossier's forced-trip T7 self-consistency setup: this is a user-drawn
     target, not a re-derivation of a known airfoil's own Cp, so there is no
     "natural" trip location to match against (documented in app/README.md)."""
     base = load_config().model_dump()
@@ -1022,11 +1022,11 @@ def _phase_payload(
 ) -> dict[str, Any]:
     """A full ``InverseResultPayload``-shaped placeholder used for progress
     updates BEFORE the Newton loop starts (fit / target solve / presolve
-    passes / station selection / initial solve) — same schema the growing
+    passes / station selection / initial solve): same schema the growing
     ``stages`` list already uses (``_emit_progress`` below), just with a
     ``phase`` string set so the frontend can show real status text instead of
     a generic "presolving" placeholder (defect-fix: job hangs with no visible
-    progress — see app/backend/app/jobs.py's module docstring)."""
+    progress: see app/backend/app/jobs.py's module docstring)."""
     return {
         "converged": False, "iterations": len(stages or []), "alpha": None,
         "A_upper": None, "A_lower": None, "coords": None,
@@ -1045,7 +1045,7 @@ def run_presolve_gate_raw(
     on_progress: Callable[[dict[str, Any]], None] | None = None,
     t0: float | None = None,
 ) -> dict[str, Any]:
-    """Just the T4 gate (no Newton solve) — used both standalone (so the UI
+    """Just the T4 gate (no Newton solve): used both standalone (so the UI
     can show the verdict before the user commits to a full inverse run) and
     as the first step of ``run_inverse_raw`` itself. ``on_progress``/``t0``
     are supplied only by ``run_inverse_raw`` (a job with phase reporting);
@@ -1089,7 +1089,7 @@ def run_presolve_gate_raw(
         rows = resolved_rows
         if not has_le_row:
             # Target-consistent closure (memory note: b = g.A*, not an idealized
-            # value) using the best available proxy for A* — the presolved a0
+            # value) using the best available proxy for A*: the presolved a0
             # itself, refreshed every pass.
             g_row, _ = shared_le_radius_row(n_u, n_l)
             rows = [*resolved_rows, (g_row, float(g_row @ a0))]
@@ -1128,7 +1128,7 @@ def run_inverse_raw(
 ) -> dict[str, Any]:
     """User-defined-target monolithic CST-Newton inverse solve. Runs the T4
     presolve gate first (``run_presolve_gate_raw``) and ALWAYS returns its
-    verdict via ``presolve_gate`` — even on an early failure — so the UI can
+    verdict via ``presolve_gate``: even on an early failure: so the UI can
     surface the realisability warning regardless of what happens next.
     ``req`` is an ``app.schemas.RawTargetInverseRequest``."""
     t0 = time.perf_counter()
@@ -1189,7 +1189,7 @@ def run_inverse_raw(
     # Rebuild the sensitivity matrix at the FINAL presolved a0 (not the
     # pre-update pass ``ps.sensitivity`` used internally by
     # ``run_presolve_gate_raw``'s loop) so station selection and the
-    # initial-guess geometry solved below are for the identical baseline —
+    # initial-guess geometry solved below are for the identical baseline ,
     # avoids the node-index drift ``prepare_cell`` guards against.
     _phase("station selection (QR pivot)")
     sens = build_sensitivity_matrix(a0[: n_u + 1], a0[n_u + 1 :], zeta_t_u, zeta_t_l, psi, cfg)
@@ -1305,9 +1305,9 @@ def run_inverse_raw(
 
 
 # --------------------------------------------------------------------------- #
-# /api/showcase — item 7 of the brief: archived T7 run + T8 NACA panel table
+# /api/showcase: item 7 of the brief: archived T7 run + T8 NACA panel table
 # + paper figures, for the Results Gallery page and Theater's "replay
-# archived T7" instant-demo button. Read-only over experiments/results/ — no
+# archived T7" instant-demo button. Read-only over experiments/results/: no
 # solve, no src/cins mutation; the JSON is cached in-process (same one-time-
 # scan pattern as ``_scan_uiuc_cache`` above) since the underlying files never
 # change while the app is running.
@@ -1332,7 +1332,7 @@ def _normalize_showcase_airfoil_id(raw: Any) -> str | None:
     the 117-cell UIUC sweep already stores ``t8_factors.airfoil`` as
     ``"uiuc:<name>"`` (this app's own id scheme), but the earlier H1 NACA
     panel (``experiments/results/t8/panel_0006/`` etc.) predates that
-    convention and stores a bare NACA digit string (``"0006"``) — passing
+    convention and stores a bare NACA digit string (``"0006"``): passing
     that straight to ``GET /api/airfoils/{id}/geometry`` 422s (unknown
     prefix). Normalize both to this app's ``"uiuc:<name>"``/``"naca:<code>"``
     id scheme so every panel row's thumbnail resolves."""
@@ -1349,7 +1349,7 @@ def run_showcase() -> dict[str, Any]:
     """Archived evidence for the Results Gallery: T7 self-consistency run
     (run.log numbers + diagnostics.json residual series, for Theater's replay
     button), the T8 NACA panel sweep (result.json per cell), and the gate
-    board (site/gates.json) — all read-only, labeled as an archived replay
+    board (site/gates.json): all read-only, labeled as an archived replay
     (never conflated with a live solve)."""
     global _SHOWCASE_CACHE
     if _SHOWCASE_CACHE is not None:
@@ -1360,7 +1360,7 @@ def run_showcase() -> dict[str, Any]:
     t7 = {
         "manifest": t7_diag.get("manifest"),
         "convergence_order": t7_diag.get("convergence_order"),
-        # Combined extended-system residual sqrt(R^2+T^2+G^2) per iteration —
+        # Combined extended-system residual sqrt(R^2+T^2+G^2) per iteration ,
         # NOT the flow-block R_norm alone, which is non-monotonic by design
         # (state re-converges after each geometry step; see the T8 analysis
         # review's warning about confusing the two series). This reproduces
@@ -1419,6 +1419,6 @@ def run_showcase() -> dict[str, Any]:
         "panel_n_total": len(panel),
         "figures": figures,
         "gates": gates,
-        "manifest_note": "archived run — see git SHA / date in each entry's own manifest",
+        "manifest_note": "archived run: see git SHA / date in each entry's own manifest",
     }
     return _SHOWCASE_CACHE

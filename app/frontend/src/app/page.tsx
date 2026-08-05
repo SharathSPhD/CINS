@@ -58,6 +58,28 @@ export default function Home() {
         </Link>
       </div>
 
+      {/* Demo video. Rendered from a real solve, not a mock. */}
+      <section className="mt-10">
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500 mb-2">
+          Watch the solver run
+        </h2>
+        <video
+          className="w-full rounded-lg border border-neutral-200 dark:border-neutral-800"
+          controls
+          preload="none"
+          poster="/demo/poster.jpg"
+        >
+          <source src="/demo/cins-demo-wide.mp4" type="video/mp4" />
+          Your browser does not support embedded video. The file is at
+          /demo/cins-demo-wide.mp4.
+        </video>
+        <p className="mt-2 text-xs text-neutral-500">
+          A target pressure distribution goes in and a geometry comes back. Every frame of
+          the solver sequence is recorded from a real run that converged in five Newton
+          iterations to a coefficient error of 2.12e-11.
+        </p>
+      </section>
+
       {/* Gate board strip */}
       {gates.length > 0 && (
         <div className="mt-10">

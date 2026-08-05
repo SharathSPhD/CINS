@@ -39,7 +39,7 @@ def airfoil_geometry(airfoil_id: str) -> dict:
 @router.post("/airfoils/upload", response_model=AirfoilUploadResponse)
 async def upload_airfoil(file: UploadFile = File(...)) -> dict:
     """Item 6 of the app rich-features brief: a user-supplied ``.dat`` file
-    (Selig or Lednicer, autodetected — same loader as the UIUC corpus),
+    (Selig or Lednicer, autodetected: same loader as the UIUC corpus),
     parsed + CST-fitted so it can drive Analyze/FlowField/Inverse straight
     from the browser."""
     content = await file.read()

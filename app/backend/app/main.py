@@ -1,10 +1,10 @@
-"""CINS FastAPI app — the backend layer of the kundali architecture
+"""CINS FastAPI app: the backend layer of the kundali architecture
 (deterministic engine -> FastAPI -> Next.js/Vercel -> Supabase, docs/PRD.md
 §3.2). Run with:
 
     .venv/bin/uvicorn app.main:app --reload --app-dir app/backend --port 8000
 
-(single worker — the /api/inverse job store in app/jobs.py is in-process and
+(single worker: the /api/inverse job store in app/jobs.py is in-process and
 not safe to shard across multiple uvicorn workers; see app/README.md).
 """
 
@@ -32,7 +32,7 @@ from cins.config import REPO_ROOT
 app = FastAPI(
     title="CINS API",
     description=(
-        "Deterministic monolithic CST-Newton inverse airfoil design — "
+        "Deterministic monolithic CST-Newton inverse airfoil design: "
         "FastAPI shell over the cins engine core (docs/PRD.md)."
     ),
     version="0.1.0",

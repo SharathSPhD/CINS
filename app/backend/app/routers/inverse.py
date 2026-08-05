@@ -54,7 +54,7 @@ def poll_inverse(job_id: str) -> dict:
 @router.post("/inverse/gate", response_model=RawTargetGate)
 def presolve_gate_raw(req: RawTargetInverseRequest) -> dict:
     """The T4 presolve realisability verdict ONLY (no Newton solve) for a
-    user-defined target — lets the UI show the ADR-0004 warning immediately,
+    user-defined target: lets the UI show the ADR-0004 warning immediately,
     before the user commits to a (slower) full inverse run. Always 200; a
     non-realisable target is a warning, not an error."""
     try:
@@ -69,7 +69,7 @@ def presolve_gate_raw(req: RawTargetInverseRequest) -> dict:
 
 @router.post("/inverse/raw", response_model=RawTargetSubmitResponse, status_code=202)
 def submit_inverse_raw(req: RawTargetInverseRequest, background_tasks: BackgroundTasks) -> dict:
-    """User-defined-target inverse solve (target editor / CSV import — see
+    """User-defined-target inverse solve (target editor / CSV import: see
     app/README.md). Shares the same job store/poll route as /api/inverse:
     poll GET /api/inverse/{job_id}; the result's ``presolve_gate`` field
     carries the T4 realisability verdict computed first, even on failure."""

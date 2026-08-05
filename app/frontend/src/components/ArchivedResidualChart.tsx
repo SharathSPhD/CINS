@@ -76,7 +76,14 @@ export default function ArchivedResidualChart({
       <text x={(margin.left + width - margin.right) / 2} y={height - 2} fontSize={11} textAnchor="middle" className="fill-neutral-500 dark:fill-neutral-400">
         Newton iteration
       </text>
-      <text x={12} y={margin.top + 8} fontSize={11} className="fill-neutral-500 dark:fill-neutral-400">
+      <text
+        x={-(margin.top + (height - margin.bottom - margin.top) / 2)}
+        y={13}
+        fontSize={11}
+        textAnchor="middle"
+        transform="rotate(-90)"
+        className="fill-neutral-500 dark:fill-neutral-400"
+      >
         log&#8321;&#8320; residual norm (dimensionless)
       </text>
 

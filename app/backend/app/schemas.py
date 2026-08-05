@@ -7,7 +7,7 @@ loop order (TE-lower -> LE -> TE-upper) unless split into ``upper``/``lower``.
 
 Errors are structured JSON via FastAPI's ``HTTPException(detail=...)``;
 realisability *warnings* (a target outside the CST-representable manifold,
-ADR-0004) are NOT errors — ``/api/presolve`` always returns 200 with
+ADR-0004) are NOT errors: ``/api/presolve`` always returns 200 with
 ``realisable: false`` when the metric exceeds the configured threshold, never
 raises.
 """
@@ -78,9 +78,9 @@ class SurfaceSplit(BaseModel):
 
 class BLDistributions(BaseModel):
     """Viscous boundary-layer distributions, per surface, x-ascending (mfoil's
-    ``post.{th,ds,sa,ue,uei,cf,Ret,Hk}`` — momentum thickness, displacement
+    ``post.{th,ds,sa,ue,uei,cf,Ret,Hk}``: momentum thickness, displacement
     thickness, amplification factor/shear-lag coefficient, edge velocity
-    (viscous/inviscid), skin friction, Re_theta, kinematic shape factor —
+    (viscous/inviscid), skin friction, Re_theta, kinematic shape factor ,
     the full set ``m.plot_distributions`` offers), plus the e^n transition
     location. Present only for a converged viscous (``Re`` given) solve."""
 
@@ -126,7 +126,7 @@ class AnalyzeResponse(BaseModel):
     bl_offset: dict[str, list[list[float]]] | None = Field(
         None,
         description="airfoil surface offset by delta* along outward normals (mfoil "
-        "mplot_boundary_layer) — {'upper': [[x,y],...], 'lower': [[x,y],...]}",
+        "mplot_boundary_layer): {'upper': [[x,y],...], 'lower': [[x,y],...]}",
     )
 
 
@@ -152,7 +152,7 @@ class FitRequest(BaseModel):
 
 class DerivedGeometry(BaseModel):
     """Named engineering quantities computed from CST coefficients (closed-form,
-    no quadrature — dossier §3.2-3.4): LE radius (R_LE = A_u0^2/2), TE wedge
+    no quadrature: dossier §3.2-3.4): LE radius (R_LE = A_u0^2/2), TE wedge
     half-angles (from the exact TE-slope identity, N2=1), thickness/camber
     envelopes on a fine psi grid, and inscribed area (Beta-function row)."""
 
@@ -205,7 +205,7 @@ class AirfoilGeometryResponse(BaseModel):
 
 
 class AirfoilUploadResponse(BaseModel):
-    """Response for POST /api/airfoils/upload (item 6) — a user-supplied
+    """Response for POST /api/airfoils/upload (item 6): a user-supplied
     ``.dat`` file, parsed + fitted, ready to drive Analyze/FlowField/Inverse."""
 
     id: str
@@ -303,7 +303,7 @@ class BaselineSpec(BaseModel):
 
 class TargetCpSpec(BaseModel):
     """Target Cp curve, mfoil loop order (or any ordering with a single x-minimum
-    LE). ``kind`` labels whether this Cp came from an inviscid or viscous solve —
+    LE). ``kind`` labels whether this Cp came from an inviscid or viscous solve ,
     it only affects response labeling (ADR-0004), never the presolve math."""
 
     x: list[float]
@@ -359,8 +359,8 @@ class InverseRequest(BaseModel):
     """Self-consistency ("naca_target") inverse: generate a target Cp from
     ``airfoil`` (T7-style, ``cins.benchmarks.pipeline.prepare_cell``), then try
     to recover its CST coefficients via the monolithic Newton solve. A raw
-    user-drawn Cp target mode is deferred — see app/README.md ("what's
-    deferred") — the frontend Inverse view is a stub for this same reason."""
+    user-drawn Cp target mode is deferred: see app/README.md ("what's
+    deferred"): the frontend Inverse view is a stub for this same reason."""
 
     mode: Literal["naca_target"] = "naca_target"
     airfoil: str = Field("2412", description="NACA code the target Cp is generated from")
@@ -391,7 +391,7 @@ class InverseSubmitResponse(BaseModel):
 
 class InverseStage(BaseModel):
     """One Newton iteration's live snapshot (item 1 of the app rich-features
-    brief) — captured by ``app.engine.StageCapturingDiagnostics``, an app-side
+    brief): captured by ``app.engine.StageCapturingDiagnostics``, an app-side
     subclass of ``cins.diagnostics.recorder.NewtonDiagnostics`` (src/cins
     itself is never touched). Fed to the frontend Inverse Design Theater via
     the growing ``stages`` list on ``InverseResultPayload``, polled DURING the
@@ -440,7 +440,7 @@ class InverseResultPayload(BaseModel):
     phase: str | None = Field(
         None,
         description=(
-            "human-readable phase text (defect-fix: job hangs with no visible progress) — "
+            "human-readable phase text (defect-fix: job hangs with no visible progress): "
             "e.g. 'fit: baseline CST fit', 'presolve pass 1/2', 'station selection', "
             "'initial solve', 'newton it 3'. Also mirrored job-level on InverseJobResponse.phase, "
             "which is the authoritative/most current value (updated even between progress calls)."
@@ -455,7 +455,7 @@ class InverseJobResponse(BaseModel):
     error: str | None = None
     phase: str = Field(
         "queued",
-        description="current phase text — see InverseResultPayload.phase; authoritative source.",
+        description="current phase text: see InverseResultPayload.phase; authoritative source.",
     )
     created_at: float = Field(description="unix timestamp the job was created")
     updated_at: float = Field(description="unix timestamp of the last progress heartbeat")
@@ -467,7 +467,7 @@ class InverseJobResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-# /api/inverse/raw — user-defined target Cp (product requirement: target
+# /api/inverse/raw: user-defined target Cp (product requirement: target
 # editor / CSV import), reusing the same job store/poll endpoint as
 # /api/inverse. Runs the T4 presolve realisability gate FIRST and always
 # surfaces it, even when Newton itself is not attempted (dossier §7.10 guard
@@ -519,7 +519,7 @@ class RawTargetInverseRequest(BaseModel):
 
 
 class RawTargetGate(BaseModel):
-    """The T4 presolve realisability verdict — always computed and returned,
+    """The T4 presolve realisability verdict: always computed and returned,
     even on early failure, so the UI can show it before/instead of a Newton
     attempt (ADR-0004)."""
 
@@ -537,7 +537,7 @@ class RawTargetSubmitResponse(BaseModel):
 
 
 # --------------------------------------------------------------------------- #
-# /api/showcase (item 7) — archived T7 run + T8 panel table + paper figures
+# /api/showcase (item 7): archived T7 run + T8 panel table + paper figures
 # --------------------------------------------------------------------------- #
 
 

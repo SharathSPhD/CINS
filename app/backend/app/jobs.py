@@ -4,14 +4,14 @@ Deliberately the simplest thing that works for local-dev, single-worker
 uvicorn (docs/PRD.md phase-1 scope: "local dev quality, production-shaped").
 Jobs live in a module-level dict for the life of the process; nothing is
 persisted. A single uvicorn worker (the default `uvicorn app.main:app`, no
-`--workers`) is required for this store to be consistent — see app/README.md.
+`--workers`) is required for this store to be consistent: see app/README.md.
 
 Phase/heartbeat/timeout (defect-fix, see app/backend/app/engine.py's
-``on_progress`` callers): the underlying solve is genuinely slow — measured
+``on_progress`` callers): the underlying solve is genuinely slow: measured
 locally at ~90s before the first Newton iteration and ~40s per iteration
 thereafter (app/README.md documents ~10-20 min for a full job on Render's
-free-tier 0.1-vCPU instance) — not deadlocked. Rather than trying to make the
-vendor solve faster (out of scope — vendor/mfoil/mfoil.py and src/cins/** are
+free-tier 0.1-vCPU instance): not deadlocked. Rather than trying to make the
+vendor solve faster (out of scope: vendor/mfoil/mfoil.py and src/cins/** are
 never edited), this module makes the wait legible: every job tracks a
 human-readable ``phase`` string and an ``updated_at`` heartbeat timestamp that
 advance even before the first Newton-iteration ``stage`` exists, and a
@@ -35,7 +35,7 @@ JobStatus = Literal["queued", "running", "done", "error"]
 
 # Overridable via env (Render free tier is far slower than local dev; a fixed
 # constant would either time out healthy slow runs or never fire locally).
-# Default: 25 minutes — above the documented ~10-20 min free-tier full-job
+# Default: 25 minutes: above the documented ~10-20 min free-tier full-job
 # ceiling (app/README.md) with headroom, but still bounded so the UI is never
 # stuck showing "running" indefinitely.
 DEFAULT_TIMEOUT_S = float(os.environ.get("CINS_INVERSE_TIMEOUT_S", "1500"))
@@ -74,13 +74,13 @@ def run_job(job_id: str, fn: Callable[..., dict[str, Any]], *args: Any, **kwargs
     """Executed by FastAPI's BackgroundTasks after the submit response is
     already sent. Any two /api/inverse submissions serialize naturally here
     because `fn` (engine.run_inverse) itself blocks on the process-global
-    MFOIL_LOCK — a second job's status stays "running" (not "queued") the
+    MFOIL_LOCK: a second job's status stays "running" (not "queued") the
     instant BackgroundTasks picks it up, even while it's actually waiting on
     the lock, since the queued->running transition happens in this function,
     not inside the lock. That's a cosmetic imprecision only; the *solve*
     itself is correctly serialized.
 
-    ``fn`` is called with ``on_progress=<callback>`` — ``engine.run_inverse``
+    ``fn`` is called with ``on_progress=<callback>``: ``engine.run_inverse``
     / ``engine.run_inverse_raw`` invoke it at every phase transition AND after
     every Newton iteration with a partial result payload (including the
     growing ``stages`` list and a ``phase`` string), which is written straight
@@ -89,7 +89,7 @@ def run_job(job_id: str, fn: Callable[..., dict[str, Any]], *args: Any, **kwargs
 
     A watchdog thread marks the job ``error`` (with an explicit "timed out"
     reason, the last known phase, and how many Newton iterations completed)
-    if it is still ``running`` after ``job.timeout_s`` seconds — the vendor
+    if it is still ``running`` after ``job.timeout_s`` seconds: the vendor
     solve itself cannot be safely killed mid-computation (it's a plain
     Python/numpy call, not cancellable), so the underlying thread keeps
     running to completion in the background, but the JOB the user is polling
@@ -115,7 +115,7 @@ def run_job(job_id: str, fn: Callable[..., dict[str, Any]], *args: Any, **kwargs
                 job.error = (
                     f"timed out after {job.timeout_s:.0f}s "
                     f"(last phase: {job.phase!r}, {n_stages} Newton iteration(s) completed). "
-                    "The solve is very likely still slow rather than stuck — this backend "
+                    "The solve is very likely still slow rather than stuck: this backend "
                     "instance may be far slower than local dev (see app/README.md's free-tier "
                     "latency note); retry, or raise CINS_INVERSE_TIMEOUT_S."
                 )

@@ -10,7 +10,7 @@ router = APIRouter(prefix="/api", tags=["presolve"])
 
 @router.post("/presolve", response_model=PresolveResponse)
 def presolve(req: PresolveRequest) -> dict:
-    """Realisability WARNINGS (``realisable: false``) are not errors — this
+    """Realisability WARNINGS (``realisable: false``) are not errors: this
     endpoint always returns 200 in that case (ADR-0004); only structurally bad
     requests (unknown constraint, missing coords) raise."""
     try:
