@@ -1038,14 +1038,33 @@ def build_inverse_raw_config(req: Any, n_upper: int, n_lower: int) -> CinsConfig
     the verification solve, which reports the recovered geometry under natural
     transition.
 
-    ``le_treatment`` stays ``none``: the T8 ablation recovered coefficients to
-    6.5e-10 with it (``t8_le_none``), so prescribing the leading edge is not
-    required for convergence here, and a user-drawn target carries no
-    prescribed nose radius to impose."""
+    ``le_treatment`` is ``prescribed``, the dossier's FM-3 recommendation and
+    the configuration T7/T8 use. It was ``none`` on the reasoning that a
+    user-drawn target carries no nose radius to impose, and the T8 ablation
+    ``t8_le_none`` did recover coefficients to 6.5e-10 without it. That
+    ablation, though, selects target stations the way T8 does, restricted to
+    ``x >= prescribed_le_fraction``, while this path ran unrestricted QR: with
+    ``le_treatment: none`` the fraction is zero, so the two looked identical
+    and were not.
+
+    Measured on the self-consistency target, from the same perturbed start:
+
+    ==========================  ==============  ==============
+    quantity                    LE stations in  T8 recipe
+    ==========================  ==============  ==============
+    submap condition            --              19.9
+    Newton iterations           14              8
+    final residual              7.19e-11        5.06e-11
+    ``|A - A*|`` inf            3.9e-2          5.4e-4
+    max surface offset (mc)     0.863           0.0174
+    ==========================  ==============  ==============
+
+    The nose is taken from the presolved baseline, which is an assumption the
+    caller should know about: it is reported in ``notes``."""
     base = load_config().model_dump()
     overrides: dict[str, Any] = {
         "operating": {"alpha_deg": req.alpha_deg, "Re": req.Re},
-        "cst": {"n_upper": n_upper, "n_lower": n_lower, "le_treatment": "none"},
+        "cst": {"n_upper": n_upper, "n_lower": n_lower, "le_treatment": "prescribed"},
         "transition": {"mode": "forced"},
         "t8": {"alpha_free": req.alpha_free},
     }
@@ -1122,6 +1141,12 @@ def run_presolve_gate_raw(
             resolved_rows.append(row)  # type: ignore[arg-type]
 
     a0 = np.concatenate([a_u0, a_l0])
+    # The baseline's own fitted nose, kept before the presolve passes move it.
+    # When the leading edge is prescribed it must come from here rather than
+    # from the presolve output: those passes are inviscid, so against a viscous
+    # target they drift A_u0/A_l0 away from the baseline, and freezing a drifted
+    # nose forces every remaining coefficient to compensate for it.
+    a0_baseline = a0.copy()
     ps = None
     for pass_i in range(2):  # 2 presolve passes, mirroring prepare_cell's own init="presolve" loop
         _phase(f"presolve pass {pass_i + 1}/2 (inviscid Cp + sensitivity matrix)")
@@ -1147,6 +1172,7 @@ def run_presolve_gate_raw(
         "psi": psi,
         "target_res": target_res,
         "a0": a0,
+        "a0_baseline": a0_baseline,
         "zeta_t_u": zeta_t_u,
         "zeta_t_l": zeta_t_l,
         "n_u": n_u,
@@ -1204,10 +1230,33 @@ def run_inverse_raw(
         }
 
     n_a = n_u + n_l + 2
-    free_idx = np.arange(n_a)
     g_row, _ = shared_le_radius_row(n_u, n_l)
     has_le_row = any(c.type in ("shared_le_radius", "le_radius") for c in req.constraints)
-    if has_le_row:
+    # Prescribed leading edge (FM-3): A_u0 and A_l0 come from the presolved
+    # baseline instead of being solved for, and the shared-LE row goes with
+    # them since it would otherwise constrain coefficients that are no longer
+    # free. Skipped when the caller supplied their own LE constraint, which is
+    # an explicit request to solve for the nose.
+    prescribe_le = cfg.cst.le_treatment == "prescribed" and not has_le_row
+    notes: list[str] = []
+    if prescribe_le:
+        fixed = {0, n_u + 1}
+        free_idx = np.array([i for i in range(n_a) if i not in fixed])
+        G = np.zeros((0, n_a))
+        b = np.zeros(0)
+        # Restore the baseline's own nose. The presolve is inviscid and drifts
+        # these two coefficients when the target is viscous, and whatever value
+        # they hold here is frozen for the whole solve, so it should be the
+        # nose the caller's baseline actually has.
+        a0 = a0.copy()
+        a0[list(fixed)] = gate_ctx["a0_baseline"][list(fixed)]
+        notes.append(
+            "leading edge prescribed from the baseline (A_u0, A_l0 held fixed, "
+            "FM-3): the solve matches the target away from the nose and does "
+            "not alter the nose radius"
+        )
+    elif has_le_row:
+        free_idx = np.arange(n_a)
         raw_rows = _build_constraint_rows(req.constraints, n_u, n_l)
         G_rows: list[np.ndarray] = []
         b_rows: list[float] = []
@@ -1223,6 +1272,7 @@ def run_inverse_raw(
         G = np.stack(G_rows)
         b = np.array(b_rows)
     else:
+        free_idx = np.arange(n_a)
         G = g_row.reshape(1, -1)
         b = np.array([float(g_row @ a0)])
 
@@ -1239,9 +1289,21 @@ def run_inverse_raw(
     n_pick = n_targets_required + req.n_stations_offset
     if n_pick <= 0 or n_pick > sens.x_stations.size:
         return _early([f"invalid station count requested: n_pick={n_pick}"])
-    m_cand = sens.M[:, free_idx]
+    # Candidates exclude the prescribed-LE region, as T8's qr_pivot branch does
+    # (cins.benchmarks.pipeline). A target row inside a region whose shape is
+    # held fixed carries almost no information about the free coefficients, so
+    # the square system stays formally full-rank while becoming numerically
+    # near-dependent. Measured on the self-consistency target: filtering takes
+    # the submap to condition 19.9 and the solve from 14 iterations at
+    # |A-A*|inf 3.9e-2 to 8 iterations at 5.4e-4, with the recovered surface
+    # moving from 0.863 to 0.017 millichords of the target.
+    le_frac = cfg.cst.prescribed_le_fraction if cfg.cst.le_treatment == "prescribed" else 0.0
+    cand = np.nonzero(np.asarray(sens.x_stations) >= le_frac)[0]
+    if cand.size < n_pick:
+        return _early([f"only {cand.size} candidate stations for {n_pick} requested"])
+    m_cand = sens.M[cand][:, free_idx]
     _, _, piv = _qr(m_cand.T, pivoting=True)
-    stations = np.sort(piv[:n_pick])
+    stations = np.sort(cand[piv[:n_pick]])
 
     try:
         assert_square(len(free_idx), len(stations), G.shape[0], alpha_free=req.alpha_free)
@@ -1365,15 +1427,19 @@ def run_inverse_raw(
         "submap_cond": (
             float(np.linalg.cond(sens.M[stations][:, free_idx])) if stations.size else None
         ),
-        "notes": [],
+        "notes": notes,
         "dof_check_error": None,
         "wall_time_s": time.perf_counter() - t0,
         "diagnostics": diag_summary,
         "manifest": {
             "cell_name": cell_name,
             "config_hash": cfg.config_hash(),
-            "cst": {"n_upper": n_u, "n_lower": n_l, "le_treatment": "none"},
-            "transition_mode": "free",
+            "cst": {
+                "n_upper": n_u, "n_lower": n_l,
+                "le_treatment": cfg.cst.le_treatment,
+                "n_free": int(len(free_idx)),
+            },
+            "transition_mode": cfg.transition.mode,
         },
         "presolve_gate": gate,
         "stages": diag.stages,

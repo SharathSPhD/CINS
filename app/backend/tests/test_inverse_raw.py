@@ -147,30 +147,6 @@ def test_submit_inverse_raw_returns_job_id(client, monkeypatch):
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(
-    reason=(
-        "The raw-target path does not converge. Marked xfail so the limitation stays "
-        "visible rather than being deleted or tuned green; the assertions below are "
-        "unchanged and will report the day it passes. What is measured, as of "
-        "2026-08-06: (1) transition treatment is not the cause, since pinning the trip "
-        "widens the Cp gap slightly rather than closing it, 9.2 to 10.6 percent "
-        "relative; (2) station identity is not the cause, since moving stations from "
-        "node index to (surface, x) with interpolation fixed the demo, NACA 0012 onto "
-        "2412 in 10 iterations to 7.5e-12 from 19.98 millichords away, and left this "
-        "unchanged; (3) with alpha fixed the solve reaches iteration 24 and the "
-        "extended Jacobian is then exactly singular; (4) under target continuation "
-        "from a perturbed start the full residual falls to 2.08e-10 against an rtol "
-        "of 1e-10, a stall just above tolerance rather than a divergence, while the "
-        "coefficients end 7.2e-2 from the generating set having started 9.3e-3 away. "
-        "A near-zero residual reached at coefficients an order of magnitude further "
-        "out is the signature of a weakly identified system, not of a solver unable "
-        "to make progress. The leading edge is the open suspect, since prescribing "
-        "A_u0 and A_l0 instead of solving for them is the one structural difference "
-        "between this configuration and the T7 recipe that recovers A* to 1e-11. "
-        "That is stated as the next thing to test, not as an established cause."
-    ),
-    strict=False,
-)
 def test_inverse_raw_recovers_self_consistent_target(client):
     """End-to-end: a raw (user-supplied) target that equals NACA 2412's own Cp
     under the conditions this endpoint solves should be recovered by the Newton
@@ -210,4 +186,40 @@ def test_inverse_raw_recovers_self_consistent_target(client):
     assert status == "done", payload
     result = payload["result"]
     assert result["presolve_gate"] is not None
-    assert result["presolve_gate"]["realisable"] is True
+
+    # The gate's realisability is an INVISCID-consistent quantity by ADR-0004,
+    # and this target is viscous, so it gates as unrealisable by construction:
+    # measured 0.0663 against a 0.05 threshold. ADR-0004 settles what that
+    # means, having seen the same thing before ("...NOT target unrealisability.
+    # The subsequent monolithic solve converged to 1e-11 - proof the target was
+    # realisable"), and introduced model_gap as the viscous-consistent measure.
+    # Asserting realisable is True here was left over from when this test used
+    # an inviscid target; it cannot hold for a viscous one. The verdict must
+    # still be reported on every result, which is what is checked.
+    assert isinstance(result["presolve_gate"]["realisability"], float)
+    assert result["model_gap"] is not None
+    assert result["model_gap"] < 0.10, result["model_gap"]
+
+    # What this test is named for, and never actually checked before.
+    assert result["converged"] is True, result["notes"]
+    assert result["iterations"] <= 15, result["iterations"]
+    assert result["residual_history"][-1] < 1e-9
+
+    # Recovery is asserted on the SHAPE, not on the coefficients. The CST basis
+    # is ill-conditioned in A (dossier FM-2), so coefficients that differ by
+    # 1.8e-2 describe surfaces that differ by well under a millichord: the
+    # coefficient norm is not a meaningful accuracy statement for a target that
+    # only ever constrained pressure. Measured max offset 0.417 mc with alpha
+    # fixed and 0.479 mc with it free, against the 1 mc (0.1 percent chord) that
+    # T2 allows a CST fit itself.
+    fit = fit_cst(make_mfoil(naca="2412").geom.xpoint[0], make_mfoil(naca="2412").geom.xpoint[1], 6)
+    psi = cosine_spacing(160)
+    z_star = coords_from_A(
+        fit.A_upper, fit.A_lower, fit.zeta_T_upper, fit.zeta_T_lower, psi
+    )[1]
+    z_got = coords_from_A(
+        np.asarray(result["A_upper"]), np.asarray(result["A_lower"]),
+        fit.zeta_T_upper, fit.zeta_T_lower, psi,
+    )[1]
+    offset_mc = float(np.max(np.abs(z_got - z_star))) * 1000.0
+    assert offset_mc < 2.0, f"recovered surface is {offset_mc:.3f} millichords from the target"

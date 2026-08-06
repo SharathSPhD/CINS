@@ -157,33 +157,53 @@ rather than one generated from a NACA code's own self-consistency Cp:
   dossier's "T7 winning configuration" (`prescribed` LE + forced trip,
   `.remember/t7-winning-configuration.md`) — there is no natural trip
   location to match for a user-drawn target.
-- **Status: this path does not converge.**
-  `app/backend/tests/test_inverse_raw.py::test_inverse_raw_recovers_self_consistent_target`
-  builds a target from a viscous, tripped solve of the CST reconstruction
-  itself, so the answer is known and representable. It is marked `xfail` with
-  its assertions intact rather than removed or relaxed, so the limitation
-  stays visible and the test reports the day it passes. What has been
-  measured so far:
-  - Transition treatment is not the cause. Pinning the trip does not close
-    the Cp gap, it widens it slightly, from 9.2 to 10.6 percent relative.
-  - Station identity is not the cause. Stations moved from panel-node index
-    to `(surface, x)` with interpolation, which fixed the demo (NACA 0012
-    onto 2412, 19.98 millichords apart, 10 iterations to 7.5e-12) and left
-    this unchanged.
-  - With `alpha_free` fixed the solve reaches iteration 24 and the extended
-    Jacobian is then exactly singular.
-  - Under target continuation from a perturbed start, the full residual
-    falls to 2.08e-10 against an rtol of 1e-10: a stall just above tolerance,
-    not a divergence. At that point the coefficients sit 7.2e-2 from the
-    generating set, having started 9.3e-3 away.
+- **Status: converges.** 8 Newton iterations to a residual of 5.6e-11, with
+  the recovered surface within **0.48 millichords** of the target (0.42 with
+  `alpha_free: false`). `test_inverse_raw_recovers_self_consistent_target` is
+  no longer `xfail`.
 
-  A near-zero residual reached at coefficients an order of magnitude further
-  out is the signature of a weakly identified system rather than a solver
-  that cannot make progress. The leading edge is the open suspect: the one
-  structural difference between this configuration and the T7 recipe that
-  recovers A* to 1e-11 is that T7 prescribes `A_u0`/`A_l0` (dossier FM-3)
-  instead of solving for them, and drops the shared-LE constraint row with
-  them. That is the next thing to test, not an established cause.
+  The cause of the earlier non-convergence was a difference between this path
+  and the T8 pipeline that looked like no difference at all. T8 restricts QR
+  station candidates to `x >= prescribed_le_fraction`; this path ran
+  unrestricted QR. Because it also set `le_treatment: none`, that fraction was
+  zero and the two agreed numerically while disagreeing structurally. Once the
+  leading edge is prescribed, `A_u0`/`A_l0` are given rather than solved, so a
+  target row placed inside that region constrains pressure over a shape that
+  cannot change and carries almost no information about the free coefficients.
+  The system stays formally square and full-rank while going numerically
+  near-dependent: it converges to a root that is not the generating geometry.
+
+  Measured on the self-consistency target, from the same perturbed start:
+
+  | | LE stations included | LE stations excluded |
+  | --- | --- | --- |
+  | submap condition | not recorded | 19.9 |
+  | Newton iterations | 14 | 8 |
+  | final residual | 7.19e-11 | 5.06e-11 |
+  | `\|A - A*\|` inf | 3.9e-2 | 5.4e-4 |
+  | max surface offset | 0.863 mc | 0.017 mc |
+
+  Two further points hold at the endpoint itself. The prescribed nose is
+  taken from the baseline's own fit rather than from the presolve output: the
+  presolve passes are inviscid, so against a viscous target they drift
+  `A_u0`/`A_l0`, and freezing a drifted nose forces the remaining coefficients
+  to compensate. Correcting that moved the recovered angle of attack from
+  2.044 to 1.9963 degrees against a true 2.0, and the coefficient error from
+  3.6e-2 to 2.1e-2.
+
+  Recovery is reported and asserted on the **shape**, not on the
+  coefficients. The CST basis is ill-conditioned in `A` (FM-2), so
+  coefficients differing by 1.8e-2 describe surfaces differing by under half
+  a millichord; against a target that only ever constrained pressure, the
+  coefficient norm is not a meaningful accuracy statement. For reference, T2
+  allows a CST fit itself 1 mc (0.1 percent chord).
+
+  The presolve gate reports `realisable: false` for this target (0.0663
+  against a 0.05 threshold) and that is correct: realisability is an
+  inviscid-consistent quantity by ADR-0004, the target is viscous, and
+  `model_gap` (0.048) is the viscous-consistent measure. ADR-0004 records the
+  same situation and its resolution, that a converged solve is itself the
+  proof of realisability.
 - The API reports this faithfully: a non-convergent result returns
   `converged: false` with the iteration history rather than a fabricated
   geometry, and `newton.max_iter` (default 50) bounds the wait.
@@ -292,13 +312,16 @@ phase-1 local-dev scope, not an oversight.
   corpus (`GET /api/airfoils/{id}/geometry`) but there is no upload endpoint
   for a brand-new file the user supplies; only a target-*Cp*-curve CSV
   upload exists (Inverse view).
-- Convergence of `/api/inverse/raw`. The open item, with the evidence
-  gathered so far recorded under "Scope cut" above. The next experiment is
-  the prescribed-LE variant, since that is what separates this configuration
-  from the T7 recipe that converges; after that, a viscous-aware pre-solve
-  (the sensitivity matrix is currently built from the inviscid panel
-  operator, so a viscous target starts further out than `naca_target` mode
-  does).
+- Viscous-aware pre-solve. The sensitivity matrix is built from the inviscid
+  panel operator, so a viscous target starts further out than `naca_target`
+  mode does: 0.071 in target residual here. The solve now absorbs that in 8
+  iterations, so this is no longer blocking, but it is the remaining reason
+  this path starts where it does.
+- Exact coefficient recovery on a raw target. The shape is recovered to
+  under half a millichord while coefficients differ by 1.8e-2. Whether that
+  gap can be closed, and whether it is worth closing given FM-2 conditioning
+  and that a user-drawn target constrains pressure rather than coefficients,
+  is open.
 - Coupled viscous flow field. `app/backend/app/flowfield.py` evaluates the
   inviscid velocity field, verified against the vendor to 7.66e-15; the
   displacement-thickness source contribution is not yet added, so the
