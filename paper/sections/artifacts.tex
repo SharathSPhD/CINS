@@ -1,0 +1,111 @@
+A method described only in prose is hard to check and harder to reuse. Three
+artifacts accompany this manuscript, and this section states what each
+contains, what it can and cannot do, and where the boundary between the
+deterministic engine and everything built on top of it lies. The boundary is
+the design constraint that makes the rest possible: the engine has no
+knowledge of the web layer, and every array crossing into it is the same array
+the experiments in Section~\ref{sec:results} were run on.
+Figure~\ref{fig:artifact-stack} shows the arrangement.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=5.5mm and 12mm]
+  \node[fcstart, minimum width=68mm] (engine)
+    {\textbf{Deterministic engine}\\[1pt]
+     \scriptsize CST algebra, constraint rows, pre-solve, extended Newton
+     solver, diagnostics\\[1pt]
+     \scriptsize no input/output, no web dependency; the code the experiments ran};
+  \node[fcbox, below=of engine, minimum width=68mm] (api)
+    {\textbf{HTTP service}\\[1pt]
+     \scriptsize one adapter module is the only caller of the engine;
+     routers translate requests and responses only};
+  \node[fcout, below=9mm of api, xshift=-17mm, minimum width=32mm] (web)
+    {\textbf{Interactive application}\\[1pt]
+     \scriptsize analyse, inverse design,\\[-1pt]
+     \scriptsize flow field, gallery};
+  \node[fcout, below=9mm of api, xshift=17mm, minimum width=32mm] (site)
+    {\textbf{Project site}\\[1pt]
+     \scriptsize narrative walkthrough,\\[-1pt]
+     \scriptsize figures and progress record};
+  \node[fcbox, below=22mm of api, minimum width=68mm, fill=black!3] (repo)
+    {\textbf{Repository}: source, configurations, run records, this manuscript};
+  \draw[fcarrow] (engine) -- (api);
+  \draw[fcarrow] (api.south) -- ++(0,-3mm) -| (web.north);
+  \draw[fcarrow] (api.south) -- ++(0,-3mm) -| (site.north);
+  \draw[fcarrow, dashed] (repo.west) -- ++(-6mm,0) |- (engine.west);
+\end{tikzpicture}
+\caption{The released artifacts. The engine is the code the experiments ran;
+everything above it is an adapter, and nothing above it can change a result.}
+\label{fig:artifact-stack}
+\end{figure}
+
+\subsection{The interactive application}
+
+A deployed web application exposes the method to a reader who does not want to
+install anything. It is a Python service wrapping the engine, with a
+browser front end, and it offers four views. \emph{Analyse} runs a direct
+coupled solve for a section chosen from the same 123-file coordinate corpus
+the panel of Section~\ref{sec:h1-uiuc-panel} was drawn from, or from a NACA
+code, and reports the pressure distribution, the boundary-layer state, and the
+CST-derived engineering parameters, being leading-edge radius, trailing-edge
+wedge half-angles, maximum thickness and camber with their locations, and
+inscribed area, all evaluated in closed form from the coefficients by the same
+Beta-function machinery as Eq.~\eqref{eq:area-beta} rather than by quadrature.
+\emph{Inverse design} runs the monolithic solve itself, iteration by
+iteration, in either of two modes: a self-consistency solve against a target
+generated from a section's own fit, which is the experiment of
+Section~\ref{sec:falsifiable}, or a solve against a target the user supplies
+as a pressure or edge-velocity curve. \emph{Flow field} renders the inviscid
+velocity and pressure field around the section. \emph{Gallery} replays the
+archived results and figures this manuscript reports.
+
+Two behaviours of the user-supplied-target mode are worth recording here,
+because they are the product-side evidence for
+Section~\ref{sec:le-identifiability}'s finding. First, the realisability
+verdict is always reported and never blocks: a target outside the
+CST-representable manifold produces a warning carrying the
+inviscid-consistent metric of Section~\ref{sec:presolve}, not an error, which
+is the reporting rule of that section made into interface behaviour. Second,
+the same station-restriction rule the panel runs use is applied here, and it
+was in fact found here first. On a user-defined viscous target the
+unrestricted candidate set converged in 14 iterations to a surface $0.86$
+millichords from the target, while restricting candidates to stations aft of
+the prescribed nose converged in 8 to $0.017$ millichords, a fiftyfold
+improvement in recovered shape at an almost unchanged residual. Recovery on
+such a target is reported and asserted on the \emph{shape} rather than on the
+coefficients, because the CST basis is ill-conditioned in $A$
+(Section~\ref{sec:nsweep}) and coefficient vectors differing by
+$1.8\x10^{-2}$ describe surfaces differing by less than half a millichord;
+against a target that only ever constrained pressure, the coefficient norm is
+not a meaningful accuracy statement.
+
+Two limitations of the deployment are stated so that a reader who tries it is
+not misled. The service runs one inverse solve at a time by construction,
+because the forced-transition closure of Section~\ref{sec:transition} replaces
+module-level functions in the vendored solver and is therefore process-global
+rather than instance-scoped; a second submission waits rather than running
+concurrently. And the rendered flow field is inviscid, since the
+displacement-thickness source contribution is not yet added to it, while the
+boundary-layer quantities displayed beside it come from the fully coupled
+solve.
+
+\subsection{The project site and the repository}
+
+A project site presents the method as a narrative walkthrough, from the
+problem statement through the linearity argument, the square system, the
+falsifiable test, the identifiability finding and the conditioning cliff, using
+the same figures as this manuscript. It exists because the argument of
+Section~\ref{sec:cst-linearity} is visual before it is algebraic, and a reader
+deciding whether to spend time on the formulation is better served by the
+figures than by the equations.
+
+The repository carries the engine, the configuration files that define every
+run reported here, the archived run records those runs produced, the figure
+scripts, the test suite, and the source of this manuscript.
+Appendix~\ref{app:repro} states the reproduction procedure and the software
+environment; Appendix~\ref{app:prov} maps each figure and table in this
+manuscript to the record it was produced from. The vendored flow solver is
+included unmodified under its own licence and is never edited; all access to
+it passes through a single adapter module, which is what made the
+forced-transition closure of Section~\ref{sec:transition} implementable
+without a fork.

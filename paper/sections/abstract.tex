@@ -1,43 +1,41 @@
-% Filled at T7/T8 closure. Corrected headline: do NOT claim two-to-three orders of magnitude
-% fewer flow solves. The
-% measured, fair-paired result is 3-8x; report that, plus determinism and
-% uniqueness, which are in fact BETTER supported post-T8 via the
-% station-selection identifiability finding.
 Inverse airfoil design, recovering a geometry that produces a prescribed
 surface pressure or edge-velocity distribution, is recast here as a single
 determined nonlinear root-find rather than an objective-function search.
 Parameterising the surface with Class-Shape-Transformation (CST) coefficients
-that enter the geometry \emph{linearly} makes the geometric Jacobian block
-exact, constant, and design-independent. It also makes geometric design
-constraints (leading-edge radius, trailing-edge thickness, inscribed area)
-linear algebraic rows rather than nonlinear predicates. Appending the CST
-coefficients as unknowns to a coupled viscous/inviscid Newton solver (mfoil)
-therefore converts constrained shape \emph{optimisation} into constrained
-\emph{root-finding}: one square system, no outer loop, no surrogate. The
-architecture is validated with a falsifiable self-consistency test: a known
-CST coefficient vector is recovered from its own self-generated target to
-$\|A-A^\ast\|_\infty = 2.75\times10^{-11}$ in 6 Newton iterations, with a
-visible quadratic tail. The recovered geometry reproduces the target in
-fully released (natural-transition) direct mode to
-$\Delta c_l = 3.4\times10^{-12}$. An ablation matrix identifies the primary
+that enter the geometry linearly makes the geometric sensitivity of the
+surface exact, constant and design-independent. It also makes geometric
+design constraints, among them leading-edge radius, trailing-edge thickness
+and inscribed area, linear algebraic rows rather than nonlinear predicates.
+Appending the CST coefficients as unknowns to a coupled viscous/inviscid
+Newton solver (\texttt{mfoil}) therefore converts constrained shape
+optimisation into constrained root-finding: one square system, no outer loop,
+no surrogate. The architecture is validated with a falsifiable
+self-consistency test in which a known CST coefficient vector is recovered
+from its own self-generated target to
+$\norm{A-A^\ast}_\infty = 2.75\x10^{-11}$ in six Newton iterations. The
+recovered geometry reproduces the reference section's fully released
+(natural-transition) aerodynamic coefficients to
+$\Delta c_l = 3.4\x10^{-12}$. An ablation matrix identifies the primary
 uniqueness guard for the resulting square system: sensitivity-optimal
 (QR-pivoted) selection of target stations, not initial-guess quality,
 separates recovery of the true design from clean convergence to a spurious
 but residual-zeroing root. Measured against a competently-tuned nested
 Levenberg--Marquardt baseline under two independent fair-paired controls, the
-monolithic architecture requires 3.1--8.1x fewer flow-residual evaluations.
-This is a real but modest reduction, not the two-to-three-orders-of-magnitude
-headline hypothesised a priori, and it comes with determinism, guaranteed
-local quadratic convergence, exact analytic constraint-row Jacobians, and
-per-iteration failure-mode diagnostics that the nested baseline has no
-analogue for. A subsequent 20-section NACA panel evaluation, run at the
-winning configuration the ablation matrix identifies, recovers all 18
-generable sections to $\mathrm{err\_free\_inf}\leq1.51\times10^{-10}$. This
-result is reported alongside the interval-arithmetic reason its formal
-pre-registered Wilson-confidence criterion still fails at this panel size.
-The architecture is further placed on a comparison table against MISES's own
-Modal-Inverse mode, the nearest prior CST-based inverse method, and the
-current generative/learned-surrogate inverse-design literature. The
-comparison is made on formulation class, cost, determinism, and
-constraint-handling grounds rather than a single flow-solve number, since the
-methods are not commensurable on that axis alone.
+monolithic architecture requires $3.1$--$8.1\x$ fewer counted flow solves and
+$3.4$--$3.5\x$ less wall-clock time. This is a real but modest reduction, not
+the two-to-three-orders-of-magnitude headline hypothesised a priori, and it
+comes with determinism, an exact analytic Jacobian for the constraint rows,
+and per-iteration failure-mode diagnostics for which the nested baseline has
+no analogue. Generalisation is then evaluated on two pre-registered panels. A
+20-section NACA panel recovers all 18 generable sections to
+$\norm{A-A^\ast}_\infty\leq1.51\x10^{-10}$; a 117-section panel drawn from
+the UIUC coordinate database recovers every one of its 83 converged sections
+to better than $10^{-4}$, while missing the pre-registered composite
+criterion on iteration count rather than on accuracy. Both panel outcomes are
+reported alongside the exclusions they rest on and the geometric bias those
+exclusions carry. The architecture is finally placed on a comparison table
+against MISES's own modal inverse mode, the nearest prior CST-based inverse
+method, and the current generative and learned-surrogate inverse-design
+literature, on formulation class, cost, determinism and constraint-handling
+grounds rather than a single flow-solve number, since the methods are not
+commensurable on that axis alone.

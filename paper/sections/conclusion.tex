@@ -1,44 +1,57 @@
-\label{sec:conclusions}
-
 Appending CST coefficients as unknowns to a coupled viscous/inviscid Newton
 solver, with geometric design constraints expressed as the linear rows CST's
 own linearity makes available, converts constrained inverse airfoil design
 from a search over an objective function into a single square, determined
-root-find. The falsifiable self-consistency test (\S\ref{sec:falsifiable})
-passes with a wide margin on every criterion, including a release-and-verify
-check the original protocol had not yet required at the time of first
-closure. The T8 ablation matrix (\S\ref{sec:results}) confirms the
-architecture's basic viability across three NACA sections and Bernstein
-orders up to a conditioning cliff at $n=12$. It also \emph{corrects} the a
-priori flow-solve-count hypothesis downward to a measured 3.1--8.1x, while
-surfacing a methodological contribution the original dossier did not
-anticipate: QR-pivoted station selection as the identifiability guard for
-square inverse systems. The paper's two central results are therefore a
-falsified numeric hypothesis (the flow-solve ratio) and a strengthened,
-unanticipated qualitative one (station-selection identifiability).
+root-find. The falsifiable self-consistency test of
+Section~\ref{sec:falsifiable} passes with a wide margin on every accuracy and
+iteration-count criterion, including a release-and-verify check the original
+protocol had not required, though its convergence rate is fast superlinear
+rather than quadratic (Section~\ref{sec:h3}).
+The ablation matrix of Section~\ref{sec:results} confirms the architecture's
+viability across three NACA sections and Bernstein orders up to a conditioning
+cliff at $n=12$, and the two pre-registered panels extend the recovery claim
+to 18 of 18 eligible NACA sections and 83 of 83 converged UIUC sections,
+subject to the selection effect Section~\ref{sec:h1-uiuc-panel} quantifies.
 
-\paragraph{Future work.} Three extensions are pre-planned
-(\dossierref{\S8--\S9}, publication plan
-\S10), none yet built. \textbf{Stage 2}, cascade periodicity, substitutes the
-panel-influence kernel $\ln(z-z_0)\to\ln[\sin(\pi(z-z_0)/s)]$ for pitch $s$
-(reducing to the isolated-airfoil kernel as $s\to\infty$, a free regression
-test), validated against Gostelow's exact cascade solutions before any
-turbine-cascade inverse-design claim is made. \textbf{Stage 3} carries the
-architecture into MISES itself via the Modal-Inverse \texttt{modes.xxx}
-mechanism. Because CST's perturbation modes are identical to its own basis
-functions (a direct consequence of the linearity in \S\ref{sec:cst-linearity}),
-this requires writing $C(\psi)S_i(\psi)$ into MISES's mode-file format, with
-no Fortran modification, and would demonstrate the hypothesis in a
-transonic, viscous, real-cascade solver at near-zero implementation cost if
-Route~A succeeds. The pre-registered NACA/UIUC panel evaluation
-(STATS\_PROTOCOL~\S3) is now complete (\S\ref{sec:h1-panel},
-\S\ref{sec:h1-uiuc-panel}): both panels support the accuracy component of
-H1, and the UIUC panel's composite criterion fails on the iteration-count
-component, not accuracy. The remaining gap between what this paper can
-currently claim and what was originally pre-registered is twofold: the
-Stage-1-lite, $N{=}1$ \emph{ablation} evidence (\S\ref{sec:h2}'s
-flow-solve-count comparison, the $n$-sweep, station-selection ablations)
-has not been extended to panel level. Second, three UIUC sections
-(\texttt{goe780}, \texttt{mh62}, \texttt{naca64206}) still fail the vendor
-wake-direction assertion for a cause unrelated to sharp trailing edges
-(\S\ref{sec:h1-uiuc-panel}, \S\ref{sec:limitations}).
+Two of the study's results correct the hypothesis stated in
+Section~\ref{sec:headline}. The cost
+advantage over a competently-tuned nested baseline is $3.1$ to $8.1\x$ in
+counted flow solves and $3.4$ to $3.5\x$ in wall-clock time, not the two to three
+orders of magnitude assumed a priori. And the convergence behaviour is fast
+superlinear rather than guaranteed quadratic, limited by the
+finite-difference flow-block Jacobian and, under interpolated station
+addressing, by a neglected term in the target rows. Against those corrections
+stands a methodological contribution the original hypothesis did not
+anticipate: QR-pivoted station selection as the identifiability guard for
+square inverse systems, without which the same solver converges cleanly to a
+wrong root while reporting success. The paper's central results are therefore
+a falsified numeric hypothesis and a strengthened, unanticipated qualitative
+one.
+
+\paragraph{Future work.} The single most valuable next experiment is the one
+Section~\ref{sec:validity} names: recovering a geometry from a target this
+method did not generate, whether from a finer discretisation, a perturbed
+distribution, or a published pressure distribution, together with a sweep of
+recovery error against target noise. Until that is run, the precision reported
+here is a statement about identifiability rather than about accuracy.
+
+Beyond it, two extensions are pre-planned and neither is yet built. Cascade
+periodicity substitutes a periodic kernel for the isolated-airfoil
+panel-influence kernel, replacing $\ln(z-z_0)$ with $\ln[\sin(\pi(z-z_0)/s)]$
+for pitch $s$, which reduces to the isolated-airfoil kernel as $s\to\infty$
+and therefore comes with a free regression test; it would be validated against
+exact cascade solutions before any turbine-cascade inverse-design claim is
+made. Carrying the architecture into MISES itself uses that solver's modal
+inverse mode. Because CST's perturbation modes are identical to its own basis
+functions, a direct consequence of the linearity of
+Section~\ref{sec:cst-linearity}, this requires writing $C(\psi)S_i(\psi)$ into
+the solver's mode-file format with no modification to its source, and would
+demonstrate the hypothesis in a transonic, viscous, real-cascade solver at
+near-zero implementation cost if that route succeeds.
+
+The gap between what this paper can currently claim and what was originally
+pre-registered is threefold. The single-run ablation evidence has not been
+extended to panel level. Three UIUC sections still fail the host solver's
+wake-direction assertion for a cause unrelated to sharp trailing edges. And
+the constraint rows, which are half of the formulation's novelty claim, remain
+implemented and tested but unexercised by any measured result.

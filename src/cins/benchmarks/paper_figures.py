@@ -206,7 +206,7 @@ def fig_t7_geometry_overlay(cell: SolvedCell, out_dir: Path) -> Path:
     ax_geo.set_xlabel(r"$x/c$")
     ax_geo.set_ylabel(r"$z/c$")
     ax_geo.set_title(
-        "T7 winning configuration: target vs.\\ recovered geometry "
+        "Reference configuration: target against recovered geometry "
         f"(NACA {cell.cfg.t8.airfoil}, $n={n}$/side)"
     )
     ax_geo.legend(loc="lower right", frameon=False, fontsize=8)
@@ -232,10 +232,10 @@ def fig_t7_geometry_overlay(cell: SolvedCell, out_dir: Path) -> Path:
     ax_bar.set_yscale("log")
     ax_bar.set_xticks(range(len(coeff_err)))
     ax_bar.set_xticklabels(labels, rotation=90, fontsize=7)
-    ax_bar.axhline(1e-4, color=C_ORANGE, ls=":", lw=1.2, label=r"T7 gate ($10^{-4}$)")
+    ax_bar.axhline(1e-4, color=C_ORANGE, ls=":", lw=1.2, label=r"accuracy criterion ($10^{-4}$)")
     ax_bar.set_ylabel(r"$|A_i - A_i^*|$")
     ax_bar.set_title(
-        "Per-coefficient recovery error (gray = prescribed by le\\_treatment, "
+        "Per-coefficient recovery error (grey = prescribed, "
         "not Newton-recovered)"
     )
     ax_bar.legend(loc="upper right", frameon=False, fontsize=8)
@@ -282,7 +282,7 @@ def fig_t7_cp_comparison(cell: SolvedCell, out_dir: Path) -> Path:
     ax2.legend(loc="lower right", frameon=False, fontsize=8)
 
     fig.suptitle(
-        f"T7 winning configuration -- $C_p$ comparison "
+        f"Reference configuration: $C_p$ comparison "
         f"(NACA {cell.cfg.t8.airfoil}, $\\|A-A^*\\|_\\infty="
         f"{np.max(np.abs(cell.a_final - cell.a_star)):.2e}$)"
     )
@@ -350,11 +350,9 @@ def fig_h1_panel_gallery(out_dir: Path, cells: list[str] | None = None) -> Path:
         )
         ax.tick_params(labelsize=7)
     axes.ravel()[0].legend(loc="upper right", frameon=False, fontsize=7)
-    fig.suptitle(
-        "H1 panel gallery: 6 representative recovered sections "
-        "(thin/thick/cambered), target vs.\\ recovered. Source: "
-        "experiments/results/t8/panel_*/result.json"
-    )
+    # No suptitle: the manuscript caption carries the description, and the
+    # source record is named in the provenance appendix rather than burned
+    # into the image.
     fig.tight_layout()
     out = out_dir / "fig_h1_panel_gallery.png"
     fig.savefig(out, dpi=200)

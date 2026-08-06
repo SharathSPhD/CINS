@@ -1,8 +1,5 @@
-\label{sec:formulation}
-
 \subsection{CST parameterisation and its linearity}
 \label{sec:cst-linearity}
-% <- T2; math source \dossierref{\S3.1}--\S3.4
 
 Let $\psi = x/c \in [0,1]$ and $\zeta = z/c$. The CST class function for a
 round-nose, sharp-tail family is
@@ -16,16 +13,17 @@ surface,
   S_{u}(\psi) = \sum_{i=0}^{n} A_{u,i} S_i(\psi), \quad
   S_{l}(\psi) = \sum_{i=0}^{n} A_{l,i} S_i(\psi).
 \end{equation}
-The upper and lower surfaces are
+The upper and lower surfaces are the per-surface form of
+Eq.~\eqref{eq:cst-intro},
 \begin{equation}
   \zeta_{u}(\psi) = C(\psi)\,S_u(\psi) + \psi\,\zeta_{T,u}, \qquad
   \zeta_{l}(\psi) = C(\psi)\,S_l(\psi) + \psi\,\zeta_{T,l},
   \label{eq:surfaces}
 \end{equation}
-with $\zeta_{T,u} = +t_{TE}/2$, $\zeta_{T,l} = -t_{TE}/2$. The sign
-convention is binding throughout: lower-surface coefficients are stored with
-their natural negative sign, so the shared-leading-edge row reads
-$A_{u,0}+A_{l,0}=0$.
+with $\zeta_{T,u} = +t_{TE}/2c$ and $\zeta_{T,l} = -t_{TE}/2c$, both already
+non-dimensionalised by chord along with $\zeta$ itself. The sign convention is
+binding throughout: lower-surface coefficients are stored with their natural
+negative sign, so the shared-leading-edge row reads $A_{u,0}+A_{l,0}=0$.
 
 Figure~\ref{fig:cst-basis} shows the construction term by term. The class
 function of panel~(a) is fixed geometry that carries no dependence on $A$ at
@@ -38,14 +36,10 @@ $N_1=\tfrac12$, $N_2=1$.
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{fig_cst_basis.png}
-\caption{The CST construction, evaluated rather than sketched.
-(a)~the class function for three $(N_1,N_2)$ pairs, with the airfoil-like
-choice used here highlighted; (b)~the Bernstein shape functions at $n=8$;
-(c)~the weighted terms $A_i C(\psi) S_i(\psi)$ for a fitted NACA 2412 upper
-surface, and their sum; (d)~the resulting surface against the section it was
-fitted to. Every panel except the class function is linear in $A$, which is
-the property Eq.~\eqref{eq:dsurface-dA} states and the rest of the
-formulation depends on.}
+\caption{The CST construction, evaluated rather than sketched: (a)~class
+function; (b)~Bernstein shape functions at $n=8$; (c)~the weighted terms and
+their sum for a fitted NACA 2412 upper surface; (d)~the resulting surface
+against the section it was fitted to.}
 \label{fig:cst-basis}
 \end{figure}
 
@@ -55,162 +49,175 @@ The property this paper exploits is that Eq.~\eqref{eq:surfaces} is
   \frac{\partial \zeta}{\partial A_i} = C(\psi)\,S_i(\psi)
   \label{eq:dsurface-dA}
 \end{equation}
-does not depend on $A$. It is a fixed matrix, computed once from the
-chordwise node distribution and cached (T2 requirement,
-\dossierref{\S7.3}): \emph{``does not
-depend on A. Recomputing it per Newton iteration is the single most common
-way to lose the performance argument.''} This design-independence is what
-makes the $\partial R/\partial A$ Jacobian block of \S\ref{sec:newton-system}
-assemble as a cheap matrix product rather than a re-derived, geometry-
-dependent operator at every Newton step.
+does not depend on $A$. It is a fixed matrix, computed once from the chordwise
+node distribution and cached. Recomputing it inside an iteration is the single
+most common way to lose the performance argument, and it is unnecessary. This
+design-independence is what makes the constraint block of
+Section~\ref{sec:constraints} and the sensitivity matrix of the linear
+pre-solve in Section~\ref{sec:presolve} constant operators assembled once
+rather than geometry-dependent operators re-derived at every step. It does
+\emph{not}, by itself, make the flow-residual block $\partial R/\partial A$
+cheap; that block requires the flow solver's own geometric sensitivity, which
+Section~\ref{sec:derivatives} shows is not available in complete form and must
+be obtained by finite differences.
 
 Two endpoint identities follow directly from Eq.~\eqref{eq:surfaces} and are
-used as constraint rows in \S\ref{sec:constraints}. The trailing-edge
-identity is $\zeta'(1) = \zeta_T - A_n$ at $N_2=1$, and it does \emph{not}
-take the same form on both surfaces: with the boat-tail half-angle defined
-per surface as the wedge closing angle, the upper surface descends toward the
-trailing edge ($\tan\beta_u = -\zeta_u'(1)$) while the lower surface rises
+used as constraint rows in Section~\ref{sec:constraints}. At $N_2=1$ the class
+function satisfies $C(1)=0$ and $C'(1)=-1$, so
+$\zeta'(1) = \zeta_T - A_n$. This does \emph{not} take the same form on both
+surfaces: with the boat-tail half-angle defined per surface as the wedge
+closing angle, the upper surface descends toward the trailing edge
+($\tan\beta_u = -\zeta_u'(1)$) while the lower surface rises
 ($\tan\beta_l = +\zeta_l'(1)$), so
 \begin{equation}
-  A_0 = \sqrt{2R_{LE}/c}, \qquad
-  A_{u,n} = \zeta_{T,u}/c + \tan\beta_u, \qquad
-  A_{l,n} = \zeta_{T,l}/c - \tan\beta_l.
+  A_{u,0} = \sqrt{2R_{LE}/c}, \qquad A_{l,0} = -\sqrt{2R_{LE}/c}, \qquad
+  A_{u,n} = \zeta_{T,u} + \tan\beta_u, \qquad
+  A_{l,n} = \zeta_{T,l} - \tan\beta_l.
   \label{eq:endpoint}
 \end{equation}
 The sign flip on the lower surface is stated explicitly because applying the
-upper-surface form to a lower-surface coefficient, which is negative under
-the stored-sign convention, silently produces the wrong constraint row; that
-error occurred once during development and is now pinned by a test against
-the fitted trailing-edge slope. Near $\psi\to0$,
-$\zeta \approx A_0\sqrt{\psi}$, so $R_{LE} = A_0^2/2$; $G^2$ curvature
-continuity across the leading edge reduces to matching the leading
-coefficient magnitude on the two surfaces, $A_{u,0} = |A_{l,0}|$; under the
-stored-sign convention ($A_{l,i}<0$), the row $A_{u,0} + A_{l,0} = 0$.
+upper-surface form to a lower-surface coefficient, which is negative under the
+stored-sign convention, silently produces the wrong constraint row; that error
+occurred once during development and is now pinned by a test against the
+fitted trailing-edge slope.
 
-Figure~\ref{fig:cst-parameters} gives these identities their physical
-reading and checks the design-independence claim numerically. Panels~(a)
-and~(b) plot the two endpoint identities of Eq.~\eqref{eq:endpoint} with the
-fitted NACA 2412 values marked, so the coefficients that the inverse solve
-returns can be read directly as a nose radius and a trailing-edge wedge angle
-rather than as abstract weights. Panel~(c) is the one that matters for the
-Newton system: the markers are the surface displacement measured by actually
-perturbing one coefficient of the fitted section and re-evaluating the
-geometry, and the lines are the analytic prediction $\delta A_i\,C S_i$. They
-agree to the level printed on the panel, and the agreement does not depend on
-where the remaining coefficients sit, which is exactly what permits
-$\partial\zeta/\partial A$ to be assembled once and cached.
+The leading-edge identity has a short derivation worth stating, because the
+curvature claim that follows from it is otherwise easy to misread. Near
+$\psi\to0$ the class function gives $\zeta \approx A_0\sqrt{\psi}$, so in
+physical coordinates $z \approx A_0\sqrt{xc}$, and comparing with the
+osculating parabola $z^2 = 2R_{LE}x$ gives $R_{LE}/c = A_0^2/2$, the inverse
+of Eq.~\eqref{eq:endpoint}'s first identity. Inverting the same expansion
+gives $x = z^2/A_0^2 + O(z^4)$, so the limiting curvature at the nose is
+$2/A_0^2$ and depends on $A_0$ alone; the next coefficient $A_1$ first enters
+at $O(z^3)$ and therefore affects the curvature \emph{derivative}, not the
+curvature. Curvature continuity across the leading edge, $G^2$ continuity,
+consequently reduces to matching the leading coefficient magnitude on the two
+surfaces, $|A_{u,0}| = |A_{l,0}|$. Under the stored-sign convention
+($A_{l,i}<0$) the constraint row used to impose it is the stronger
+same-magnitude, opposite-sign statement $A_{u,0} + A_{l,0} = 0$, which also
+excludes the geometrically meaningless same-sign branch.
+
+Figure~\ref{fig:cst-parameters} gives these identities their physical reading
+and checks the design-independence claim numerically. Panels~(a) and~(b) plot
+the two endpoint identities of Eq.~\eqref{eq:endpoint} with the fitted NACA
+2412 values marked, so the coefficients that the inverse solve returns can be
+read directly as a nose radius and a trailing-edge wedge angle rather than as
+abstract weights. Panel~(c) is the one that matters for the Newton system: the
+markers are the surface displacement measured by actually perturbing one
+coefficient of the fitted section and re-evaluating the geometry, and the
+lines are the analytic prediction $\delta A_i\,C S_i$. They agree to the level
+printed on the panel, and the agreement does not depend on where the remaining
+coefficients sit, which is exactly what permits $\partial\zeta/\partial A$ to
+be assembled once and cached.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{fig_cst_parameters.png}
-\caption{What the coefficients mean, and why the geometric Jacobian block is
-constant. (a)~leading-edge radius against $A_0$, from
-Eq.~\eqref{eq:endpoint}, with the fitted NACA 2412 value marked;
-(b)~trailing-edge wedge half-angle against the final coefficient, for both
-surfaces under the stored-sign convention; (c)~superposition checked rather
-than asserted, markers measured by perturbing a single coefficient and lines
-predicted analytically; (d)~the fitted coefficient vector itself, upper and
-lower blocks, in the ordering used throughout
-(\S\ref{sec:newton-system}).}
+\caption{What the coefficients mean, and why the geometric sensitivity is
+constant: (a)~leading-edge radius against $A_0$; (b)~trailing-edge wedge
+half-angle against the final coefficient, both surfaces; (c)~superposition
+measured against its analytic prediction; (d)~the fitted coefficient vector in
+the ordering used throughout.}
 \label{fig:cst-parameters}
 \end{figure}
 
 \subsection{Constraints as linear rows}
 \label{sec:constraints}
-% <- T3; closed-form source \dossierref{\S3.4}
 
 Because Eq.~\eqref{eq:surfaces} is linear in $A$, every geometric functional
 that is itself linear or integral in $\zeta$ becomes a linear row
-$g\cdot A = b$ rather than a nonlinear predicate evaluated on a rebuilt
-mesh. The leading-edge-radius and trailing-edge-wedge rows follow
-immediately from Eq.~\eqref{eq:endpoint}. The one requiring a closed-form
-integral is inscribed area: the per-surface contribution is
+$g\cdot A = b$ rather than a nonlinear predicate evaluated on a rebuilt mesh.
+The leading-edge-radius and trailing-edge-wedge rows follow immediately from
+Eq.~\eqref{eq:endpoint}. The one requiring a closed-form integral is inscribed
+area: the per-surface contribution is
 \begin{equation}
   \int_0^1 C(\psi)S_i(\psi)\,d\psi
     = K_i \int_0^1 \psi^{i+N_1}(1-\psi)^{n-i+N_2}\,d\psi
     = K_i\,B(i+N_1+1,\, n-i+N_2+1),
   \label{eq:area-beta}
 \end{equation}
-a Beta function, plus the trailing-edge term $\int_0^1 \psi\,\zeta_T\,d\psi =
-\zeta_T/2$. Eq.~\eqref{eq:area-beta} is evaluated with
-\texttt{scipy.special.beta}, never by numerical quadrature in a production
-constraint row; quadrature is retained only as an independent gate check. That gate passed: \texttt{area\_row} matches
-numerical quadrature of the fitted NACA~2412 to $10^{-10}$. This closed-form machinery
-is the same Beta-function apparatus Joseph \& Mohan~\citep{joseph2021closed}
-use for thin-airfoil lift/moment integrals against a Bernstein camber basis.
-This is not a coincidence: both integrate Bernstein polynomials against the
-class function, and it is the analytic kernel reused for the linear pre-solve
-of \S\ref{sec:presolve}.
+a Beta function, plus the trailing-edge term
+$\int_0^1 \psi\,\zeta_T\,d\psi = \zeta_T/2$. Appendix~\ref{app:area} supplies
+the derivation and the two-surface assembly, including the sign the lower
+block carries under the stored-sign convention.
+Equation~\eqref{eq:area-beta} is evaluated with a library Beta function,
+never by numerical quadrature in a production constraint row; quadrature is
+retained only as an independent check, which the implementation passes,
+matching quadrature of the fitted NACA~2412 to $10^{-10}$. This closed-form
+machinery is the same Beta-function apparatus \citet{joseph2021closed} use for
+thin-airfoil lift and moment integrals against a Bernstein camber basis. This
+is not a coincidence: both integrate Bernstein polynomials against the class
+function, and it is the analytic kernel reused for the linear pre-solve of
+Section~\ref{sec:presolve}.
 
-Under a B-spline-with-wrapper representation, by contrast, every row in
-Table~\ref{tab:constraint-comparison} is a nonlinear or non-smooth predicate
-evaluated on a rebuilt mesh. This is the stack that forced surrogate-based
-search in the author's earlier turbine-blading
-work~\citep{sathish2019sco2} (\dossierref{\S1.5}).
+Table~\ref{tab:constraint-comparison} sets these rows against what the same
+constraints require under a B-spline control-point wrapper, where every one of
+them becomes a nonlinear or non-smooth predicate evaluated on a rebuilt mesh.
+That is the stack that forced surrogate-based search in the author's earlier
+turbine-blading work~\citep{sathish2019sco2}, and the contrast is the reason
+the present formulation can dispense with an outer loop at all.
 
-\paragraph{Which rows the reported results actually exercise.} The
-constraint machinery described here is broader than what the experiments in
-\S\ref{sec:results} use, and the difference should be stated rather than left
-to be inferred. Every configuration reported in this paper runs either with
-the leading edge prescribed, in which case $K=0$ and no constraint row is
-assembled at all, or with \texttt{le\_treatment=none}, in which case the
-single shared-leading-edge row $A_{u,0}+A_{l,0}=0$ is used. The
-trailing-edge-wedge and inscribed-area rows, including the Beta-function
-derivation of Appendix~\ref{app:area}, are implemented and unit-tested
-against independent quadrature but are not exercised by any result reported
-here. They are presented as part of the formulation because they follow from
-the same linearity and cost nothing to assemble, not as validated
-contributions to the measured outcomes.
-
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
 \caption{Constraint representation under CST against a B-spline
-control-point wrapper. Every row that is a linear, exact algebraic condition
-on the CST coefficients becomes a nonlinear or non-smooth predicate on a
-rebuilt mesh under the wrapper, which is what forces an outer search rather
-than a root-find. Source: \dossierref{\S1.5}.}
+control-point wrapper.}
 \label{tab:constraint-comparison}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}l L L@{}}
 \toprule
 Constraint & Under CST & Under the B-spline wrapper \\
 \midrule
-LE radius & $A_0=\sqrt{2R_{LE}/c}$: linear, exact & implicit, via tangent points \\
-TE thickness & $\zeta_T$ term: linear & geometric post-check \\
-Boat-tail/wedge angle & $A_n$: linear & nonlinear angular DV \\
+Leading-edge radius & $A_{u,0}=\sqrt{2R_{LE}/c}$: linear, exact & implicit, via tangent points \\
+Trailing-edge thickness & $\zeta_T$ term: linear & geometric post-check \\
+Boat-tail wedge angle & $A_n$: linear & nonlinear angular design variable \\
 Inscribed area & linear functional, Beta-function closed form & numerical, non-smooth \\
 Curvature & rational function of $A$, differentiable & monotonicity predicate, non-smooth \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
+\paragraph{Which rows the reported results actually exercise.} The constraint
+machinery described here is broader than what the experiments in
+Section~\ref{sec:results} use, and the difference should be stated rather than
+left to be inferred. Every configuration reported in this paper runs either
+with the leading edge prescribed, in which case $K=0$ and no constraint row is
+assembled at all, or with the leading edge left free, in which case the single
+shared-leading-edge row $A_{u,0}+A_{l,0}=0$ is used. The trailing-edge-wedge
+and inscribed-area rows, including the Beta-function derivation of
+Appendix~\ref{app:area}, are implemented and unit-tested against independent
+quadrature but are not exercised by any result reported here. They are
+presented as part of the formulation because they follow from the same
+linearity and cost nothing to assemble, not as validated contributions to the
+measured outcomes. Section~\ref{sec:limitations} records the consequence:
+wherever the exactness of the constraint-row Jacobian is offered as an
+advantage over the nested baseline, it is an advantage of the formulation and
+not one this study has measured.
+
 \subsection{The extended Newton system and DOF accounting}
 \label{sec:newton-system}
-% <- T5, FM-1-\S5, dossier \S7.6
 
-The extended system appends the CST coefficients (and, optionally, angle of
-attack) directly to the flow solver's own global unknown vector. Unknowns:
-\begin{equation}
-  U \;(\text{flow state}, N_{tot}), \qquad
-  A \;(\text{CST coefficients}, n_A), \qquad
-  \alpha \;(\text{angle of attack}, 0\text{ or }1).
-\end{equation}
-Equations:
-\begin{equation}
-  R(U; x(A)) = 0 \;\;(N_{tot}), \qquad
-  T(U) - Cp_{target} = 0 \;\;(M), \qquad
-  G\cdot A - b = 0 \;\;(K),
-\end{equation}
-with the block Jacobian, dimensions annotated below each block for the T7
-winning configuration. There, mfoil's global system carries
-$N_{sys}=230$ stations (200 airfoil-surface nodes plus wake,
-\S\ref{sec:falsifiable}) with four boundary-layer state variables each, so
-$N_{tot}=4N_{sys}=920$; the prescribed-LE treatment leaves
-$n_{A,\text{free}}=16$ of the 18 CST coefficients as unknowns; and $M=16$,
+The extended system appends the CST coefficients, and optionally the angle of
+attack, directly to the flow solver's own global unknown vector. The unknowns
+are the flow state $U$ of dimension $N_{tot}$, the CST coefficients $A$ of
+dimension $n_A$, and the angle of attack $\alpha$, contributing $n_\alpha \in
+\{0,1\}$ unknowns. The equations are the flow residual $R(U; x(A)) = 0$, of
+which there are $N_{tot}$; the target-matching rows
+$T(U) - Cp_{target} = 0$, of which there are $M$; and the geometric constraint
+rows $G\cdot A - b = 0$, of which there are $K$.
+
+Figure~\ref{fig:jacobian} shows the resulting bordered block structure, and
+Eq.~\eqref{eq:jacobian-blocks} states it algebraically with the dimensions
+annotated for the reference configuration of
+Section~\ref{sec:falsifiable}. There, \texttt{mfoil}'s global system carries
+$N_{sys}=230$ stations, being 200 airfoil-surface nodes plus a 30-station
+wake, with four unknowns at each: the three boundary-layer states
+$\theta$, $\delta^*$ and the amplification or shear-lag variable, plus the
+edge velocity $u_e$ that closes the viscous--inviscid coupling. Hence
+$N_{tot}=4N_{sys}=920$. The prescribed-leading-edge treatment leaves
+$n_{A,\text{free}}=16$ of the 18 CST coefficients as unknowns, and $M=16$,
 $K=0$, $n_\alpha=0$. The assembled system is therefore
 $J\in\mathbb{R}^{936\times936}$, and the recorded rank at the first iteration
-is 936, that is, full
-(\pth{experiments/results/t7_naca2412/diagnostics.json}):
+is 936, that is, full:
 \begin{equation}
   J = \left[
   \begin{array}{c|c|c}
@@ -219,7 +226,7 @@ is 936, that is, full
     \displaystyle\underbrace{\partial R/\partial \alpha}_{N_{tot}\times n_\alpha} \\[1.1em] \hline
     \displaystyle\underbrace{\partial T/\partial U}_{M\times N_{tot}} &
     \displaystyle\underbrace{0}_{M\times n_{A,\text{free}}} &
-    \displaystyle\underbrace{\partial T/\partial \alpha}_{M\times n_\alpha} \\[1.1em] \hline
+    \displaystyle\underbrace{0}_{M\times n_\alpha} \\[1.1em] \hline
     \displaystyle\underbrace{0}_{K\times N_{tot}} &
     \displaystyle\underbrace{\partial G/\partial A}_{K\times n_{A,\text{free}}} &
     \displaystyle\underbrace{0}_{K\times n_\alpha}
@@ -229,127 +236,199 @@ is 936, that is, full
   \label{eq:jacobian-blocks}
 \end{equation}
 square by Eq.~\eqref{eq:dof}'s construction-time assertion
-($M+K=n_{A,\text{free}}+n_\alpha$), so the $M+K$ extra rows exactly balance
-the $n_{A,\text{free}}+n_\alpha$ extra columns beyond the
-$N_{tot}\times N_{tot}$ flow block, which is itself always square. The
-$M\times n_{A,\text{free}}$ zero block in the middle column reflects
-that the target-Cp equations $T(U)-Cp_{target}$ depend on $A$ only
-\emph{through} $U$ (Cp is read off the converged flow state, not directly
-from geometry). Its entire $A$-sensitivity is therefore carried through the
-$\partial R/\partial A$ column and the chain of Newton updates; there is
-no direct $T$-vs-$A$ coupling to assemble. $\partial R/\partial U$ and
-$\partial R/\partial\alpha$ are mfoil's own
-analytic, sparsely-assembled blocks, reused unchanged. $\partial T/\partial
-U$ is a near-selection matrix (Cp at a node as a direct function of the
-panel/edge-velocity unknowns). $\partial G/\partial A = G$ is constant and
-free, per \S\ref{sec:constraints}. $\partial R/\partial A =
-(\partial R/\partial x)(\partial x/\partial A)$ is the block that carries the
-architectural claim; its second factor is the cached, design-independent
-matrix of Eq.~\eqref{eq:dsurface-dA}, and its first factor is addressed in
-\S\ref{sec:derivatives}.
+($M+K=n_{A,\text{free}}+n_\alpha$), so the $M+K$ extra rows exactly balance the
+$n_{A,\text{free}}+n_\alpha$ extra columns beyond the $N_{tot}\times N_{tot}$
+flow block, which is itself always square.
 
-\paragraph{DOF accounting.} The dossier's original bookkeeping
-(\dossierref{\S4}~FM-1, \S7.6) is
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[x=1mm,y=1mm]
+  % ---- flow block
+  \fill[NavyBlue!12] (0,0) rectangle (46,-46);
+  \draw[black!60] (0,0) rectangle (46,-46);
+  \node[align=center,font=\scriptsize] at (23,-23)
+       {$\partial R/\partial U$\\[1pt] vendor analytic, sparse\\[1pt] $920\times920$};
+  % ---- dR/dA
+  \fill[Goldenrod!25] (46,0) rectangle (60,-46);
+  \draw[black!60] (46,0) rectangle (60,-46);
+  \node[rotate=90,font=\scriptsize,align=center] at (53,-23)
+       {$\partial R/\partial A$: finite difference};
+  % ---- dR/dalpha
+  \fill[Goldenrod!12] (60,0) rectangle (66,-46);
+  \draw[black!60] (60,0) rectangle (66,-46);
+  \node[rotate=90,font=\scriptsize] at (63,-23) {$\partial R/\partial\alpha$};
+  % ---- target rows
+  \fill[ForestGreen!18] (0,-46) rectangle (46,-58);
+  \draw[black!60] (0,-46) rectangle (46,-58);
+  \node[font=\scriptsize,align=center] at (23,-52)
+       {$\partial T/\partial U$: selection/interpolation map, $16\times920$};
+  \fill[black!5] (46,-46) rectangle (66,-58);
+  \draw[black!60] (46,-46) rectangle (66,-58);
+  \node[font=\scriptsize] at (56,-52) {$0$ (neglected)};
+  % ---- constraint rows
+  \fill[black!5] (0,-58) rectangle (46,-68);
+  \draw[black!60] (0,-58) rectangle (46,-68);
+  \node[font=\scriptsize] at (23,-63) {$0$};
+  \fill[BrickRed!16] (46,-58) rectangle (60,-68);
+  \draw[black!60] (46,-58) rectangle (60,-68);
+  \node[font=\scriptsize] at (53,-63) {$G$};
+  \fill[black!5] (60,-58) rectangle (66,-68);
+  \draw[black!60] (60,-58) rectangle (66,-68);
+  \node[font=\scriptsize] at (63,-63) {$0$};
+  % ---- braces
+  \draw[decorate,decoration={brace,amplitude=4pt,mirror},black!60]
+        (0,-70.5) -- (46,-70.5) node[midway,below=4pt,font=\scriptsize] {flow state $U$};
+  \draw[decorate,decoration={brace,amplitude=4pt,mirror},black!60]
+        (46,-70.5) -- (66,-70.5) node[midway,below=4pt,font=\scriptsize] {$A$, $\alpha$};
+  \draw[decorate,decoration={brace,amplitude=4pt},black!60]
+        (68,0) -- (68,-46) node[midway,right=5pt,font=\scriptsize] {flow residual};
+  \draw[decorate,decoration={brace,amplitude=4pt},black!60]
+        (68,-46) -- (68,-58) node[midway,right=5pt,font=\scriptsize] {target rows};
+  \draw[decorate,decoration={brace,amplitude=4pt},black!60]
+        (68,-58) -- (68,-68) node[midway,right=5pt,font=\scriptsize] {constraint rows};
+\end{tikzpicture}
+\caption{Block structure of the extended Jacobian at the reference
+configuration. The bordering rows and columns are the entire modification to
+the host solver's own square system.}
+\label{fig:jacobian}
+\end{figure}
+
+Three of the blocks are inherited unchanged and one is new.
+$\partial R/\partial U$ and $\partial R/\partial\alpha$ are \texttt{mfoil}'s
+own analytic, sparsely-assembled blocks, reused verbatim.
+$\partial T/\partial U$ maps the flow state to pressure coefficient at the
+target stations: a selection matrix when a station coincides with a panel
+node, and a two-node interpolation otherwise. $\partial G/\partial A = G$ is
+constant and free, per Section~\ref{sec:constraints}. The new block is
+$\partial R/\partial A$, which carries the architectural claim and whose
+construction is the subject of Section~\ref{sec:derivatives}.
+
+\paragraph{The zero block in the target rows is an approximation, not an
+identity.} Under the original node-index addressing, in which each target row
+read the pressure coefficient at a fixed panel index, $T$ depended on $A$ only
+through $U$ and $\partial T/\partial A$ was structurally zero. Target stations
+are now addressed by surface and chordwise fraction, and the pressure
+coefficient at such a station is interpolated between the two bracketing
+nodes, $T_k = (1-w)Cp_j + w\,Cp_{j+1}$. The weight $w$ and the bracketing pair
+depend on node positions, which move with $A$, so
+$\partial T/\partial A = (\partial w/\partial A)(Cp_{j+1}-Cp_j)$ is small but
+not zero. The implementation neglects it. The neglect is defensible, because a
+coefficient perturbation moves the surface in $z$ at a fixed chordwise grid
+and therefore perturbs $w$ only weakly, and it is worth stating plainly because
+it has a measurable consequence: the iteration is an inexact Newton method,
+and Section~\ref{sec:h3} shows that the run using interpolated addressing
+converges at a fast but roughly constant rate rather than with the quadratic
+tail the node-indexed runs display. The same applies to the
+$\partial T/\partial\alpha$ block, which the implementation likewise assembles
+as zero on the grounds that pressure responds to incidence through the flow
+state; it is shown as a zero block in Eq.~\eqref{eq:jacobian-blocks} for that
+reason.
+
+\paragraph{Degree-of-freedom accounting.} The original bookkeeping for this
+architecture counted rigid-body freedoms explicitly,
 \[
   \mathrm{DOF} = 2(n+1) - 1_{\text{shared LE}} - 1_{\text{TE fixed}}
   + 3_{\text{scale/rotate/translate}} + 1_{\text{stagger or }\alpha}
-  \quad\stackrel{!}{=}\quad M + K.
+  \quad\stackrel{!}{=}\quad M + K .
 \]
-In the Stage-1 (isolated-airfoil, mfoil) implementation, the three rigid
-overall modes (scale/rotate/translate) are not exposed as free Newton
-unknowns, so the implemented squareness condition is the simpler, equivalent
-statement actually asserted at construction time and logged every run:
+In the isolated-airfoil implementation reported here, the three rigid overall
+modes are not exposed as free Newton unknowns, so the implemented squareness
+condition is the simpler, equivalent statement actually asserted at
+construction time and logged on every run:
 \begin{equation}
   M + K = n_{A,\text{free}} + n_{\alpha},
   \label{eq:dof}
 \end{equation}
 where $n_{A,\text{free}}$ is the count of CST coefficients \emph{not}
-eliminated by a prescribed-LE treatment (\S\ref{sec:falsifiable}) or an
-equality-row elimination, and $n_\alpha\in\{0,1\}$ depending on whether angle
-of attack is a free unknown for the run in question. Violating
-Eq.~\eqref{eq:dof} raises at construction, before any Newton step. This is
-the FM-1 guard (\S\ref{sec:fm}), and it is exercised directly in the T8
-ablation matrix (\S\ref{sec:ablations}): deliberately over- and under-
-squaring the baseline system (n=8/side, $n_{A,\text{free}}=16$, $n_\alpha=0$)
-produces the exact, actionable diagnostics
+eliminated by a prescribed-leading-edge treatment or by an equality-row
+elimination, and $n_\alpha\in\{0,1\}$ depending on whether angle of attack is
+a free unknown for the run in question. Appendix~\ref{app:dof} works this
+accounting through for the reference configuration and states the general rule
+it specialises. Violating Eq.~\eqref{eq:dof} raises at construction, before
+any Newton step. This is the guard against the rank and degrees-of-freedom
+failure mode of Section~\ref{sec:fm}, and it is exercised directly in the
+ablation matrix (Section~\ref{sec:ablations}): deliberately over- and
+under-squaring the baseline system, at $n=8$ per side with
+$n_{A,\text{free}}=16$ and $n_\alpha=0$, produces the exact, actionable
+diagnostics
 \begin{quote}\footnotesize\ttfamily
 "extended system not square: M+K=17 but\\
 \hspace*{1em}n\_A\_free+n\_alpha=16 (M=17, K=0, n\_A\_free=16)"\\[2pt]
 "extended system not square: M+K=15 but\\
 \hspace*{1em}n\_A\_free+n\_alpha=16 (M=15, K=0, n\_A\_free=16)"
 \end{quote}
-with zero Newton iterations spent and no silent wrong answer. Getting Eq.~\eqref{eq:dof} wrong is,
-per the dossier, plausibly what the author's PhD-era divergence was
-misdiagnosed as an LE-singularity problem when it was rank deficiency
-(\dossierref{\S4}, FM-1). Instrumenting
-for it directly, rather than inferring it from Newton behaviour, is the
-point of Eq.~\eqref{eq:dof} being an assertion rather than a derived
-quantity.
+with zero Newton iterations spent and no silent wrong answer. This matters
+because a rank-deficient extended system does not announce itself: it presents
+as Newton divergence, which is easily and wrongly attributed to the
+leading-edge singularity instead. Instrumenting for it directly, rather than
+inferring it from Newton behaviour, is the point of Eq.~\eqref{eq:dof} being
+an assertion rather than a derived quantity.
 
-\subsection{Derivative strategy: why finite-difference-over-\texorpdfstring{$A$}{A}, not the analytic chain rule or complex-step}
+\subsection{Derivative strategy}
 \label{sec:derivatives}
-% <- derivative-mode decision tree; empirical finding (T1)
 
-The derivative-mode decision tree adopted for this work prefers, in order:
-(1) the analytic chain rule $\partial R/\partial A = (\partial R/\partial x)(\partial
-x/\partial A)$ if mfoil exposes $\partial R/\partial x$ analytically; (2)
-complex-step over $A$ if the residual-assembly path is free of
-\texttt{abs}/\texttt{max}/\texttt{min}/comparison operators; (3) real
-(central) finite differences over $A$ otherwise. T1 introspection resolved both questions empirically, and
-neither resolved in the analytic-chain-rule's favour:
+The derivative-mode decision tree adopted for this work prefers, in order, the
+analytic chain rule
+$\partial R/\partial A = (\partial R/\partial x)(\partial x/\partial A)$ if
+the host solver exposes $\partial R/\partial x$ analytically; complex-step
+differentiation over $A$ if the residual-assembly path is free of absolute
+value, minimum, maximum and comparison operators; and real central finite
+differences over $A$ otherwise. Introspection of the host solver resolved both
+questions empirically, and neither resolved in the analytic chain rule's
+favour.
 
-\begin{itemize}
-\item \textbf{The analytic chain rule is incomplete for this solver class.}
-  mfoil exposes \texttt{M.glob.R\_x}, but it is only a \emph{partial}
-  sensitivity: real and useful for the arc-length ($\xi$) mapping, but
-  missing the geometry-dependent operators that matter most, the
-  inviscid panel/AIC coupling and the stagnation-point formulation. Using this partial
-  block as if it were the complete $\partial R/\partial x$ would silently
-  drop exactly the rows the leading-edge failure mode (FM-3,
-  \S\ref{sec:fm}) is about.
-\item \textbf{Complex-step is blocked, not merely inconvenient.} A bare
-  \texttt{residual\_station}\slash\allowbreak\texttt{residual\_transition} call, with fixed
-  panels and a complex-perturbed state, is verified complex-step-safe and
-  reproduces the analytic $R_x$ to float64 machine epsilon. The \emph{full} augmented residual,
-  which is what a perturbation in $A$ actually varies since $A$ moves
-  the panel geometry itself, calls the panel-influence and
-  stagnation-detection code paths. These use \texttt{atan2}, branch
-  selection on real quantities, and a hard \texttt{ValueError} guard for
-  complex node arrays. These are exactly the operators complex-step
-  cannot tolerate, and they sit in precisely the geometry-dependent block
-  that (1) shows was missing from the analytic path: complex-step
-  \emph{cannot fill the gap the analytic chain rule leaves}.
-\end{itemize}
+The analytic chain rule is incomplete for this solver class. \texttt{mfoil}
+exposes a residual sensitivity with respect to the surface arc-length mapping,
+but it is only a \emph{partial} geometric sensitivity: real and useful for the
+arc-length coordinate, and in fact the route by which the solver carries its
+own stagnation-point sensitivity, but missing the inviscid panel and
+influence-coefficient coupling and the mass-influence operator through which a
+geometry change reaches the boundary layer. Using this partial block as if it
+were the complete $\partial R/\partial x$ would silently drop exactly the
+terms the leading-edge failure mode of Section~\ref{sec:fm} is about.
 
-The implemented and gate-verified strategy is therefore real central finite
-differences with respect to $A$ only, never with respect to node
-coordinates $x$ ().
-This is a deliberate architectural discipline, not a fallback of
-convenience. $A$ has $n_A\approx16$--$36$ columns depending on Bernstein
-order, so a full central-difference Jacobian block costs
-$O(n_A)$ residual \emph{evaluations} per Newton step, not flow solves,
-against the alternative of finite-differencing over $N_{panel}\gg n_A$ node
-coordinates. That alternative would silently destroy the flow-solve-count
-argument this paper's Results section depends on. T5 gate closure verified
-the resulting Jacobian columns to 5--6 significant figures across a
-step-size sweep with no stencil discontinuities. The step size itself ($\mathrm{fd\_step}=10^{-6}$,
-\pth{configs/default.yaml}) is not hand-tuned per case. The T5 sweep
-varied it across several decades and confirmed the resulting FD-column
-agreement with the (independently verified, \S\ref{sec:derivatives} above)
-complex-step-safe partial block was flat across the sweep's central range,
-with no visible truncation/roundoff trade-off cliff at the scales exercised. That is, $10^{-6}$ sits well inside a
-broad plateau, not at a knife-edge optimum a different problem instance
-would move.
+Complex-step differentiation is blocked, not merely inconvenient. A bare
+station-residual or transition-residual call, with fixed panels and a
+complex-perturbed \emph{state}, is verified complex-step-safe and reproduces
+the corresponding analytic state Jacobian to double-precision machine epsilon.
+The \emph{full} augmented residual, which is what a perturbation in $A$
+actually varies, since $A$ moves the panel geometry itself, calls the
+panel-influence and stagnation-detection code paths. These use two-argument
+arctangent, branch selection on real quantities, and a hard type guard against
+complex node arrays. These are exactly the operators complex-step cannot
+tolerate, and they sit in precisely the geometry-dependent block that the
+analytic path was missing: complex-step cannot fill the gap the analytic chain
+rule leaves.
+
+The implemented strategy is therefore real central finite differences with
+respect to $A$ only, never with respect to node coordinates $x$. This is a
+deliberate architectural discipline, not a fallback of convenience. Over the
+Bernstein orders swept here, $A$ carries between 8 and 24 free columns, so a
+full central-difference block costs $O(n_A)$ residual \emph{evaluations} per
+Newton step, not flow solves, against the alternative of finite-differencing
+over $N_{panel}\gg n_A$ node coordinates, which would silently destroy the
+cost argument Section~\ref{sec:cost} depends on. The resulting Jacobian
+columns were cross-checked against the partial analytic block on the rows that
+block covers, agreeing there to five or six significant figures, and against a
+step-size sweep; no complete independent reference exists against which they
+could be verified in full. The step size itself, $10^{-6}$, is not hand-tuned
+per case: the sweep varied it across several decades and found the resulting
+column agreement flat across the central range, with no visible
+truncation-against-roundoff cliff at the scales exercised, so $10^{-6}$ sits
+well inside a broad plateau rather than at a knife-edge optimum a different
+problem instance would move. Section~\ref{sec:h3} returns to the price of this
+choice, which is a residual floor near $10^{-10}$ that no Newton step can
+descend below.
 
 \subsection{Algorithmic summary}
 \label{sec:algorithms}
 
 Figure~\ref{fig:pipeline} gives the whole procedure in one view before the
 pseudocode states it precisely. The two shaded regions are the paper's two
-structural claims: everything left of the Newton loop is set up once and
-never revisited, and the loop itself solves a single square system rather
-than driving an outer optimiser. The two decision points are the only places
-the procedure can refuse to proceed, and both are diagnostics rather than
+structural claims: everything left of the Newton loop is set up once and never
+revisited, and the loop itself solves a single square system rather than
+driving an outer optimiser. The two decision points are the only places the
+procedure can refuse to proceed, and both are diagnostics rather than
 tolerances: the squareness assertion of Eq.~\eqref{eq:dof} is a statement
 about degrees of freedom, and the realisability gate is a statement about
 whether the target lies in the reachable set at all.
@@ -359,7 +438,7 @@ whether the target lies in the reachable set at all.
 \begin{tikzpicture}[node distance=6.5mm and 9mm]
   \node[fcstart] (tgt) {Target $C_p$ or $u_e$\\ \scriptsize (generated, or user-supplied)};
   \node[fcbox, below=of tgt] (fit) {Fit baseline to CST\\ \scriptsize $A_0$, $\zeta_T$, order $n$};
-  \node[fcbox, below=of fit] (pre) {T4 linear pre-solve\\ \scriptsize sensitivity matrix $M$, KKT initial guess};
+  \node[fcbox, below=of fit] (pre) {Linear pre-solve\\ \scriptsize sensitivity matrix $S$, constrained initial guess};
   \node[fcdec, below=8mm of pre] (real) {realisable?};
   \node[fcfail, right=14mm of real] (warn) {report\\ realisability};
   \node[fcbox, below=8mm of real] (qr) {QR-pivoted station selection\\ \scriptsize restricted to $x \geq$ prescribed-LE fraction};
@@ -371,7 +450,7 @@ whether the target lies in the reachable set at all.
         \scriptsize sparse LU on one square system};
   \node[fcdec, below=8mm of newt] (conv) {converged?};
   \node[fcout, below=8mm of conv] (rel) {Release transition,\\ direct-solve, verify};
-  \node[fcout, below=of rel] (out) {Recovered geometry $A$,\\ \scriptsize diagnostics D-1 to D-6};
+  \node[fcout, below=of rel] (out) {Recovered geometry $A$,\\ \scriptsize per-iteration diagnostics};
 
   \begin{scope}[on background layer]
     \node[fit=(tgt)(qr), draw=NavyBlue!35, fill=NavyBlue!5, rounded corners,
@@ -398,202 +477,206 @@ whether the target lies in the reachable set at all.
   \draw[fcarrow] (conv.east) -- ++(9mm,0) node[fclab,midway,above] {no}
         |- (newt.east);
 \end{tikzpicture}
-\caption{The monolithic inverse-design procedure. The pre-solve, station
-selection and degree-of-freedom check all happen once, before any Newton
-iteration; the loop then solves one square system per step with no outer
-optimiser. The realisability gate reports rather than blocks, because
-realisability is an inviscid-consistent quantity (\S\ref{sec:presolve}) and a
-viscous target can be reachable while failing it. Algorithms~\ref{alg:monolithic}
-and~\ref{alg:qrpivot} state the two shaded stages precisely.}
+\caption{The monolithic inverse-design procedure. Pre-solve, station selection
+and the degree-of-freedom check happen once; the loop then solves one square
+system per step with no outer optimiser.}
 \label{fig:pipeline}
 \end{figure}
 
 Algorithm~\ref{alg:monolithic} states the full monolithic iteration, target
 generation through release-and-verify, as pseudocode, making explicit where
-each of \S\ref{sec:newton-system}--\S\ref{sec:presolve}'s mechanisms (FD
-Jacobian assembly, joint under-relaxation, the trust region on $\Delta A$,
-the forced-transition shim) sits inside the loop. It is a direct pseudocode
-rendering of
-\pth{src/cins/solver/newton.py::solve_inverse} and
-\pth{src/cins/benchmarks/pipeline.py::run_pipeline}, not an idealisation
-of it. Algorithm~\ref{alg:qrpivot} states the QR-pivoted station-selection
-procedure identified as the identifiability guard in
-\S\ref{sec:ablations} (\pth{src/cins/benchmarks/pipeline.py}, station-
-selection step), reusing the T4 pre-solve sensitivity matrix rather than
-building a second one.
+each of Sections~\ref{sec:newton-system} to~\ref{sec:presolve}'s mechanisms
+sits inside the loop: finite-difference Jacobian assembly, joint
+under-relaxation, the trust region on the coefficient step, and the
+forced-transition closure. It is a direct rendering of the implementation, not
+an idealisation of it. Algorithm~\ref{alg:qrpivot} states the QR-pivoted
+station-selection procedure identified as the identifiability guard in
+Section~\ref{sec:ablations}, reusing the pre-solve sensitivity matrix rather
+than building a second one.
 
 \begin{algorithm}
-\caption{Monolithic CST--Newton inverse iteration (\S\ref{sec:newton-system}--\S\ref{sec:presolve})}
+\caption{Monolithic CST--Newton inverse iteration}
 \label{alg:monolithic}
 \begin{algorithmic}[1]
-\Require target airfoil (for $A^\ast$ generation) or externally supplied $Cp_{target}$; Bernstein order $n$; \texttt{le\_treatment}; \texttt{transition.mode}
-\State Fit CST to reference geometry $\rightarrow A^\ast$ (\S\ref{sec:cst-linearity}); build $\partial\zeta/\partial A_i = C(\psi)S_i(\psi)$ once, cache (Eq.~\eqref{eq:dsurface-dA})
-\State Generate target: direct-solve at $A^\ast$ (forced transition if \texttt{mode=forced}, \S\ref{sec:transition}) $\rightarrow Cp_{target}^{\text{full}}$
-\State Perturb or randomize $A^\ast \rightarrow A_0$ (T8 \texttt{init} factor); assemble $G,b$ from \S\ref{sec:constraints}
-\If{\texttt{init = presolve}}
-  \For{2 passes} \Comment{T4 pre-solve, \S\ref{sec:presolve}}
-    \State Build sensitivity matrix $M$ at current $A_0$ (finite-difference or Beta-function analytic)
-    \State Solve KKT system Eq.~\eqref{eq:kkt} for $A_0$; record realisability, model\_gap (ADR-0004, two \emph{distinct} metrics)
+\Require target airfoil (for $A^\ast$ generation) or externally supplied $Cp_{target}$; Bernstein order $n$; leading-edge treatment; transition mode
+\State Fit CST to reference geometry $\rightarrow A^\ast$ (Section~\ref{sec:cst-linearity}); build $\partial\zeta/\partial A_i = C(\psi)S_i(\psi)$ once, cache (Eq.~\eqref{eq:dsurface-dA})
+\State Generate target: direct-solve at $A^\ast$, with transition forced if the run so specifies (Section~\ref{sec:transition}) $\rightarrow Cp_{target}$
+\State Perturb or randomise $A^\ast \rightarrow A_0$; assemble $G,b$ from Section~\ref{sec:constraints}
+\If{initialisation is by pre-solve}
+  \For{2 passes} \Comment{Section~\ref{sec:presolve}}
+    \State Build sensitivity matrix $S$ at current $A_0$
+    \State Solve the constrained system Eq.~\eqref{eq:kkt} for $A_0$; record realisability and model gap as two \emph{distinct} metrics
   \EndFor
 \EndIf
-\State Select $M$ target stations by QR pivoting (Algorithm~\ref{alg:qrpivot}) or evenly-spaced (T8 ablation)
-\State \textbf{Assert} $M+K=n_{A,\text{free}}+n_\alpha$ (Eq.~\eqref{eq:dof}, FM-1 guard) \Comment{raises before any Newton step if violated}
-\State Direct-solve flow at $A_0$ (converges $U_0$) \Comment{initial point for the extended Newton loop}
+\State Select $M$ target stations by QR pivoting (Algorithm~\ref{alg:qrpivot}), or evenly-spaced when ablating
+\State \textbf{Assert} $M+K=n_{A,\text{free}}+n_\alpha$ (Eq.~\eqref{eq:dof}) \Comment{raises before any Newton step if violated}
+\State Direct-solve flow at $A_0$ \Comment{initial point for the extended Newton loop}
 \State $k \gets 0$
-\While{$\|R\|,\|T\|,\|G\| >$ \texttt{rtol} and $k <$ \texttt{max\_iter}} \Comment{D-1 per-block residual norms}
-  \State Assemble $\partial R/\partial U$, $\partial R/\partial\alpha$ from mfoil (analytic, unchanged)
-  \State Assemble $\partial R/\partial A$ by central finite differences over $A$ only (\S\ref{sec:derivatives}), $O(n_A)$ residual evaluations
-  \State Assemble $\partial T/\partial U$ (Cp-selection map), $\partial G/\partial A = G$ (constant)
-  \State Solve linearised system $J\,\delta \gets -[R;T-Cp_{target};G\cdot A-b]$ (Eq.~\eqref{eq:jacobian-blocks})
-  \State Compute joint under-relaxation $\omega\in(0,1]$: the smaller of mfoil's own $U$-limiter (Hk, $\theta$/$\delta^*$ bounds) and the CST trust region $\|\delta_A\|_\infty \leq$ \texttt{a\_trust\_radius} (\S\ref{sec:newton-system})
+\While{$\|R\|,\|T\|,\|G\| >$ tolerance and $k <$ iteration budget} \Comment{per-block residual norms recorded}
+  \State Assemble $\partial R/\partial U$, $\partial R/\partial\alpha$ from the host solver (analytic, unchanged)
+  \State Assemble $\partial R/\partial A$ by central finite differences over $A$ only (Section~\ref{sec:derivatives}), $O(n_A)$ residual evaluations
+  \State Assemble $\partial T/\partial U$ (pressure-selection map), $\partial G/\partial A = G$ (constant)
+  \State Solve the linearised system $J\,\delta \gets -[R;\,T-Cp_{target};\,G\cdot A-b]$ (Eq.~\eqref{eq:jacobian-blocks})
+  \State Compute joint under-relaxation $\omega\in(0,1]$: the smaller of the host solver's own state limiter and the coefficient trust region $\|\delta_A\|_\infty \leq$ trust radius
   \State $U \gets U + \omega\,\delta_U$; $A \gets A + \omega\,\delta_A$; $\alpha \gets \alpha + \omega\,\delta_\alpha$ (if free)
-  \State Rebuild geometry from updated $A$ (apply\_geometry, \S\ref{sec:cst-linearity}); record D-2..D-6 diagnostics
+  \State Rebuild geometry from updated $A$; record diagnostics
   \State $k \gets k+1$
 \EndWhile
-\State \textbf{Release-and-verify} (\S\ref{sec:transition}): un-force transition; direct-solve at converged $A$; assert $\Delta c_l, \Delta c_d$ against the natural-mode target within gate
+\State \textbf{Release-and-verify} (Section~\ref{sec:transition}): un-force transition; direct-solve at the converged $A$; compare $c_l, c_d$ against the reference section's natural-transition values
 \State \Return $A$, iteration count $k$, residual history, release-and-verify record
 \end{algorithmic}
 \end{algorithm}
 
 \begin{algorithm}
-\caption{QR-pivoted target-station selection (\S\ref{sec:ablations})}
+\caption{QR-pivoted target-station selection}
 \label{alg:qrpivot}
 \begin{algorithmic}[1]
-\Require sensitivity matrix $M\in\mathbb{R}^{N_{cand}\times n_A}$ from the T4 pre-solve (\S\ref{sec:presolve}); free-coefficient index set $\mathcal{F}$; required station count $M_{req} = n_{A,\text{free}} - K + n_\alpha$
-\State Restrict candidates to nodes at or aft of the prescribed-LE fraction (FM-3 mitigation, \S\ref{sec:fm})
-\State Form the candidate submap $\tilde M \gets M[\text{candidates},\, \mathcal{F}]$
-\State Column-pivoted QR: $\tilde M^\top P = QR$, giving a pivot ordering $P$ by decreasing contribution to $\tilde M^\top$'s numerical rank
+\Require sensitivity matrix $S\in\mathbb{R}^{N_{cand}\times n_A}$ from the pre-solve (Section~\ref{sec:presolve}); free-coefficient index set $\mathcal{F}$; required station count $M_{req} = n_{A,\text{free}} - K + n_\alpha$
+\State Restrict candidates to nodes at or aft of the prescribed-leading-edge fraction (Section~\ref{sec:le-identifiability})
+\State Form the candidate submap $\tilde S \gets S[\text{candidates},\, \mathcal{F}]$
+\State Column-pivoted QR of $\tilde S^\top$: $\tilde S^\top P = QR$, whose pivot ordering ranks candidate stations by decreasing residual norm in the orthogonal complement of those already chosen
 \State Select the first $M_{req}$ pivoted candidate indices $\rightarrow$ target stations
-\State \Return sorted station index set; report $\mathrm{cond}(\tilde M[\text{stations},:])$ (D-3-class diagnostic, \emph{distinct} from $\mathrm{cond}(J)$, ADR-0004)
+\State \Return sorted station index set; report $\cond(\tilde S[\text{stations},:])$, a quantity \emph{distinct} from $\cond(J)$
 \end{algorithmic}
 \end{algorithm}
 
 \subsection{Forced-transition onset closure}
 \label{sec:transition}
-% <- ADR-0003 (revised mechanism); FM-4, mfoil's (and XFOIL's) $e^n$ transition closure is only $C^0$ in the design
-variables: the transition-station equation itself performs an internal
-sub-Newton solve for the point $x_t$ where the marched amplification factor
-crosses $n_{crit}$, and that location moves discontinuously as geometry
-changes cross a threshold. A coupled Newton iteration needs a continuous
-residual; a kink stalls or chatters it (dossier~\S4, FM-4). The mitigation
-prescribed by the dossier is to fix (trip) transition during the inverse
-iterations and release it for a verification solve afterward. mfoil exposes
-no forced-trip API, so this is implemented as an adapter-level shim
-(ADR-0003) rather than a vendor-code edit.
 
-The first implementation attempt froze the laminar/turbulent node flags
-(\texttt{M.vsol.turb}) and no-op'd mfoil's own \texttt{update\_transition},
-but left the natural \texttt{residual\_transition} equation untouched at the
-frozen boundary station. This was \emph{insufficient}. Empirically (NACA
-2412, $\alpha=2^\circ$, $Re=10^6$, trip 5\%/5\%), the physics moved correctly
-under Newton pressure ($c_d$: 0.00578 $\to$ 0.00741), but the solve never
-converged. \texttt{Rnorm} stalled at $\approx12.6$ for the full 50-iteration
-budget, because the frozen station equation still solves internally for
-amplification $= n_{crit}$, which has no solution once transition is pinned
-somewhere amplification is nowhere near $n_{crit}$ (ADR-0003, ``Revision'').
-The corrected mechanism, \texttt{\_residual\_transition\_forced}, replaces
-the boundary-station residual with an XFOIL-style turbulence-\emph{onset}
-closure: the momentum and shape-parameter rows use the ordinary turbulent
-\texttt{residual\_station} closure directly across the whole station (no
-laminar sub-leg, no station-local $x_t$), and the shear-lag row is replaced
-with the same onset condition mfoil's own \texttt{update\_transition} uses to
-initialize a newly-turbulent node, $U_2[2] = c_{ttr}(U_2)$, which depends
-only on the downstream state (ADR-0003). With this closure, the shim
-converges cleanly: trip 5\%/5\% reaches \texttt{glob.conv=True},
-$\mathrm{Rnorm}<10^{-10}$, $c_d=0.01125$ (strictly $>$ natural
-$c_d=0.005778$, as physically expected for larger turbulent wetted area).
-Trip 30\%/30\% gives $c_d=0.00788$, strictly between the 5\%-trip and natural
-values, monotonic in trip location. Releasing transition and re-solving
-from the converged forced state reproduces the pinned natural baseline to
-within its stated tolerance ($c_l=0.449351\pm10^{-3}$,
-$c_d=0.005778\pm2\times10^{-4}$). These figures are from the shim's own
-verification run (ADR-0003) and differ in the fourth decimal from the T7
-archive's release-and-verify values quoted in \S\ref{sec:falsifiable}
-($c_l=0.449091$, $c_d=0.005774$), which is a different run at a different
-paneling, not a restatement of the same one. Rebuilding the global system after
-convergence with the shim still active reproduces $\|R\|<10^{-8}$: the
-converged state is a genuine fixed point of the forced residual, not an
-artifact of the step sequence (ADR-0003, ``Consequences''). Every T7/T8
-result reported in \S\ref{sec:results} therefore states its transition mode
-explicitly, and release-and-verify in natural-transition direct mode is part
-of the T7 protocol (\S\ref{sec:falsifiable}), not an optional extra.
+The $e^n$ transition closure used by \texttt{mfoil}, and by XFOIL before it,
+is not smooth in the design variables. Within a station the internal solve for
+the point at which the marched amplification factor crosses $n_{crit}$ is
+smooth, but the surrounding bookkeeping is not: as geometry changes, the index
+of the last laminar node relocates discretely, and that relocation
+re-initialises the shear-lag state across the newly turbulent nodes through
+the transition correlation. A coupled Newton iteration needs a continuous
+residual; a jump of this kind stalls or chatters it. The mitigation is to fix,
+or trip, transition during the inverse iterations and release it for a
+verification solve afterward. \texttt{mfoil} exposes no forced-trip interface,
+so this is implemented as an adapter-level replacement rather than a
+vendor-code edit, in keeping with the discipline that the vendored solver is
+never modified.
 
-Figure~\ref{fig:viscous} shows the state this closure operates on, and is
-the reason a coupled solver was required rather than an inviscid one with a
+The first implementation attempt froze the laminar and turbulent node flags
+and suppressed the solver's own transition update, but left the natural
+transition-station equation untouched at the frozen boundary station. This was
+\emph{insufficient}. Empirically, on NACA 2412 at $\alpha=2^\circ$ and
+$\Rey=10^6$ with transition tripped at 5 percent chord on both surfaces, the
+physics moved correctly under Newton pressure, with $c_d$ rising from
+$0.00578$ to $0.00741$, but the solve never converged: the residual norm
+stalled near $12.6$ for the full 50-iteration budget, because the frozen
+station equation still solves internally for amplification equal to $n_{crit}$,
+which has no solution once transition is pinned somewhere amplification is
+nowhere near $n_{crit}$.
+
+The corrected mechanism replaces the boundary-station residual with an
+XFOIL-style turbulence-\emph{onset} closure. The momentum and shape-parameter
+rows use the ordinary turbulent station closure directly across the whole
+station, with no laminar sub-leg and no station-local transition point, and
+the shear-lag row is replaced with the same onset condition the solver's own
+transition update uses to initialise a newly-turbulent node, namely that the
+shear-lag state equals the transition correlation evaluated at the downstream
+node. Because that correlation is a function of the downstream state alone,
+the replacement row has a particularly simple Jacobian structure, stated in
+Appendix~\ref{app:onset}. With this closure the trip converges cleanly: at
+5~percent chord the solver reports convergence with residual norm below
+$10^{-10}$ and $c_d=0.01125$, strictly greater than the natural-transition
+$c_d=0.005778$, as expected for the larger turbulent wetted area. A trip at
+30~percent gives $c_d=0.00788$, between the 5~percent and natural values and
+consistent with the expected decrease of drag as the trip moves aft, though
+three points spanning two different residual closures do not by themselves
+establish monotonicity. Releasing transition and re-solving from the converged
+forced state reproduces the pinned natural baseline within its stated
+tolerance, $c_l=0.449351\pm10^{-3}$ and $c_d=0.005778\pm2\x10^{-4}$. These
+figures come from the closure's own verification run and differ from the
+release-and-verify values quoted in Section~\ref{sec:falsifiable}
+($c_l=0.449091$, $c_d=0.005774$) in the fourth and sixth decimal respectively;
+that is a different run at a different paneling, not a restatement of the same
+one. Rebuilding the global system after convergence with the replacement
+closure still active reproduces a residual below $10^{-8}$: the converged
+state is a genuine fixed point of the forced residual, not an artifact of the
+step sequence. Every result reported in Section~\ref{sec:results} therefore
+states its transition mode explicitly, and release-and-verify in
+natural-transition direct mode is part of the protocol
+(Section~\ref{sec:falsifiable}), not an optional extra.
+
+Figure~\ref{fig:viscous} shows the state this closure operates on, and is the
+reason a coupled solver was required rather than an inviscid one with a
 boundary-layer post-process. The inverse system of
-\S\ref{sec:newton-system} is appended to mfoil's \emph{viscous} global
-system, so the six distributions in the figure are unknowns inside the same
-Newton solve that recovers the geometry, not quantities computed afterwards
-from a converged pressure field. Panel~(f) makes the coupling explicit: the
-displacement thickness $\delta^*$ displaces the effective body the inviscid
-half sees, and it is through that term that a geometry perturbation reaches
-the boundary layer and back. The trip locations are marked on each panel;
-the skin-friction rise at the trip in panel~(c) and the corresponding drop
-in shape factor in panel~(d) are the closure described above taking effect.
+Section~\ref{sec:newton-system} is appended to \texttt{mfoil}'s \emph{viscous}
+global system, so the six distributions in the figure are unknowns inside the
+same Newton solve that recovers the geometry, not quantities computed
+afterwards from a converged pressure field. The coupling itself is a mass
+defect $m = u_e\delta^*$ entering the inviscid problem as a transpiration
+source through the solver's mass-influence operator, rather than a literally
+displaced body; panel~(f) plots the displacement surface $\zeta\pm\delta^*$ as
+the conventional visualisation of that coupling. A geometry perturbation
+reaches the boundary layer principally through the inviscid edge velocity and
+the arc-length metric, and returns through the mass defect. The trip locations
+are marked on each panel; the skin-friction rise at the trip in panel~(c) and
+the corresponding drop in shape factor in panel~(d) are the closure described
+above taking effect.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{fig_viscous_solution.png}
-\caption{The coupled viscous solution the inverse system is embedded in,
-for NACA 2412 at $\alpha=2^\circ$, $\Rey=10^6$, with transition forced at 5
-percent chord on both surfaces (dotted lines).
-(a)--(b)~momentum and displacement thickness; (c)~skin friction, rising at
-the trip; (d)~kinematic shape factor; (e)~edge velocity, the quantity the
-inviscid half exchanges with the boundary layer; (f)~the displacement
-surface $\zeta\pm\delta^*$, which is the coupling term itself. All six are
-state variables of the same global system to which the CST coefficients are
-appended.}
+\caption{The coupled viscous solution the inverse system is embedded in, for
+NACA 2412 at $\alpha=2^\circ$, $\Rey=10^6$, transition forced at 5~percent
+chord (dotted): (a)--(b)~momentum and displacement thickness; (c)~skin
+friction; (d)~kinematic shape factor; (e)~edge velocity; (f)~the displacement
+surface.}
 \label{fig:viscous}
 \end{figure}
 
 \subsection{Analytic pre-solve and realisability}
 \label{sec:presolve}
-% <- T4; ADR-0004 realisability semantics
 
 Two jobs are done by a single linear pre-solve before any Newton iteration
 runs, and the distinction between them is load-bearing for how results are
-reported (ADR-0004). Thin-airfoil theory is linear in camber slope and
-thickness, and CST camber/thickness are linear in $A$, so
-$Cp_{target}\approx M\cdot A$ for a sensitivity matrix $M$ built either
-analytically (the Joseph--Mohan Beta-function kernels) or, as implemented,
-numerically from mfoil's own linear-vorticity panel influence coefficients
-at fixed geometry. Solving the constrained least-squares problem with the
-\S\ref{sec:constraints} rows as linear equality constraints,
+reported. Thin-airfoil theory is linear in camber slope and thickness, and CST
+camber and thickness are linear in $A$, so the pressure response to a
+coefficient increment is well approximated by a sensitivity matrix $S$ built
+either analytically, from the Beta-function kernels of
+\citet{joseph2021closed}, or, as implemented, numerically from
+\texttt{mfoil}'s own linear-vorticity panel influence coefficients at fixed
+geometry. Solving the constrained least-squares problem with the
+Section~\ref{sec:constraints} rows as linear equality constraints,
 \begin{equation}
-  \begin{bmatrix} M^\top M & G^\top \\ G & 0 \end{bmatrix}
-  \begin{bmatrix} A \\ \lambda \end{bmatrix}
-  = \begin{bmatrix} M^\top Cp_{target} \\ b \end{bmatrix},
+  \begin{bmatrix} S^\top S & G^\top \\ G & 0 \end{bmatrix}
+  \begin{bmatrix} \delta A \\ \lambda \end{bmatrix}
+  = \begin{bmatrix} S^\top (Cp_{target}-Cp_0) \\ b \end{bmatrix},
   \label{eq:kkt}
 \end{equation}
-gives (1) an initial guess placing Newton inside its basin
-of attraction: the LE region is exactly where Newton wanders, and mfoil's
-own documentation warns the coupled solver can fail from a poor initial
-guess; and (2) a \textbf{realisability} metric,
-$\|M A^\ast - Cp_{target}\|/\|Cp_{target}\|$, that flags targets outside the
-CST-representable manifold \emph{before} a Newton solve is attempted.
+where $Cp_0$ is the pressure distribution at the current coefficient vector,
+serves two purposes. It gives an initial guess placing Newton inside its basin
+of attraction, which matters because the leading-edge region is exactly where
+Newton wanders and the host solver's own documentation warns that the coupled
+solve can fail from a poor initial guess. It also gives a
+\emph{realisability} metric,
+$\norm{S\,\delta A - (Cp_{target}-Cp_0)}/\norm{Cp_{target}}$, that flags
+targets outside the CST-representable manifold \emph{before} a Newton solve is
+attempted. The increment form matters: it is computable for a target whose
+generating coefficients are unknown, which the difference against a notional
+true $A^\ast$ would not be.
 
-An adversarial T4/T5/T7 review found these two jobs' outputs had been
-conflated into one number, and ADR-0004 is the resulting decision, binding
-for every number reported in this paper:
+An adversarial review of the pre-solve found these two jobs' outputs had been
+conflated into one number, and the resulting reporting convention is binding
+for every number in this paper. First, CST-representability, the realisability
+guard above, is answered with \emph{model-consistent} quantities: an inviscid
+target against an inviscid linearisation. On the reference configuration this
+is $3.90\x10^{-4}$, and the target is representable. Second, the \emph{model
+gap}, how far the inviscid linearisation sits from the viscous physics the
+Newton solve actually faces, is a separate, diagnostic-only quantity, $0.110$
+on the same case. That is boundary-layer displacement effect, which no
+inviscid model captures. It is \emph{not} target unrealisability; the
+subsequent monolithic solve converging to $2.75\x10^{-11}$
+(Section~\ref{sec:falsifiable}) confirms, for this self-generated target, that
+the target was realisable despite the nonzero model gap.
 
-\begin{quote}
-1.\ \textbf{CST-representability} (the realisability guard, above) must be
-answered with \emph{model-consistent} quantities: inviscid target against
-inviscid linearisation. On the T7 winning configuration this is
-$3.90\times10^{-4}$; the target is
-representable. 2.\ \textbf{Model gap}, how far the inviscid linearisation
-sits from the viscous physics the Newton solve actually faces, is a
-\emph{separate}, diagnostic-only quantity, $0.110$ on the same case. This is boundary-layer displacement
-effect, which no inviscid model captures. It is \emph{not} target
-unrealisability; the subsequent monolithic solve converging to
-$2.75\times10^{-11}$ (\S\ref{sec:falsifiable}) is direct proof the target
-was realisable despite the nonzero model gap.
-\end{quote}
-
-\textbf{Reporting rule, enforced throughout this paper:} realisability
-numbers are always labelled with their model (``inviscid-consistent''), and
-the conditioning of the QR-selected station submap ($\mathrm{cond}\approx90$,
-\S\ref{sec:ablations}) is never quoted as the conditioning of the full
-extended Newton system. These are different
-matrices answering different questions; conflating them was one of the
-review's confirmed findings.
+Two reporting rules follow and are enforced throughout. Realisability numbers
+are always labelled with the model they were computed under. And the
+conditioning of the QR-selected station submap, approximately $90$ at the
+reference configuration (Section~\ref{sec:ablations}), is never quoted as the
+conditioning of the full extended Newton system. These are different matrices
+answering different questions, and conflating them was one of the review's
+confirmed findings.

@@ -464,7 +464,7 @@ def fig_le_identifiability(out_dir: Path, n: int = 6) -> Path:
     ax.set_xticks(xpos)
     ax.set_xticklabels(labels, fontsize=8)
     ax.set_ylabel("relative to unrestricted")
-    ax.set_title("(c) Effect on the raw-target solve", fontsize=10)
+    ax.set_title("(c) Effect on the solve", fontsize=10)
     ax.legend(fontsize=7.5)
     ax.grid(alpha=0.3, axis="y", which="both")
     for i, v in enumerate(norm_r):

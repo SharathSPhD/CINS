@@ -1,49 +1,97 @@
-\label{sec:fm}
-% FM-1 rank/DOF, FM-2 Bernstein conditioning, FM-3 LE-singular rows, FM-4 C0
-% viscous closure; diagnostics D-1..D-6. % <- T6, 
+Four failure modes were identified before implementation as the ways the
+architecture of Section~\ref{sec:formulation} can fail without that failure
+being obviously attributable to its true cause. They are listed in
+Table~\ref{tab:fm} with the diagnostic that detects each and the mitigation
+adopted. The list is deliberately structured around \emph{discriminability}
+rather than around severity: a coupled Newton solve that stalls looks the same
+whatever caused it to stall, so the instrumentation exists so that a failed
+solve reports which mode it hit rather than only that it failed.
 
-Four failure modes were identified a priori
-(\dossierref{\S4}) as the ways the
-architecture of \S\ref{sec:formulation} can fail without that failure being
-obviously attributable to its true cause. Table~\ref{tab:fm} summarises
-each, its diagnostic, and its mitigation; \S\ref{sec:newton-system}--
-\S\ref{sec:presolve} describe FM-1, FM-4's mechanism and FM-1's realisability
-guard in detail, and \S\ref{sec:ablations} reports the empirical FM-2 cliff.
-
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
-\caption{The four failure modes identified a priori, each with the
-diagnostic that detects it and the mitigation adopted. All four were
-predicted before implementation and all four were observed; the instrumentation
-exists so that a failed solve reports which mode it hit rather than only that
-it failed. Source:, \dossierref{\S4}.}
+\caption{The four failure modes identified before implementation, with the
+diagnostic that detects each and the mitigation adopted.}
 \label{tab:fm}
 \footnotesize
-\begin{tabularx}{\textwidth}{@{}l l L L L@{}}
+\begin{tabularx}{\textwidth}{@{}l L L L@{}}
 \toprule
-ID & Name & Mechanism & Diagnostic & Mitigation \\
+Failure mode & Mechanism & Diagnostic & Mitigation \\
 \midrule
-FM-1 & DOF/realisability & rank-deficient or over-determined & D-2 (rank/cond $J$) & Eq.~\eqref{eq:dof} assertion; T4 realisability \\
-FM-2 & Bernstein conditioning & Gram matrix $\mathrm{cond}\sim4^n$ & D-3 ($\mathrm{cond}(G^\top G)$ vs $n$) & keep $n\lesssim10$--12/side; orthogonalise \\
-FM-3 & LE-singular Jacobian rows & $\sqrt\psi$ non-analytic at $\psi=0$ & D-4 (row-norm vs station) & row scaling; prescribed-LE (\S\ref{sec:falsifiable}) \\
-FM-4 & $C^0$ viscous closure & transition-station kink & D-5 (transition history) & forced trip, release-and-verify (\S\ref{sec:transition}) \\
+Rank and degrees of freedom &
+  extended system rank-deficient or over-determined &
+  rank and condition number of $J$ &
+  squareness assertion, Eq.~\eqref{eq:dof}; realisability pre-solve \\
+Basis conditioning &
+  Bernstein Gram matrix conditions like $4^{\,n}$ &
+  Gram condition number against $n$ &
+  keep $n\leq10$ per side; orthogonalise the basis \\
+Leading-edge row conditioning &
+  $\sqrt\psi$ non-analytic at the nose inflates nearby residual rows &
+  Jacobian row norm against station &
+  row scaling; prescribed leading edge (Section~\ref{sec:falsifiable}) \\
+Transition-closure non-smoothness &
+  discrete relocation of the transition index kinks the residual &
+  transition-station history &
+  forced trip, then release and verify (Section~\ref{sec:transition}) \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The remaining diagnostics, D-1 (per-block residual norms, discriminates
-\emph{which} block stalls) and D-6 (Newton convergence history, the
-headline figure confirming the quadratic-tail architectural claim), are
-not tied to a single failure mode; they are the general-purpose instruments
-used throughout \S\ref{sec:results}. FM-3's fix targets
-\emph{rows}, not columns: \S\ref{sec:cst-linearity} showed
-$\partial\zeta/\partial A_i$ is perfectly finite as $\psi\to0$ (it tends to
-zero), so the geometric columns are healthy. What blows up is the flow
-residual's \emph{sensitivity} to geometry near the nose (surface normals,
-metric terms, the stagnation-point mapping all have unbounded derivatives
-there), so a handful of rows near the stagnation point acquire enormous
-magnitude and destroy the coupled matrix's condition number. This is a
-concrete instance of the point made in
-\S\ref{sec:cst-linearity}: CST's linearity keeps the columns exact, but does
-not by itself guarantee the rows are well-conditioned near a genuinely
-non-analytic geometric feature.
+Six per-iteration diagnostics support that discrimination, and
+Table~\ref{tab:diagnostics} states what each is for. Two of them are not tied
+to a single failure mode. The per-block residual norms discriminate
+\emph{which} block of Eq.~\eqref{eq:jacobian-blocks} is stalling, which is the
+first question to ask of any non-convergence, and the Newton convergence
+history is the general-purpose instrument used throughout
+Section~\ref{sec:results} and the basis of the convergence-rate analysis in
+Section~\ref{sec:h3}. The remaining four map one-to-one onto the rows of
+Table~\ref{tab:fm}.
+
+\begin{table}[htbp]
+\centering
+\caption{Per-iteration diagnostics recorded on every run.}
+\label{tab:diagnostics}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}l L L@{}}
+\toprule
+Diagnostic & Quantity recorded & Question it answers \\
+\midrule
+Per-block residual norms & $\norm{R}$, $\norm{T}$, $\norm{G\!A-b}$ separately & which block of the extended system is stalling \\
+Rank and conditioning & rank and $\cond(J)$ at each iteration & is the extended system square and full-rank in practice \\
+Basis conditioning & condition number of the Bernstein Gram matrix, and of the selected station submap & is the parameterisation, or the sampling, the limiting factor \\
+Row-norm profile & Jacobian row norm against chordwise station & are the leading-edge rows dominating the matrix \\
+Transition history & transition index and location per iteration & is the transition closure moving discontinuously \\
+Convergence history & residual norm against iteration & what rate is the iteration actually achieving \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+One entry in Table~\ref{tab:fm} deserves expansion, because its mechanism is
+routinely misdescribed and the correct description is what determines the
+mitigation. The leading-edge failure mode targets \emph{rows}, not columns.
+Section~\ref{sec:cst-linearity} showed that
+$\partial\zeta/\partial A_i = C(\psi)S_i(\psi)$ is perfectly finite as
+$\psi\to0$, tending to zero there, so the geometric columns are healthy. What
+blows up is the flow residual's \emph{sensitivity} to geometry near the nose:
+surface normals, metric terms and the stagnation-point mapping all have
+unbounded derivatives there, so a handful of rows near the stagnation point
+acquire enormous magnitude and destroy the coupled matrix's condition number.
+This is a concrete instance of the point made in
+Section~\ref{sec:cst-linearity}: CST's linearity keeps the columns exact, but
+does not by itself guarantee the rows are well-conditioned near a genuinely
+non-analytic geometric feature. It is also why the mitigation is geometric,
+prescribing the nose rather than reweighting the basis, and why prescribing
+the nose in turn forces the station-restriction rule of
+Section~\ref{sec:le-identifiability}: the two are a matched pair, and applying
+either alone reintroduces the degeneracy from the opposite direction.
+
+All four modes were predicted before implementation, and three of the four
+were subsequently observed in the runs reported here: the rank mode in the
+deliberately mis-squared configurations of Section~\ref{sec:ablations}, the
+basis-conditioning mode in the order sweep of Section~\ref{sec:nsweep}, and
+the transition-closure mode in the stalled first implementation described in
+Section~\ref{sec:transition}. The leading-edge mode is the exception. Its
+mitigation was adopted from the outset, so it is inferred from the
+station-restriction experiment of Section~\ref{sec:le-identifiability} rather
+than observed directly in an unmitigated run; the row-norm diagnostic that
+would show it is recorded but not presented here.

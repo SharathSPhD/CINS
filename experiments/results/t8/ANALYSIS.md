@@ -238,7 +238,7 @@ clean pre-floor headroom.** That is itself evidence *for* fast (likely quadratic
 convergence, just not a number the specified method can produce. A qualitative check
 supports this reading: every one of the 7 non-estimable cells drops from an O(1e-4–1e-5)
 residual to the ~1e-10 floor in exactly 2 Newton steps (e.g. `t8_n08_baseline`:
-5.85e-4 → 3.14e-6 → 1.04e-10), a ~150x-per-step reduction rate that is not consistent
+5.85e-4 → 3.14e-6 → 1.04e-10), a ~190x then ~30,000x per-step reduction rate that is not consistent
 with linear convergence and is consistent with (but does not, by the 3-point method,
 formally confirm) a quadratic tail.
 
@@ -353,7 +353,7 @@ The pre-registered 20-section NACA panel (STATS_PROTOCOL §3.1, executable copy
 `configs/experiments/panel_naca/`) ran at the winning configuration, seed 42.
 
 **Result: 18/18 generable sections recovered** (`err_free_inf` ≤ 1.5e-10, 3–7
-Newton iterations each) across 9–25% thickness and 0–6% camber, 4- and 5-digit
+Newton iterations each) across 6–25% thickness as pre-registered (8–25% among the 18 generable sections) and 0–6% camber, 4- and 5-digit
 families. Two pre-registered sections did not produce results, both excluded
 under §6-class rules and reported here:
 
@@ -369,7 +369,7 @@ under §6-class rules and reported here:
 **Wilson interval honesty (Deviation 12):** at n_eff=18 with 18 successes the
 Wilson 95% lower bound is **0.824** — the pre-registered criterion (LB ≥ 0.9)
 is mathematically unattainable at this panel size even with a perfect record
-(n ≥ 29 all-success is required). The pre-registration committed to a target
+(n ≥ 35 all-success is required; n = 29 reaches only 0.883 — corrected 2026-08-06). The pre-registration committed to a target
 its own panel size could not certify. Achievable statement: point estimate
 1.00 (18/18), Wilson 95% LB 0.82. Treating panel_0006 as a failure instead of
 an exclusion gives 18/19 = 0.947, LB 0.754.
