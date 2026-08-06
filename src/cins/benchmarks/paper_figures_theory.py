@@ -34,6 +34,7 @@ Matplotlib Agg backend only (headless-safe).
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
@@ -380,7 +381,12 @@ def fig_le_identifiability(out_dir: Path, n: int = 6) -> Path:
     cfg = load_config()
     fit = _naca2412_fit(n)
     psi = cosine_spacing(160)
-    a0 = np.concatenate([fit.A_upper, fit.A_lower])
+    # Evaluate at the SAME perturbed starting geometry the archived run used,
+    # so the conditioning shown here is the conditioning that run reports
+    # rather than a different one computed at the fitted section.
+    a_star = np.concatenate([fit.A_upper, fit.A_lower])
+    rng = np.random.default_rng(42)
+    a0 = a_star + 0.004 * rng.standard_normal(a_star.size)
     n_u = n_l = n
     n_a = n_u + n_l + 2
     le_frac = float(cfg.cst.prescribed_le_fraction)
@@ -394,7 +400,7 @@ def fig_le_identifiability(out_dir: Path, n: int = 6) -> Path:
     row_norm = np.linalg.norm(M_free, axis=1)
 
     # the two selections that separate the configurations
-    n_pick = len(free_idx) + 1  # alpha free, no constraint rows
+    n_pick = len(free_idx)  # alpha fixed, no constraint rows: matches the run
     _, _, piv_all = _qr(M_free.T, pivoting=True)
     st_all = np.sort(piv_all[:n_pick])
     cand = np.nonzero(xs >= le_frac)[0]
@@ -431,10 +437,23 @@ def fig_le_identifiability(out_dir: Path, n: int = 6) -> Path:
     ax.grid(alpha=0.3, axis="x")
 
     ax = axes[2]
-    labels = ["submap\ncond", "Newton\niterations", r"$\|A-A^*\|_\infty$" + "\n(scaled)",
+    # Read the comparison from the archived run rather than restating it here.
+    # These numbers were previously hardcoded, which meant the figure could not
+    # go stale in step with the experiment and did not satisfy the project's
+    # own rule that every reported number trace to a manifest.
+    res_path = Path("experiments/results/le_stations/result.json")
+    if not res_path.exists():
+        raise FileNotFoundError(
+            f"{res_path} not found; run experiments/run_le_stations.py first"
+        )
+    cells = json.loads(res_path.read_text())["cells"]
+    cu, cr = cells["unrestricted"], cells["restricted"]
+    labels = ["submap\ncond", "Newton\niterations", r"$\|A-A^*\|_\infty$",
               "surface\noffset (mc)"]
-    unrestricted = [cond_all, 14.0, 3.9e-2, 0.863]
-    restricted = [cond_filt, 8.0, 5.4e-4, 0.017]
+    unrestricted = [cu["submap_cond"], float(cu["iterations"]),
+                    cu["err_free_inf"], cu["max_surface_offset_mc"]]
+    restricted = [cr["submap_cond"], float(cr["iterations"]),
+                  cr["err_free_inf"], cr["max_surface_offset_mc"]]
     xpos = np.arange(len(labels))
     w = 0.36
     norm_u = [1.0] * len(labels)

@@ -45,13 +45,12 @@ essentially at floating-point noise: the forced-transition solve and
 the natural-transition physics agree to machine precision at the recovered
 design ($c_l=0.449091$, $c_d=0.005774$ under both). Realisability
 (inviscid-consistent, ADR-0004 metric 1) is $3.9\times10^{-4}$; model gap
-(diagnostic only) is $0.110$ (\S\ref{sec:presolve}). Framing, per the adversarial review that closed this
-gate: 16 coefficients are \emph{recovered} by the Newton iteration; the two
-LE coefficients $A_{u,0}$, $A_{l,0}$ are \emph{prescribed} by the
-\texttt{le\_treatment=prescribed} configuration, not recovered. This
-free-16/prescribed-2 split is stated explicitly rather than folded into an
-undifferentiated ``18 coefficients recovered'' claim
-(docs/gates/T4-T7-closure.md).
+(diagnostic only) is $0.110$ (\S\ref{sec:presolve}). Sixteen coefficients are
+\emph{recovered} by the Newton iteration; the two leading-edge coefficients
+$A_{u,0}$ and $A_{l,0}$ are \emph{prescribed} by the
+\texttt{le\_treatment=prescribed} configuration and are not recovered. The
+error norms quoted above are over the 16 free coefficients
+(\pth{docs/gates/T4-T7-closure.md}).
 
 \begin{table}[h]
 \centering

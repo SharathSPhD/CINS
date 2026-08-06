@@ -147,18 +147,24 @@ candidate stations, or restricting the stations without prescribing the nose,
 each leaves a near-null direction in the sampled system; only the pair is
 identifiable.
 
-The mechanism on this side is the simpler of the two. Under the prescribed-LE
-treatment (FM-3, \S\ref{sec:fm}), $A_{u,0}$ and $A_{l,0}$ are given rather
-than solved. A target row placed inside the prescribed region therefore
-constrains pressure over a piece of surface that cannot move, and contributes
-almost nothing about the coefficients that remain free.
-Figure~\ref{fig:le-identifiability}(a) shows this directly: the norm of
-$\partial C_p/\partial A_{\text{free}}$ collapses over the prescribed region.
-The consequence is the one already familiar from
-Table~\ref{tab:identifiability}, reached from the opposite direction: the
-extended system stays formally square and full-rank while becoming
-numerically near-dependent, and Newton converges to a root that is not the
-generating geometry.
+Under the prescribed-LE treatment (FM-3, \S\ref{sec:fm}), $A_{u,0}$ and
+$A_{l,0}$ are given rather than solved, so a target row placed inside the
+prescribed region constrains pressure over a piece of surface that cannot
+move. The effect on sampling is not a uniform loss of information, and
+Figure~\ref{fig:le-identifiability}(a) is worth reading carefully on this
+point. Across the prescribed region the norm of
+$\partial C_p/\partial A_{\text{free}}$ spans nearly two orders of magnitude,
+from $0.054$ at the nose itself to $3.90$ just aft of it, against a median of
+$1.47$ over the rest of the chord. The region therefore contains both the
+single least informative station on the surface and some of the most
+sensitive. That combination is what makes unrestricted QR selection a poor
+choice here rather than merely a neutral one: the pivoting is drawn to the
+high-sensitivity nose stations, and the rows it selects there are strongly
+mutually correlated, because a small neighbourhood of a fixed nose produces
+nearly the same pressure response for every free coefficient. The extended
+system stays formally square and full-rank while becoming numerically
+near-dependent, which is the same underlying condition as
+Table~\ref{tab:identifiability} reached from the opposite direction.
 
 Restricting the QR candidate set to $x \geq$ the prescribed-LE fraction, as
 Algorithm~\ref{alg:qrpivot} specifies, removes the degeneracy.
@@ -167,41 +173,58 @@ target, holding everything else fixed.
 
 \begin{table}[h]
 \centering
-\caption{Target-station placement under a prescribed leading edge, measured on
-a viscous self-consistency target from an identical perturbed start. Only the
-candidate set differs between the two columns. The recovered surface offset is
-quoted in millichords, against the 1 millichord (0.1 percent chord) that
-\S\ref{sec:formulation}'s fit gate allows a CST representation itself.}
+\caption{Target-station placement under a prescribed leading edge. Both cells
+start from the same perturbed geometry and differ only in whether the QR
+candidate set is restricted to $x \geq$ the prescribed-LE fraction. With the
+leading-edge region left in the candidate set the solve does not converge at
+all within the 50-iteration budget, despite driving its residual to
+$1.9\times10^{-10}$. Surface offset is quoted in millichords, against the 1
+millichord that \S\ref{sec:formulation}'s fit gate allows a CST
+representation itself. Source:
+\pth{experiments/results/le_stations/result.json}.}
 \label{tab:le-identifiability}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}L c c@{}}
 \toprule
-Quantity & LE stations included & LE stations excluded \\
+Quantity & LE stations in candidate set & LE stations excluded \\
 \midrule
-Submap condition            & not recorded          & $19.9$ \\
-Newton iterations           & 14                    & \textbf{8} \\
-Final residual              & $7.19\times10^{-11}$  & $5.06\times10^{-11}$ \\
-$\norm{A-A^*}_\infty$       & $3.9\times10^{-2}$    & $\mathbf{5.4\times10^{-4}}$ \\
-Max surface offset (mc)     & $0.863$               & $\mathbf{0.017}$ \\
+Candidate stations          & 200                   & 169 \\
+Submap condition            & $31.7$                & $19.9$ \\
+Converged                   & \textbf{no}           & \textbf{yes} \\
+Newton iterations           & 50 (budget exhausted) & \textbf{7} \\
+Final residual              & $1.89\times10^{-10}$  & $8.21\times10^{-11}$ \\
+$\norm{A-A^*}_\infty$ (free)& $6.97\times10^{-1}$   & $\mathbf{4.10\times10^{-3}}$ \\
+Max surface offset (mc)     & $11.74$               & $\mathbf{0.127}$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Both columns converge, and both report a residual at the solver floor. The
-recovered geometry differs by a factor of fifty. This reinforces rather than
-merely repeats \S\ref{sec:ablations}: there, the degeneracy came from
-discarding between-station information across the whole chord; here it comes
-from spending equations on a region that has been removed from the design
-space. In both cases the residual norm is silent about it, and only a
-comparison against the true coefficients or the true surface reveals the
-difference.
+The residual is not what separates the two columns. The unrestricted cell
+drives its residual to $1.9\times10^{-10}$, within an order of magnitude of
+the restricted cell's, and still fails to converge inside a 50-iteration
+budget while ending $11.7$ millichords from the target surface. Restricting
+the candidate set converges in 7 iterations to $0.127$ millichords, a
+ninety-fold improvement in the recovered shape, with the submap conditioning
+improving only from $31.7$ to $19.9$. A conditioning number that moves by
+less than a factor of two therefore does not bound the effect: what matters
+is whether the equations are spent on a part of the surface the solver is
+allowed to move.
+
+This reinforces rather than repeats \S\ref{sec:ablations}. There, the
+degeneracy came from discarding between-station information across the whole
+chord, and both configurations converged, one of them to a wrong root. Here
+it comes from spending equations on a region that has been removed from the
+design space, and the failure is visible as non-convergence rather than as a
+confident wrong answer. Neither is detectable from the residual norm alone.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{fig_le_identifiability.png}
 \caption{Why target stations must be kept out of a prescribed leading edge.
-(a)~the sensitivity of surface pressure to the free coefficients collapses
-over the prescribed region, shaded; (b)~the stations chosen by unrestricted
+(a)~the sensitivity of surface pressure to the free coefficients across the
+chord, with the prescribed region shaded: it does not vanish there but varies
+by nearly two orders of magnitude, holding both the least and some of the most
+sensitive stations; (b)~the stations chosen by unrestricted
 QR against those chosen from the restricted candidate set, with the resulting
 submap conditioning; (c)~the effect on the solve, plotted relative to the
 unrestricted case on a logarithmic axis. Values as in
