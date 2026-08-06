@@ -1,0 +1,28 @@
+# Crossed ablation: perturbed initialisation AND evenly-spaced station
+# selection, varying both factors at once.
+#
+# The single-factor matrix leaves one question open. Skipping the pre-solve
+# (t8_init_perturbed) still recovers the design, and evenly-spaced stations
+# (t8_station_even) still converge but to a spurious root; both were run with
+# the other factor at its baseline value. If station selection alone is the
+# identifiability guard, then removing the pre-solve as well should not rescue
+# the evenly-spaced arm: this cell should converge to a wrong root, like
+# t8_station_even and unlike t8_init_perturbed. If it instead recovers the
+# design, the guard attribution is wrong and the pre-solve was doing part of
+# the work.
+#
+# Two factors away from t8_n08_baseline.yaml, deliberately.
+cst:
+  n_upper: 8
+  n_lower: 8
+  le_treatment: prescribed
+
+transition:
+  mode: forced
+
+t8:
+  airfoil: "2412"
+  station_selection: even
+  init: perturbed
+  alpha_free: false
+  dof_offset: 0

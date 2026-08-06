@@ -41,9 +41,10 @@ everything above it is an adapter, and nothing above it can change a result.}
 
 \subsection{The interactive application}
 
-A deployed web application exposes the method to a reader who does not want to
-install anything. It is a Python service wrapping the engine, with a
-browser front end, and it offers four views. \emph{Analyse} runs a direct
+A deployed web application~\citep{cinsapp} exposes the method to a reader who
+does not want to install anything. It is a Python service wrapping the engine,
+with a browser front end, and it offers the four views shown in
+Figure~\ref{fig:app-views}. \emph{Analyse} runs a direct
 coupled solve for a section chosen from the same 123-file coordinate corpus
 the panel of Section~\ref{sec:h1-uiuc-panel} was drawn from, or from a NACA
 code, and reports the pressure distribution, the boundary-layer state, and the
@@ -79,6 +80,30 @@ $1.8\x10^{-2}$ describe surfaces differing by less than half a millichord;
 against a target that only ever constrained pressure, the coefficient norm is
 not a meaningful accuracy statement.
 
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{paper/fig_app_views.png}
+\caption{The four views of the deployed application, captured from the running
+service: (a)~analyse; (b)~inverse design; (c)~flow field; (d)~gallery.}
+\label{fig:app-views}
+\end{figure}
+
+Figure~\ref{fig:app-views} is worth reading against the formulation rather than
+as a product tour. Panel~(a) shows the engineering parameters of
+Eq.~\eqref{eq:endpoint} and Eq.~\eqref{eq:area-beta} evaluated on a solved
+section, which is the closed-form geometric-functional machinery of
+Section~\ref{sec:constraints} exposed directly rather than inferred from
+coordinates. Panel~(b) is the inverse problem as the user states it, a baseline
+geometry, a target pressure curve, and an optional constraint row, which is
+precisely the three-block decomposition of Eq.~\eqref{eq:jacobian-blocks}
+presented as a form; the constraint panel is also where the target-consistent
+right-hand-side rule of Appendix~\ref{app:area} is enforced, since a
+leading-edge row added there is built from the pre-solved guess rather than
+from an idealised value. Panel~(c) shows the inviscid field beside the coupled
+boundary layer, which is the split Section~\ref{sec:transition} depends on.
+Panel~(d) replays archived runs, so the evidence behind
+Section~\ref{sec:results} can be inspected without a solve.
+
 Two limitations of the deployment are stated so that a reader who tries it is
 not misled. The service runs one inverse solve at a time by construction,
 because the forced-transition closure of Section~\ref{sec:transition} replaces
@@ -91,7 +116,7 @@ solve.
 
 \subsection{The project site and the repository}
 
-A project site presents the method as a narrative walkthrough, from the
+A project site~\citep{cinssite} presents the method as a narrative walkthrough, from the
 problem statement through the linearity argument, the square system, the
 falsifiable test, the identifiability finding and the conditioning cliff, using
 the same figures as this manuscript. It exists because the argument of

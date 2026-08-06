@@ -52,7 +52,11 @@ reproduces the reference section's natural-transition coefficients
 that comparison are natural-mode solves at geometries agreeing to
 $2.7\x10^{-11}$, agreement at this level is what smoothness alone would
 predict; the check confirms that no aerodynamically distinct root was reached,
-and should not be read as independent evidence of accuracy. Realisability,
+and should not be read as independent evidence of accuracy. It is not vacuous,
+however: Section~\ref{sec:ablations} reports a deliberately mis-sampled
+configuration in which the same check \emph{fails}, at
+$\Delta c_l = 7.6\x10^{-3}$, because the solve settled on a genuinely different
+aerofoil. Realisability,
 computed inviscid-consistently as Section~\ref{sec:presolve} requires, is
 $3.90\x10^{-4}$; the model gap, diagnostic only, is $0.110$. Sixteen
 coefficients are \emph{recovered} by the Newton iteration; the two

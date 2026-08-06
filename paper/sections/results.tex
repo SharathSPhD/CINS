@@ -43,16 +43,17 @@ configurations that isolate this mechanism.
 
 \begin{table}[htbp]
 \centering
-\caption{Station-selection ablation. Both runs report convergence and drive
-the residual to the solver floor, yet their recovery errors differ by eight
+\caption{Station-selection ablation. All three runs report convergence and
+drive the residual to the solver floor, yet their recovery errors span ten
 orders of magnitude.}
 \label{tab:identifiability}
 \begin{tabularx}{\textwidth}{@{}L c c c@{}}
 \toprule
-Station selection & $\norm{A-A^\ast}_\infty$ & Submap condition & Reported converged \\
+Station selection and initialisation & $\norm{A-A^\ast}_\infty$ & Submap condition & Reported converged \\
 \midrule
-QR-pivoted (reference configuration) & $1.08\x10^{-11}$ & $90.3$ & yes \\
-Evenly spaced & $1.43\x10^{-3}$ (misses the $10^{-4}$ criterion) & $3.47\x10^{12}$ & yes \\
+QR-pivoted, pre-solved (reference configuration) & $1.08\x10^{-11}$ & $90.3$ & yes \\
+Evenly spaced, pre-solved & $1.43\x10^{-3}$ & $3.47\x10^{12}$ & yes \\
+Evenly spaced, perturbed start & $1.95\x10^{-1}$ & $4.15\x10^{13}$ & yes \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -98,6 +99,24 @@ contribution beyond the original hypothesis: a practical answer to the
 non-uniqueness caveat inverse problems inherit from Lighthill's and Volpe and
 Melnik's well-posedness constraints (Section~\ref{sec:related}), without
 abandoning the root-finding architecture for a least-squares relaxation.
+
+The third row settles a question the single-factor matrix leaves open. Each
+of the first two rows varies one factor against the baseline, so neither shows
+what happens when both the pre-solve and the QR selection are removed. Running
+that crossed configuration deliberately, evenly-spaced stations from a
+perturbed start, does not rescue the evenly-spaced arm: it converges in nine
+iterations, drives its residual to $7.2\x10^{-11}$, reports success, and lands
+$1.95\x10^{-1}$ from the generating coefficients, two orders of magnitude
+\emph{further} from the truth than the evenly-spaced arm that kept the
+pre-solve. The pre-solve therefore does not supply the identifiability
+guarantee, and its absence does not merely fail to help: a poorly-sampled
+system started further out settles into a more distant spurious root. This is
+also the one configuration reported in this paper for which the
+release-and-verify check of Section~\ref{sec:falsifiable} \emph{fails},
+$\Delta c_l = 7.6\x10^{-3}$ against a $10^{-3}$ threshold, which is worth
+recording because it demonstrates that the check has discriminating power
+rather than passing by construction: the recovered geometry is a genuinely
+different aerofoil, and releasing transition exposes it.
 
 One asymmetry in this comparison should be recorded. The two arms do not draw
 from a bit-identical candidate set: the evenly-spaced arm additionally omits
@@ -614,9 +633,10 @@ iteration and a better starting residual. In wall-clock terms the two are
 indistinguishable, at $160$ against $170$ seconds, so the honest conclusion is
 that the pre-solve is close to cost-neutral rather than expensive, and that it
 is not what supplies the uniqueness guarantee. That comes from QR station
-selection alone. This has \emph{not} been verified in the sharper crossed form
-that would settle it, a perturbed start combined with evenly-spaced station
-selection, and it is flagged as untested rather than as tested.
+selection alone, and the crossed configuration in
+Table~\ref{tab:identifiability} confirms it directly: with evenly-spaced
+stations, removing the pre-solve as well leaves the solve converging
+confidently to a root $1.95\x10^{-1}$ from the truth.
 
 \subsection{Convergence behaviour}
 \label{sec:h3}

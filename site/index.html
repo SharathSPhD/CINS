@@ -45,6 +45,7 @@
     <li><a href="#identifiability" data-scene-link="identifiability"><span class="dot" aria-hidden="true"></span><span class="lab">Station selection</span></a></li>
     <li><a href="#le-region" data-scene-link="le-region"><span class="dot" aria-hidden="true"></span><span class="lab">The prescribed leading edge</span></a></li>
     <li><a href="#naca-panel" data-scene-link="naca-panel"><span class="dot" aria-hidden="true"></span><span class="lab">The NACA panel</span></a></li>
+    <li><a href="#uiuc-panel" data-scene-link="uiuc-panel"><span class="dot" aria-hidden="true"></span><span class="lab">The UIUC panel</span></a></li>
     <li><a href="#flow-solves" data-scene-link="flow-solves"><span class="dot" aria-hidden="true"></span><span class="lab">Flow-solve count</span></a></li>
     <li><a href="#conditioning" data-scene-link="conditioning"><span class="dot" aria-hidden="true"></span><span class="lab">The conditioning cliff</span></a></li>
     <li><a href="#next" data-scene-link="next"><span class="dot" aria-hidden="true"></span><span class="lab">What's next</span></a></li>
@@ -705,7 +706,28 @@
             <p class="v-stat">&Vert;A&minus;A*&Vert;&infin; = 1.08&times;10<sup>&minus;11</sup> &middot; submap cond = 90.3</p>
             <p class="v-detail">Twelve orders of magnitude of conditioning separate the two selections.</p>
           </div>
+          <div class="verdict fail">
+            <div class="v-top"><span class="v-code">Evenly spaced, no pre-solve</span><span class="v-badge">Worse root</span></div>
+            <p class="v-claim">Both factors removed at once, to test whether the pre-solve was quietly doing the work.</p>
+            <p class="v-stat">&Vert;A&minus;A*&Vert;&infin; = 1.95&times;10<sup>&minus;1</sup> &middot; submap cond = 4.15&times;10<sup>13</sup></p>
+            <p class="v-detail">It was not. Nine iterations, residual 7&times;10<sup>&minus;11</sup>, reports success, lands two orders further from the truth.</p>
+          </div>
         </div>
+
+        <p class="reveal">
+          That third case answers the obvious objection to the first two. Each of them
+          varies one factor against the baseline, so neither shows what happens when
+          both the pre-solve and the QR selection are removed. Running that
+          configuration deliberately does not rescue the evenly spaced arm; it makes it
+          worse. Station selection is the guard, and a poorly sampled system started
+          further out simply settles into a more distant spurious root. It is also the
+          one configuration in this study where the release-and-verify check
+          <em>fails</em>, at &Delta;c<sub>l</sub> = 7.6&times;10<sup>&minus;3</sup>
+          against a 10<sup>&minus;3</sup> threshold, which is useful: it shows that
+          check has discriminating power rather than passing by construction. The
+          recovered shape is a genuinely different aerofoil, and releasing transition
+          exposes it.
+        </p>
 
         <div class="fig reveal">
           <img src="assets/img/station-selection.png" alt="Comparison of evenly spaced versus QR-pivoted target-pressure station selection and the resulting coefficient recovery error." loading="lazy" width="1300" height="1040">
@@ -851,7 +873,7 @@
       <div class="scene-body">
         <p class="lead reveal">
           A single self-consistent recovery is a proof of concept. A panel of NACA
-          four- and five-digit sections, spanning nine to twenty-five percent
+          four- and five-digit sections, spanning six to twenty-five percent
           thickness and zero to six percent camber, tests whether the result
           generalizes.
         </p>
@@ -868,12 +890,12 @@
         </div>
 
         <p class="reveal">
-          Nineteen sections were configured; eighteen were scored. Two were excluded
-          before scoring, not counted as solver failures: <strong>panel_0006</strong>,
-          whose own target-pressure generation did not converge (a problem upstream of
-          the inverse solve), and <strong>NACA 44012</strong>, whose 44XXX mean-line
-          family is not implemented by the vendor NACA5 generator used to build panel
-          targets.
+          Twenty sections were configured; eighteen were scored, and those eighteen
+          span eight to twenty-five percent thickness. Two were excluded before
+          scoring, not counted as solver failures: <strong>NACA 0006</strong>, whose own
+          target-pressure generation did not converge (a problem upstream of the inverse
+          solve), and <strong>NACA 44012</strong>, whose 44XXX mean-line family is not
+          implemented by the vendor NACA5 generator used to build panel targets.
         </p>
 
         <div class="callout callout-note reveal">
@@ -883,8 +905,68 @@
             statistical claim. A Wilson 95% lower bound at n=18 sits at 0.824, below a
             pre-registered 0.9 threshold, for interval-arithmetic reasons rather than a
             solver shortfall: reaching a lower bound of 0.9 at 100% observed success
-            requires n&ge;29. The panel is reported as what it is, not stretched into a
+            requires n&ge;35 (n=29 reaches only 0.883). The panel is reported as what it is, not stretched into a
             confidence interval it cannot support.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="uiuc-panel" class="scene" data-scene="uiuc-panel">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">09</span><span class="rule" aria-hidden="true"></span>Generalisation</p>
+        <h2>A wider panel, and the exclusions it rests on</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          Twenty NACA sections cannot support an interval estimate. A second,
+          pre-registered panel of 117 sections drawn from the UIUC coordinate database,
+          stratified by thickness and camber decile, was sized to fix that. It fixes it,
+          and it surfaces something the NACA panel was too small and too uniform to
+          show.
+        </p>
+
+        <div class="stat-row reveal">
+          <div class="stat ok"><span class="n">83/83</span><span class="l">converged sections meet the accuracy criterion</span></div>
+          <div class="stat"><span class="n">0.956</span><span class="l">Wilson 95% lower bound on accuracy</span></div>
+          <div class="stat warn"><span class="n">73/83</span><span class="l">also inside the nine-iteration budget</span></div>
+        </div>
+
+        <p class="reveal">
+          Accuracy holds everywhere it is tested: every section that converged recovered
+          its free coefficients to better than 10<sup>&minus;4</sup>, with observed
+          errors clustering between 10<sup>&minus;11</sup> and 10<sup>&minus;9</sup>.
+          The pre-registered composite criterion, which also required nine iterations or
+          fewer, is not met: ten sections take between ten and fifty iterations while
+          reaching the same accuracy band. The single-digit expectation was calibrated on
+          NACA sections and does not transfer to the wider geometry space. The failure is
+          isolated to the iteration count, not to accuracy.
+        </p>
+
+        <div class="fig reveal">
+          <img src="assets/img/uiuc-outcomes.png" alt="Left: every section of the UIUC panel plotted in the thickness-camber plane, coloured by outcome. Right: histogram of Newton iteration counts among converged sections." loading="lazy" width="2200" height="780">
+          <figcaption>Every section of the panel by outcome, and the iteration distribution among those that converged. <span class="src">experiments/results/t8/figures/paper/fig_uiuc_outcomes.png</span></figcaption>
+        </div>
+
+        <div class="callout callout-caveat reveal">
+          <p class="callout-label">What 83 of 83 is conditioned on</p>
+          <p>
+            Twenty-four of the 117 sections never posed an inverse problem at all,
+            because the flow solver could not converge a target for the section itself,
+            and ten more failed during the attempt. That is 29 percent of the panel
+            excluded, and the excluded sections are not a random sample: their median
+            maximum thickness is 9.0 percent chord against 12.1 percent for the
+            converged population, and 65 percent of them are thinner than 10 percent
+            chord against 36 percent of the converged ones. Read the outcome map above
+            and the grey markers cluster in the thin corner. The honest statement is not
+            that the architecture recovers any UIUC section, but that on sections this
+            flow solver can produce a converged target for, it recovers the coefficients
+            to well inside the criterion, and the sections it cannot are systematically
+            the thin ones. The exclusion happens before any inverse problem is posed, so
+            it is a property of the analysis solver rather than of the inverse
+            formulation, but it bounds what the panel demonstrates.
           </p>
         </div>
       </div>
@@ -894,7 +976,7 @@
   <section id="flow-solves" class="scene" data-scene="flow-solves">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">09</span><span class="rule" aria-hidden="true"></span>Cost</p>
+        <p class="eyebrow"><span class="num">10</span><span class="rule" aria-hidden="true"></span>Cost</p>
         <h2>Fewer flow solves than a tuned nested optimizer</h2>
       </header>
       <div class="scene-body">
@@ -909,28 +991,36 @@
 
         <div class="table-scroll reveal">
         <table class="data">
-          <thead><tr><th>Pairing (shared init strategy)</th><th>Monolithic (flow-solve equivalents)</th><th>Nested LM (flow-solve equivalents)</th><th>Ratio</th></tr></thead>
+          <thead><tr><th>Pairing (shared init strategy)</th><th>Monolithic (flow-solve equivalents)</th><th>Nested LM (flow-solve equivalents)</th><th>Solve ratio</th><th>Wall-clock ratio</th></tr></thead>
           <tbody>
-            <tr><td>Presolve-init</td><td class="num">120</td><td class="num">373</td><td class="num">3.1x</td></tr>
-            <tr class="hl"><td>Perturbed-init (cold start)</td><td class="num">43</td><td class="num">347</td><td class="num">8.1x</td></tr>
+            <tr><td>Presolve-init</td><td class="num">120</td><td class="num">373</td><td class="num">3.1x</td><td class="num">3.4x</td></tr>
+            <tr class="hl"><td>Perturbed-init (cold start)</td><td class="num">43</td><td class="num">347</td><td class="num">8.1x</td><td class="num">3.5x</td></tr>
           </tbody>
         </table>
         </div>
 
         <div class="fig reveal">
-          <img src="assets/img/h2-flow-solves.png" alt="Bar chart comparing flow-solve-equivalent counts between the monolithic solver and a nested Levenberg-Marquardt baseline, under two initialization pairings." loading="lazy" width="1600" height="1000">
-          <figcaption>Flow-solve-equivalent count, monolithic vs. nested LM, both fairly-paired comparisons. <span class="src">experiments/results/t8/figures/h2_flow_solves.png</span></figcaption>
+          <img src="assets/img/cost-breakdown.png" alt="Three bar charts comparing counted flow solves, residual evaluations and wall-clock time between the monolithic solver and a nested Levenberg-Marquardt baseline." loading="lazy" width="2200" height="700">
+          <figcaption>The same two pairings in three currencies. The solve count and the clock disagree, so both are reported. <span class="src">experiments/results/t8/figures/paper/fig_cost_breakdown.png</span></figcaption>
         </div>
 
         <div class="callout callout-caveat reveal">
           <p class="callout-label">Correcting the pre-registered claim</p>
           <p>
-            An order-of-magnitude reduction was hypothesized before this ablation ran.
-            The measured 3.1x to 8.1x likely reflects that a modern, well-tuned LM
+            Two to three orders of magnitude were hypothesized before this ablation
+            ran. The measured 3.1x to 8.1x likely reflects that a modern, well-tuned LM
             implementation is a stronger baseline than the class of nested-optimization
-            baseline the original hypothesis had in mind. The qualitative advantages,
-            determinism, guaranteed local quadratic convergence, analytic
-            constraint-row Jacobians, hold independent of the exact ratio.
+            baseline the original hypothesis had in mind. It also reflects the counting
+            currency: <em>flow-solve equivalents</em> weight a converged viscous solve
+            and a single inviscid linear solve equally, and exclude the residual
+            evaluations the finite-difference Jacobian spends inside each Newton step.
+            The clock is immune to both conventions, and it says 3.4x and 3.5x on the
+            two pairings, essentially identical. The 8.1x figure is a currency artifact:
+            dropping the pre-solve removes 77 comparatively cheap inviscid solves from
+            the monolithic count without removing the corresponding work. The
+            conservative statement of this result is roughly 3.4x. The qualitative
+            advantages, determinism, an exact analytic Jacobian for the constraint rows,
+            and per-iteration failure-mode diagnostics, hold independent of the ratio.
           </p>
         </div>
       </div>
@@ -940,7 +1030,7 @@
   <section id="conditioning" class="scene" data-scene="conditioning">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">10</span><span class="rule" aria-hidden="true"></span>Limits</p>
+        <p class="eyebrow"><span class="num">11</span><span class="rule" aria-hidden="true"></span>Limits</p>
         <h2>A conditioning cliff at Bernstein order twelve</h2>
       </header>
       <div class="scene-body">
@@ -980,20 +1070,36 @@
         </p>
 
         <details class="deep-dive reveal">
-          <summary><span class="chev" aria-hidden="true"></span><span class="dd-label">Go deeper</span><span class="dd-title">The quadratic convergence tail, where it is visible</span></summary>
+          <summary><span class="chev" aria-hidden="true"></span><span class="dd-label">Go deeper</span><span class="dd-title">How fast it actually converges, and why not quadratically</span></summary>
           <div class="dd-body">
             <p>
               A three-point local order estimator, applied only where at least three
               residual values sit clearly above the solver's floating-point noise
-              floor, scores a median convergence order of 2.15 across five estimable
-              cells, meeting a pre-registered &ge;1.8 threshold. Most converged cells
-              reach the noise floor in exactly two post-initial Newton steps, too fast
-              for the estimator to score at all, a reduction rate of roughly 150x per
-              step that is not consistent with linear convergence.
+              floor, scores a median convergence order of 2.15 across the five runs it
+              can score, meeting a pre-registered &ge;1.8 threshold. The spread runs
+              from 1.09 to 4.24, so the median is not a measurement of one underlying
+              rate. Most converged runs reach the noise floor in exactly two
+              post-initial Newton steps, too fast for the estimator to score at all,
+              contracting by factors of roughly 190 and then 30,000, which no linear
+              rate produces.
+            </p>
+            <p>
+              The headline self-consistency run behaves differently, and the reason is
+              worth stating. It contracts by about 1/30 per step without accelerating,
+              seven decades in five steps, but that is fast <em>superlinear</em>
+              behaviour, not a quadratic tail. Under the current
+              (surface, x/c) station addressing, the target rows depend weakly on the
+              CST coefficients through the interpolation weight, and the implementation
+              neglects that term; the iteration is therefore an inexact Newton method,
+              with the finite-difference flow-block Jacobian as the other limiter.
+              Guaranteed quadratic convergence needs an exact, Lipschitz, nonsingular
+              Jacobian, and this implementation has none of the three by construction.
+              The practical cost is nil, six iterations either way. The claim is what
+              changed.
             </p>
             <div class="fig">
-              <img src="assets/img/h3-convergence-overlay.png" alt="Overlay of residual convergence histories across ablation cells, showing a steep quadratic-like drop toward the solver noise floor." loading="lazy" width="1400" height="900">
-              <figcaption>Residual history overlay across ablation cells. <span class="src">experiments/results/t8/figures/h3_convergence_overlay.png</span></figcaption>
+              <img src="assets/img/convergence-orders.png" alt="Left: residual histories for several runs on a logarithmic axis with the estimated local order annotated. Right: per-step contraction factor, falling for the node-indexed runs and flat for the interpolated one." loading="lazy" width="2200" height="780">
+              <figcaption>Residual histories with the local order estimated over the above-floor tail, and the per-step contraction that separates the two regimes. <span class="src">experiments/results/t8/figures/paper/fig_convergence_orders.png</span></figcaption>
             </div>
           </div>
         </details>
@@ -1014,7 +1120,7 @@
   <section id="next" class="scene" data-scene="next">
     <div class="reading">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">11</span><span class="rule" aria-hidden="true"></span>The cascade</p>
+        <p class="eyebrow"><span class="num">12</span><span class="rule" aria-hidden="true"></span>The cascade</p>
         <h2>From an isolated airfoil to a cascade</h2>
       </header>
       <div class="scene-body">
@@ -1078,7 +1184,7 @@
   <section id="reading" class="scene" data-scene="reading">
     <div class="reading">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">12</span><span class="rule" aria-hidden="true"></span>Evidence</p>
+        <p class="eyebrow"><span class="num">13</span><span class="rule" aria-hidden="true"></span>Evidence</p>
         <h2>Every number traces to a run manifest</h2>
       </header>
       <div class="scene-body">
@@ -1087,7 +1193,11 @@
           random seed, under <code>experiments/results/</code>. The figures on this
           page are copied unmodified from
           <code>experiments/results/t8/figures/</code>; none were redrawn by hand for
-          presentation. The nine-gate ladder below (T0 through T9) tracks Stage 1 from
+          presentation. Three of them, the cost breakdown, the convergence histories
+          and the panel outcome map, are produced by a module that reads only stored
+          manifests and re-runs nothing, so they can be regenerated in seconds. The
+          paper's Appendix F maps every figure and table in it to the record it came
+          from. The nine-gate ladder below (T0 through T9) tracks Stage 1 from
           environment bring-up to design review for Stage 2.
         </p>
         <div id="gate-ledger" class="gate-ledger reveal" aria-label="Gate ledger, T0 through T9"></div>
@@ -1103,7 +1213,7 @@
           </p>
           <div class="btn-row">
             <a class="btn" href="https://github.com/SharathSPhD/CINS" target="_blank" rel="noopener noreferrer">github.com/SharathSPhD/CINS</a>
-            <a class="btn" href="https://github.com/SharathSPhD/CINS/tree/main/docs" target="_blank" rel="noopener noreferrer">Research dossier &amp; spec</a>
+            <a class="btn" href="https://github.com/SharathSPhD/CINS/tree/main/experiments/results" target="_blank" rel="noopener noreferrer">Run manifests &amp; results</a>
             <a class="btn" href="https://cins-inverse-design.vercel.app" target="_blank" rel="noopener noreferrer">cins-inverse-design.vercel.app</a>
           </div>
         </section>

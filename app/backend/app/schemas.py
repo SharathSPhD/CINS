@@ -435,7 +435,7 @@ class InverseResultPayload(BaseModel):
     diagnostics: list[dict[str, Any]]
     manifest: dict[str, Any] | None = None
     presolve_gate: dict[str, Any] | None = Field(
-        None, description="raw_target mode only: T4 realisability verdict (ADR-0004)"
+        None, description="raw_target mode only: realisability verdict, inviscid-consistent"
     )
     stages: list[InverseStage] = Field(
         default_factory=list,
@@ -519,7 +519,7 @@ class RawTargetInverseRequest(BaseModel):
     n: int = Field(8, ge=2, le=20, description="Bernstein order (only used for a `naca` baseline)")
     alpha_deg: float = Field(0.0, ge=-20.0, le=20.0, description="fixed alpha or alpha_free seed")
     alpha_free: bool = Field(
-        True, description="dossier FM-1 absorption DOF; default on for arbitrary targets"
+        True, description="absorbs an incidence offset; default on for arbitrary targets"
     )
     Re: float = Field(1.0e6, gt=1e3, lt=1e9)
     n_stations_offset: Literal[-1, 0, 1] = 0

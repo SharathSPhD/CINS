@@ -1,0 +1,61 @@
+{
+  "cell_name": "t8_crossed_perturbed_even",
+  "converged": true,
+  "convergence_order": 0.10977771627544673,
+  "dof_check_error": null,
+  "err_all_inf": 0.19545025946188485,
+  "err_free_inf": 0.19545025946188485,
+  "iterations": 9,
+  "manifest": {
+    "cell_name": "t8_crossed_perturbed_even",
+    "config_hash": "b8ec2e85b87992b8",
+    "config_path": "configs/experiments/t8_crossed_perturbed_even.yaml",
+    "cst": {
+      "le_treatment": "prescribed",
+      "n_lower": 8,
+      "n_upper": 8
+    },
+    "git_sha": "9b80db67103a2c0680cf7a2cdb5a849c232e75e6",
+    "seed": 42,
+    "t8_factors": {
+      "airfoil": "2412",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "init": "perturbed",
+      "n_perturb_frac": 0.05,
+      "station_selection": "even"
+    },
+    "timestamp": "2026-08-06T12:22:31.871630+00:00",
+    "transition_mode": "forced"
+  },
+  "model_gap": null,
+  "n_flow_solves_equivalent": 43,
+  "n_residual_evaluations": 265,
+  "notes": [
+    "init=perturbed: T4 pre-solve skipped by design (ablation factor)"
+  ],
+  "realisability": null,
+  "release_verify": {
+    "cd": 0.005785359901487655,
+    "cd_target": 0.005773599365534689,
+    "cl": 0.4567392033045492,
+    "cl_target": 0.4490912705268782,
+    "converged": true,
+    "dcd": 1.1760535952965584e-05,
+    "dcl": 0.007647932777671007,
+    "ok": false
+  },
+  "residual_history": [
+    0.0416735394962438,
+    0.2100544917840865,
+    0.12445569093321966,
+    0.0014060078132441798,
+    1.1087599001506266e-05,
+    4.972630536782587e-07,
+    2.510766895212604e-08,
+    3.772864760331207e-10,
+    7.205728674504059e-11
+  ],
+  "submap_cond": 41544598898549.75,
+  "wall_time_s": 835.2881720309997
+}

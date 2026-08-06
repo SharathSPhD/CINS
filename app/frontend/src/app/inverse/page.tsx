@@ -35,7 +35,7 @@ export default function InversePage() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="text-2xl font-semibold tracking-tight">Inverse Design Theater</h1>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
-        Submits a monolithic CST-Newton inverse solve (dossier §7.6) as a background job, then
+        Submits a monolithic CST-Newton inverse solve as a background job, then
         polls for status and animates every Newton iteration live: geometry, Cp vs target, and
         the R/T/G convergence trace: as they land.
       </p>
@@ -141,8 +141,8 @@ function ReplayArchivedT7() {
                 self-consistency check, not a demo of drawing an arbitrary target. What to look
                 for: the combined residual (flow + target-Cp + constraint rows, {"‖(R,T,G)‖"})
                 collapses from O(10&#8315;&#179;) toward machine precision (~10&#8315;&#185;&#8304;) in{" "}
-                {nIters} iterations: the quadratic (Newton) convergence rate the dossier predicts
-                for a square, well-conditioned system, not a slow asymptotic crawl.
+                {nIters} iterations: the fast superlinear rate a square, well-conditioned
+                Newton system gives, not a slow asymptotic crawl.
               </p>
               {iters && iters.length > 0 ? (
                 <ArchivedResidualChart iterations={iters} />
@@ -226,7 +226,7 @@ function NacaTargetPanel() {
     <div className="mt-6">
       <div className="rounded-lg border border-neutral-200 dark:border-neutral-800 p-4 text-sm text-neutral-600 dark:text-neutral-400">
         Runs a self-consistency inverse (recover a NACA airfoil&apos;s own CST coefficients from
-        its target Cp, T7-style, forced transition, dossier default config): a falsifiable check
+        its target Cp, under forced transition, at the reference configuration): a falsifiable check
         that the monolithic Newton system actually recovers a known answer.
       </div>
 
@@ -575,7 +575,7 @@ function RawTargetPanel() {
               checked={alphaFree}
               onChange={(e) => setAlphaFree(e.target.checked)}
             />
-            alpha free (dossier FM-1 absorption DOF: recommended for arbitrary targets)
+            alpha free (absorbs an incidence offset: recommended for arbitrary targets)
           </label>
           <Field label={alphaFree ? "alpha seed (deg)" : "alpha, fixed (deg)"}>
             <input

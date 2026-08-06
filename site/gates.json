@@ -1,6 +1,6 @@
 {
-  "project": "CINS \u2014 CST Inverse Newton Solver",
-  "updated": "2026-08-05",
+  "project": "CINS — CST Inverse Newton Solver",
+  "updated": "2026-08-06",
   "stage": 1,
   "gates": [
     {
@@ -8,7 +8,7 @@
       "title": "Environment + mfoil baseline",
       "status": "closed",
       "date": "2026-08-04",
-      "evidence": "NACA 2412 \u03b1=2\u00b0 Re=1e6 converged; cl=0.4494, cd=0.00578; quadratic tail 1.6e-2\u21923.7e-3\u21928.1e-5\u21928.0e-8\u21921.0e-11",
+      "evidence": "NACA 2412 α=2° Re=1e6 converged; cl=0.4494, cd=0.00578; quadratic tail 1.6e-2→3.7e-3→8.1e-5→8.0e-8→1.0e-11",
       "commit": "514579f"
     },
     {
@@ -21,7 +21,7 @@
     },
     {
       "id": "T2",
-      "title": "CST module \u2014 fit RMS < 0.1% chord",
+      "title": "CST module — fit RMS < 0.1% chord",
       "status": "closed",
       "date": "2026-08-04",
       "evidence": "Fit RMS 2.5e-5..9.3e-5 chords (gate 1e-3) on 4 NACA sections; FM-2 curve archived: cond(GtG) 498(n=4)->5.7e9(n=16) ~ 4^n; adversarial review clean",
@@ -29,7 +29,7 @@
     },
     {
       "id": "T3",
-      "title": "Constraint rows \u2014 area to 1e-10",
+      "title": "Constraint rows — area to 1e-10",
       "status": "closed",
       "date": "2026-08-04",
       "evidence": "Area row vs quadrature 2.8e-17 (gate 1e-10); review CONFIRMED+fixed lower-surface te_wedge sign bug, now pinned by independent TE-slope test (5e-6)",
@@ -53,7 +53,7 @@
     },
     {
       "id": "T6",
-      "title": "Diagnostics D1\u2013D6",
+      "title": "Diagnostics D1–D6",
       "status": "closed",
       "date": "2026-08-04",
       "evidence": "D1-D6 recorder + plots, 20 tests; D-2 caught the identifiability bound; D-6 order estimator per STATS_PROTOCOL H3",
@@ -61,18 +61,18 @@
     },
     {
       "id": "T7",
-      "title": "Falsifiable test \u2014 recover A*",
+      "title": "Falsifiable test — recover A*",
       "status": "closed",
       "date": "2026-08-04",
-      "evidence": "PASS + adversarially hardened: 16 free coefficients recovered to 1.1e-11 in 4 iterations (2 LE coeffs prescribed); release-and-verify: natural-transition cl/cd of recovered geometry match target to 8e-13/1e-14; QR-pivoted stations (submap cond 90; full system cond 1.6e8 per D-2 \u2014 distinct quantities, ADR-0004)",
+      "evidence": "PASS + adversarially hardened: 16 free coefficients recovered to 1.1e-11 in 4 iterations (2 LE coeffs prescribed); release-and-verify: natural-transition cl/cd of recovered geometry match target to 8e-13/1e-14; QR-pivoted stations (submap cond 90; full system cond 1.6e8 per D-2 — distinct quantities, ADR-0004)",
       "commit": null
     },
     {
       "id": "T8",
       "title": "Ablations + statistical benchmark",
       "status": "closed",
-      "date": "2026-08-04",
-      "evidence": "CLOSED, adversarially verified twice. Ablations 14/14 + dual controls + NACA panel 18/18 generable sections recovered (3-7 iters, <=1.5e-10; 9-25% thickness, 0-6% camber). Central: 'converged' != 'correct' (even stations -> wrong root 1.4e-3; QR-pivot -> 1e-11). H2 honest: 3.1-8.1x vs modern LM. Two prereg defects found & reported (44012 infeasible; Wilson LB>=0.9 unattainable at n=20).",
+      "date": "2026-08-06",
+      "evidence": "Ablation matrix + two pre-registered panels. Station selection is the identifiability guard (err 1.08e-11 QR vs 1.43e-3 even; crossed cell with no presolve lands at 1.95e-1). Cost vs tuned nested LM: 3.1-8.1x on counted solves, 3.4-3.5x on wall-clock. NACA panel 18/18 generable; UIUC panel 83/83 converged meet accuracy (Wilson LB 0.956), composite criterion misses on iteration count. 29% of the UIUC panel excluded, systematically thinner than the converged population.",
       "commit": null
     },
     {
@@ -80,7 +80,7 @@
       "title": "Stage 2 design review",
       "status": "closed",
       "date": "2026-08-05",
-      "evidence": "Design review adversarially checked and AMENDED: LS89 MUR comparisons moved to Stage 3 (peak M_is 0.964-1.227 across all 7 in-repo datasets = locally transonic, outside T9's own subcritical scope \u2014 caught by the closure review); Gostelow = THE Stage 2 gate; S0-S5 ladder frozen. STAGE 1 COMPLETE.",
+      "evidence": "Design review adversarially checked and AMENDED: LS89 MUR comparisons moved to Stage 3 (peak M_is 0.964-1.227 across all 7 in-repo datasets = locally transonic, outside T9's own subcritical scope — caught by the closure review); Gostelow = THE Stage 2 gate; S0-S5 ladder frozen. STAGE 1 COMPLETE.",
       "commit": null
     }
   ]
