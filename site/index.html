@@ -43,6 +43,7 @@
     <li><a href="#newton-system" data-scene-link="newton-system"><span class="dot" aria-hidden="true"></span><span class="lab">One square system</span></a></li>
     <li><a href="#falsifiable" data-scene-link="falsifiable"><span class="dot" aria-hidden="true"></span><span class="lab">The falsifiable test</span></a></li>
     <li><a href="#identifiability" data-scene-link="identifiability"><span class="dot" aria-hidden="true"></span><span class="lab">Station selection</span></a></li>
+    <li><a href="#le-region" data-scene-link="le-region"><span class="dot" aria-hidden="true"></span><span class="lab">The prescribed leading edge</span></a></li>
     <li><a href="#naca-panel" data-scene-link="naca-panel"><span class="dot" aria-hidden="true"></span><span class="lab">The NACA panel</span></a></li>
     <li><a href="#flow-solves" data-scene-link="flow-solves"><span class="dot" aria-hidden="true"></span><span class="lab">Flow-solve count</span></a></li>
     <li><a href="#conditioning" data-scene-link="conditioning"><span class="dot" aria-hidden="true"></span><span class="lab">The conditioning cliff</span></a></li>
@@ -234,6 +235,26 @@
           </figure>
         </div>
 
+        <p class="reveal">
+          The table above lists what mfoil reports at each surface node. Plotted in full for
+          a representative solve, the same four quantities plus the edge velocity and the
+          displacement surface itself show how the boundary layer state develops along the
+          chord and where it does the most work.
+        </p>
+
+        <div class="fig reveal">
+          <img src="assets/img/fig_viscous_solution.png" alt="Six-panel coupled boundary-layer solution for NACA 2412 at two degrees angle of attack: momentum thickness, displacement thickness, skin friction, kinematic shape factor and edge velocity on upper and lower surfaces, and the displacement surface offset from the airfoil surface that closes the coupling." loading="lazy" width="2499" height="1313">
+          <figcaption>
+            The full boundary-layer state carried inside the Newton solve: (a) momentum
+            thickness, (b) displacement thickness, (c) skin friction, (d) kinematic shape
+            factor, (e) edge velocity, both surfaces; (f) the &plusmn;&delta;* offset drawn
+            directly against the airfoil surface, the same term that appears in the
+            transpiration equation above. NACA 2412, &alpha;=2.0&deg;, Re=1.0&times;10<sup>6</sup>,
+            transition forced at x/c=0.05 on both surfaces: c<sub>l</sub>=0.4417,
+            c<sub>d</sub>=0.01125. <span class="src">experiments/results/t8/figures/paper/fig_viscous_solution.png</span>
+          </figcaption>
+        </div>
+
         <div class="callout callout-caveat reveal">
           <p class="callout-label">Why the transition closure gets pinned</p>
           <p>
@@ -314,6 +335,19 @@
           </div>
         </div>
 
+        <p class="reveal">
+          The same four steps, computed rather than hand-drawn, for the round-nose,
+          sharp-tail class function this project uses throughout: the class function
+          against its ellipse and wedge limits, the nine order-8 Bernstein terms, the
+          weighted terms summing to the shape function, and the reconstructed NACA 2412
+          surface against its source geometry.
+        </p>
+
+        <div class="fig reveal">
+          <img src="assets/img/fig_cst_basis.png" alt="Four-panel figure: the CST class function compared against its ellipse and wedge limits, the nine order-8 Bernstein shape functions, the weighted terms summing to the shape function, and the reconstructed NACA 2412 surface overlaid on its source geometry." loading="lazy" width="2071" height="1385">
+          <figcaption>Class function, Bernstein basis, weighted sum, reconstructed surface, computed end to end for NACA 2412 (n=8, fit RMS 3.99&times;10<sup>&minus;5</sup>c). <span class="src">experiments/results/t8/figures/paper/fig_cst_basis.png</span></figcaption>
+        </div>
+
         <h3 class="reveal">Two real sections, fitted</h3>
         <p class="reveal">
           An order-8 Bernstein fit (n=8, nine coefficients per surface) to two sections from the
@@ -343,6 +377,11 @@
             surface to 1&times;10<sup>&minus;14</sup>. Each of these becomes one exact row in the
             constraint block G&middot;A=b (Act II), not a penalty term evaluated on a rebuilt mesh.
           </p>
+        </div>
+
+        <div class="fig reveal">
+          <img src="assets/img/fig_cst_parameters.png" alt="Four-panel figure: leading-edge radius as a function of A0 with the NACA 2412 fit marked, trailing-edge wedge half-angle as a function of An for upper and lower surfaces, measured versus analytic surface displacement per coefficient, and the fitted CST coefficient vector for NACA 2412." loading="lazy" width="2071" height="1387">
+          <figcaption>The same two identities plotted as curves rather than single numbers, plus a direct check of the linear-derivative claim above: measured surface displacement per coefficient against its closed-form analytic prediction agrees to a maximum deviation of 2.4&times;10<sup>&minus;17</sup>, independent of the other coefficients, and the full fitted coefficient vector for NACA 2412. <span class="src">experiments/results/t8/figures/paper/fig_cst_parameters.png</span></figcaption>
         </div>
 
         <div class="callout callout-key reveal">
@@ -517,22 +556,41 @@
 
         <div class="stat-row reveal">
           <div class="stat"><span class="n">16</span><span class="l">free coefficients recovered by Newton</span></div>
-          <div class="stat ok"><span class="n">4</span><span class="l">Newton iterations to convergence</span></div>
-          <div class="stat ok"><span class="n">1.079&times;10<sup>&minus;11</sup></span><span class="l">&Vert;A&minus;A*&Vert;&infin; over the free coefficients</span></div>
+          <div class="stat ok"><span class="n">6</span><span class="l">Newton iterations to convergence</span></div>
+          <div class="stat ok"><span class="n">2.747&times;10<sup>&minus;11</sup></span><span class="l">&Vert;A&minus;A*&Vert;&infin; over the free coefficients</span></div>
         </div>
-        <p class="reveal">Gate: &lt;10<sup>&minus;4</sup> in &le;9 iterations. Measured margin: five orders of magnitude.</p>
+        <p class="reveal">Gate: &lt;10<sup>&minus;4</sup> in &le;9 iterations. Measured margin: roughly 3.6&times;10<sup>6</sup>, about six and a half orders of magnitude.</p>
 
         <div class="table-scroll reveal">
         <table class="data">
-          <caption>Residual history, t8_n08_baseline (identical configuration to the T7 run)</caption>
+          <caption>Residual history, t7_naca2412_selfconsistent</caption>
           <thead><tr><th>Newton iteration</th><th>Residual</th><th>Reduction</th></tr></thead>
           <tbody>
             <tr><td class="num">1</td><td class="num">5.85&times;10<sup>&minus;4</sup></td><td class="num">n/a</td></tr>
-            <tr><td class="num">2</td><td class="num">3.14&times;10<sup>&minus;6</sup></td><td class="num">&asymp;186x</td></tr>
-            <tr><td class="num">3</td><td class="num">1.04&times;10<sup>&minus;10</sup></td><td class="num">&asymp;30,200x</td></tr>
-            <tr class="hl"><td class="num">4</td><td class="num">6.35&times;10<sup>&minus;11</sup></td><td class="num">at solver noise floor</td></tr>
+            <tr><td class="num">2</td><td class="num">2.07&times;10<sup>&minus;5</sup></td><td class="num">&asymp;28x</td></tr>
+            <tr><td class="num">3</td><td class="num">1.57&times;10<sup>&minus;7</sup></td><td class="num">&asymp;132x</td></tr>
+            <tr><td class="num">4</td><td class="num">1.21&times;10<sup>&minus;8</sup></td><td class="num">&asymp;13x</td></tr>
+            <tr><td class="num">5</td><td class="num">2.26&times;10<sup>&minus;10</sup></td><td class="num">&asymp;53x</td></tr>
+            <tr class="hl"><td class="num">6</td><td class="num">4.84&times;10<sup>&minus;11</sup></td><td class="num">at solver noise floor</td></tr>
           </tbody>
         </table>
+        </div>
+
+        <div class="callout callout-caveat reveal">
+          <p class="callout-label">A station-addressing fix changed these numbers</p>
+          <p>
+            An earlier build of this page quoted 4 iterations and &Vert;A&minus;A*&Vert;&infin;=1.079&times;10<sup>&minus;11</sup>
+            for this same test. Stations were addressed by panel-node index at the time, which
+            stops naming the same physical location on the surface once the geometry moves
+            during the Newton iteration, the ordinary case for an inverse solve. Target rows
+            are now addressed by physical (surface, x/c) location, interpolated between the
+            two bracketing nodes at each iteration. The numbers above reflect that corrected
+            scheme; the run still converges, to the same order of residual, in two more
+            iterations. The station-selection ablation matrix in the next section (Act IV) was
+            generated before this fix and has not been rerun under the corrected scheme; it
+            remains valid evidence for the conditioning argument it makes, but its iteration
+            counts and residual values are not directly comparable to the number above.
+          </p>
         </div>
 
         <div class="fig-grid reveal">
@@ -563,8 +621,25 @@
         </div>
 
         <div class="stat-row reveal">
-          <div class="stat ok"><span class="n">8.0&times;10<sup>&minus;13</sup></span><span class="l">&Delta;c<sub>l</sub>, recovered vs. target (natural transition)</span></div>
-          <div class="stat ok"><span class="n">1.1&times;10<sup>&minus;14</sup></span><span class="l">&Delta;c<sub>d</sub>, recovered vs. target (natural transition)</span></div>
+          <div class="stat ok"><span class="n">3.39&times;10<sup>&minus;12</sup></span><span class="l">&Delta;c<sub>l</sub>, recovered vs. target (natural transition)</span></div>
+          <div class="stat ok"><span class="n">3.02&times;10<sup>&minus;14</sup></span><span class="l">&Delta;c<sub>d</sub>, recovered vs. target (natural transition)</span></div>
+        </div>
+        <p class="reveal">
+          Absolute values: c<sub>l</sub>=0.449091 against a target of 0.449091, c<sub>d</sub>=0.005774
+          against a target of 0.005774, both from an independent direct-analysis solve with
+          transition released to its natural, free mode.
+        </p>
+
+        <div class="table-scroll reveal">
+        <table class="data">
+          <caption>Presolve diagnostics carried through to the T7 result, same run</caption>
+          <thead><tr><th>Quantity</th><th>Value</th><th>What it measures</th></tr></thead>
+          <tbody>
+            <tr><td>Submap condition</td><td class="num">90.26</td><td>conditioning of the station-selection submap at this run's QR pivot, the same diagnostic reported in the identifiability comparison below</td></tr>
+            <tr><td>Realisability</td><td class="num">3.896&times;10<sup>&minus;4</sup></td><td>inviscid-consistent: how well the T4 pre-solve's linear sensitivity model reproduces the target within the CST-spanned subspace, before any Newton iteration</td></tr>
+            <tr><td>Model gap</td><td class="num">0.110</td><td>the larger, expected residual between that inviscid pre-solve prediction and the true viscous target it initialises; the Newton iterations above close this gap, the pre-solve does not need to</td></tr>
+          </tbody>
+        </table>
         </div>
 
         <details class="deep-dive reveal">
@@ -608,6 +683,13 @@
           The ablation study varied nothing about the Newton solver and only one thing
           about the problem: which stations along the surface carry the target-pressure
           rows. The result is the central methodological finding of the study.
+        </p>
+        <p class="reveal">
+          This matrix was generated under the earlier panel-node-index station-addressing
+          scheme, ahead of the fix described in the previous section. The comparison below
+          is unaffected by that fix, evenly spaced stations and QR-pivoted stations are both
+          computed under the same scheme against each other, but the exact iteration counts
+          are not directly comparable to the current-scheme number reported for T7.
         </p>
 
         <div class="verdict-row reveal">
@@ -653,10 +735,117 @@
     </div>
   </section>
 
+  <section id="le-region" class="scene" data-scene="le-region">
+    <div class="reading wide">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">07</span><span class="rule" aria-hidden="true"></span>Prescribed leading edge</p>
+        <h2>A square, full-rank system can still be numerically hollow</h2>
+      </header>
+      <div class="scene-body">
+        <p class="lead reveal">
+          The station-selection finding above generalises to a specific and easy-to-miss
+          failure mode. When the leading edge is prescribed rather than solved for,
+          A<sub>u,0</sub> and A<sub>l,0</sub> are given values, not unknowns the Newton iteration is
+          free to move. A target-pressure row placed on a station inside that prescribed
+          region then constrains pressure over a piece of surface that cannot change shape.
+        </p>
+        <p class="reveal">
+          The row is not redundant in the algebraic sense: the extended Jacobian stays
+          square, and the dof check (Act II) still counts the right number of rows and
+          unknowns. What the row contributes
+          about the coefficients that are actually free to move is close to nothing. Enough
+          such rows, and the square, full-rank system that results is numerically
+          near-dependent even though nothing about its construction flags a problem.
+          Convergence and identifiability are different properties, and a system in this
+          state can have the first without the second: the Newton iteration still finds a
+          root, just not necessarily the one that generated the target.
+        </p>
+
+        <div class="callout callout-key reveal">
+          <p class="callout-label">The fix</p>
+          <p>
+            Restrict the QR candidate set for target stations to x/c at or beyond the
+            prescribed leading-edge fraction, the same boundary A<sub>u,0</sub> and A<sub>l,0</sub> are
+            frozen at. A candidate station inside that region is excluded from selection
+            before pivoting runs, rather than being selected and then contributing an
+            almost-empty row. This is the same station-selection machinery already
+            described above (Act IV), applied with one additional constraint on the
+            candidate set.
+          </p>
+        </div>
+
+        <p class="reveal">
+          This mechanism was first identified in a secondary validation path that had been
+          running unrestricted QR selection against a prescribed leading edge without
+          noticing the two configurations disagreed structurally, because a coincidental
+          default made them agree numerically in that particular case. A dedicated,
+          manifested experiment isolating the restricted-versus-unrestricted comparison,
+          everything else held fixed, has since run to completion.
+        </p>
+
+        <div class="verdict-row reveal">
+          <div class="verdict fail">
+            <div class="v-top"><span class="v-code">Unrestricted candidates</span><span class="v-badge">Did not converge</span></div>
+            <p class="v-claim">Runs the full 50-iteration budget this diagnostic allowed without the residual ever crossing the solver's convergence threshold.</p>
+            <p class="v-stat">final residual 1.89&times;10<sup>&minus;10</sup> &middot; &Vert;A&minus;A*&Vert;&infin;=0.697 &middot; surface offset 11.74 millichords &middot; submap cond 31.66</p>
+            <p class="v-detail">The residual itself falls close to the solver floor over the last few steps. The recovered shape does not follow it there.</p>
+          </div>
+          <div class="verdict pass">
+            <div class="v-top"><span class="v-code">Restricted to x/c&ge;0.05</span><span class="v-badge">Converges</span></div>
+            <p class="v-claim">Same starting point, same target, same Newton solver. Only the candidate set for target stations changed.</p>
+            <p class="v-stat">7 iterations &middot; final residual 8.21&times;10<sup>&minus;11</sup> &middot; &Vert;A&minus;A*&Vert;&infin;=4.10&times;10<sup>&minus;3</sup> &middot; surface offset 0.127 millichords &middot; submap cond 19.88</p>
+            <p class="v-detail">Excluding candidates inside the prescribed region is the only change between the two cells.</p>
+          </div>
+        </div>
+
+        <p class="reveal">
+          Both cells share one starting point, perturbed 7.80&times;10<sup>&minus;3</sup> from
+          the target in the worst free coefficient, and one QR candidate pool of 200
+          stations, cut to 169 once the prescribed region is excluded. The configuration is
+          smaller than T7's production baseline, Bernstein order 6 rather than 8 (twelve
+          free coefficients rather than sixteen), angle of attack fixed rather than solved,
+          no T4 pre-solve initialiser. It isolates the candidate-set change on its own
+          rather than reproducing the full T7 pipeline, so these numbers should be read
+          against each other, not against the T7 or Bernstein-order figures elsewhere on
+          this page.
+        </p>
+
+        <div class="callout callout-caveat reveal">
+          <p class="callout-label">A vanishing residual is not evidence of a correct answer</p>
+          <p>
+            The unrestricted cell was given more than five times the production 9-iteration
+            gate, fifty iterations, specifically to give the worse-conditioned candidate set
+            every chance to find the target. It still did not: its own residual falls to
+            1.89&times;10<sup>&minus;10</sup> in its final steps, the same order of magnitude
+            as T7's converged residual above, while the coefficients it reports remain 0.697 from the target
+            in the worst free coefficient and describe a surface 11.74 millichords away, far
+            larger than the 7.80&times;10<sup>&minus;3</sup> the run started from. Restricting
+            the candidate set to exclude the prescribed leading edge is the only change that
+            separates this outcome from the converged, target-recovering one beside it.
+            Source: <span class="src">experiments/results/le_stations/result.json</span>
+            (git ff28b85, seed 42).
+          </p>
+        </div>
+
+        <div class="callout callout-caveat reveal">
+          <p class="callout-label">Why FM-3 was already on the list</p>
+          <p>
+            This is the failure mode named FM-3 in the falsifiable-test section above: an
+            unobservable leading-edge mode when leading-edge stations are dropped without
+            also fixing A<sub>0</sub>. What changed is confirmation that the inverse
+            direction, an unrestricted candidate set combined with a prescribed leading
+            edge, produces the same failure from the other side, and that restricting the
+            candidate set is sufficient to remove it.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="naca-panel" class="scene" data-scene="naca-panel">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">07</span><span class="rule" aria-hidden="true"></span>Generalization</p>
+        <p class="eyebrow"><span class="num">08</span><span class="rule" aria-hidden="true"></span>Generalisation</p>
         <h2>Eighteen of eighteen generable NACA sections</h2>
       </header>
       <div class="scene-body">
@@ -705,7 +894,7 @@
   <section id="flow-solves" class="scene" data-scene="flow-solves">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">08</span><span class="rule" aria-hidden="true"></span>Cost</p>
+        <p class="eyebrow"><span class="num">09</span><span class="rule" aria-hidden="true"></span>Cost</p>
         <h2>Fewer flow solves than a tuned nested optimizer</h2>
       </header>
       <div class="scene-body">
@@ -751,7 +940,7 @@
   <section id="conditioning" class="scene" data-scene="conditioning">
     <div class="reading wide">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">09</span><span class="rule" aria-hidden="true"></span>Limits</p>
+        <p class="eyebrow"><span class="num">10</span><span class="rule" aria-hidden="true"></span>Limits</p>
         <h2>A conditioning cliff at Bernstein order twelve</h2>
       </header>
       <div class="scene-body">
@@ -825,7 +1014,7 @@
   <section id="next" class="scene" data-scene="next">
     <div class="reading">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">10</span><span class="rule" aria-hidden="true"></span>The cascade</p>
+        <p class="eyebrow"><span class="num">11</span><span class="rule" aria-hidden="true"></span>The cascade</p>
         <h2>From an isolated airfoil to a cascade</h2>
       </header>
       <div class="scene-body">
@@ -889,7 +1078,7 @@
   <section id="reading" class="scene" data-scene="reading">
     <div class="reading">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">11</span><span class="rule" aria-hidden="true"></span>Evidence</p>
+        <p class="eyebrow"><span class="num">12</span><span class="rule" aria-hidden="true"></span>Evidence</p>
         <h2>Every number traces to a run manifest</h2>
       </header>
       <div class="scene-body">

@@ -78,10 +78,16 @@ An independently-run six-vector adversarial review (docs/gates/T4-T7-
 closure.md) probed circularity, station-index correspondence, the
 pinned-coefficient framing, the absence (at the time) of release-and-verify,
 realisability semantics, and the submap/system conditioning category error;
-every confirmed finding is now reflected in this paper's reporting
-discipline (the free-16/all-18 split above; ADR-0004's two-metric
-realisability rule; the station-index guard $\max|\Delta x/c|=6.1\times10^{-6}$
-asserted $<2\times10^{-5}$ in \texttt{run\_t7.py}).
+every confirmed finding is reflected in this paper's reporting discipline:
+the free-16 against all-18 split above, and ADR-0004's two-metric
+realisability rule. The station-index correspondence finding was closed
+differently from the others. It was originally answered with a numeric guard,
+asserting that the selection-time node and the target's own paneling agreed
+to $\max|\Delta x/c|<2\times10^{-5}$. That guard has since been removed,
+because addressing a station by $(\text{surface}, x/c)$ and interpolating the
+target's own $C_p$ curve at that $x$ makes the correspondence exact rather
+than approximate, so there is no longer a quantity for the guard to bound
+(\S\ref{sec:newton-system}).
 
 \begin{figure}[h]
 \centering

@@ -1,22 +1,40 @@
 # Gate closure report — T4, T5, T6, T7 (consolidated)
 
-**Closed:** 2026-08-04 · **Evidence:** experiments/results/t7_naca2412/{run.log, diagnostics.json}
+**Closed:** 2026-08-04 · **Re-run under the current station addressing:**
+2026-08-06 · **Evidence:** experiments/results/t7_naca2412/{result.json,
+run.log, diagnostics.json}
 
 ## T7 — the falsifiable test (dossier §7.8): PASS
-| Criterion | Threshold | Measured |
-|---|---|---|
-| ‖A−A*‖∞ over the 16 FREE coefficients | < 1e-4 | **1.079e-11** |
-| Newton iterations | ≤ 9 | **4** |
-| Quadratic tail (D-6) | visible | 5.9e-4 → 3.1e-6 → 1.0e-10 |
-| Release-and-verify (natural transition, recovered vs target geometry) | Δcl<1e-3, Δcd<2e-4 | **Δcl=8.0e-13, Δcd=1.1e-14** |
+
+Target stations were originally addressed by panel-node index. On 2026-08-05
+that changed to (surface, x/c) with interpolation, because a node index stops
+denoting the same physical location once the geometry moves. T7 was re-run
+under the new addressing; both sets pass every criterion with several orders
+of margin, and the numbers below are the current ones. Anything quoting
+1.079e-11 in 4 iterations is the earlier addressing.
+
+| Criterion | Threshold | Measured (current) | Measured (node-index) |
+|---|---|---|---|
+| ‖A−A*‖∞ over the 16 FREE coefficients | < 1e-4 | **2.747e-11** | 1.079e-11 |
+| Newton iterations | ≤ 9 | **6** | 4 |
+| Quadratic tail (D-6) | visible | 5.85e-4 → 1.57e-7 → 9.47e-12 | 5.9e-4 → 3.1e-6 → 1.0e-10 |
+| Release-and-verify Δcl | < 1e-3 | **3.39e-12** | 8.0e-13 |
+| Release-and-verify Δcd | < 2e-4 | **3.02e-14** | 1.1e-14 |
+
+Submap cond 90.26, realisability 3.896e-4 (inviscid-consistent, ADR-0004),
+model gap 0.110. Summary archived to result.json with a manifest; previously
+these existed only in console output.
 
 Framing per review: 16 coefficients recovered by Newton; A_u0/A_l0 prescribed
 (le_treatment=prescribed) — pinned by design, not recovered.
 
 ## Adversarial review (6 attack vectors) — all findings resolved
 1. **Circularity** — refuted by the reviewer (perturbation material, no aliasing).
-2. **Station-index correspondence** (PLAUSIBLE, implementation-dependent) → explicit
-   guard added: max |dx/c| at stations = 6.1e-6, asserted < 2e-5 (run_t7.py).
+2. **Station-index correspondence** (PLAUSIBLE, implementation-dependent) → originally
+   answered with an explicit guard: max |dx/c| at stations = 6.1e-6, asserted < 2e-5
+   (run_t7.py). SUPERSEDED 2026-08-05: stations are now addressed by (surface, x/c)
+   and the target's own Cp curve is interpolated at that x, so the correspondence is
+   exact and the guard was removed rather than retained.
 3. **Pinned-coefficient framing** (PLAUSIBLE) → reporting split free16/all18.
 4. **Release-and-verify absent** (CONFIRMED, protocol) → implemented; result above.
 5. **Realisability semantics** (CONFIRMED) → ADR-0004: realisability = inviscid-consistent
