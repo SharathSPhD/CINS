@@ -168,14 +168,20 @@ Table~\ref{tab:identifiability} reached from the opposite direction.
 
 Restricting the QR candidate set to $x \geq$ the prescribed-LE fraction, as
 Algorithm~\ref{alg:qrpivot} specifies, removes the degeneracy.
-Table~\ref{tab:le-identifiability} reports the effect on a self-consistency
-target, holding everything else fixed.
+Table~\ref{tab:le-identifiability} reports the effect on a viscous
+self-consistency target, holding everything else fixed. The comparison is run
+at $n=6$ per side, not the $n=8$ of the ablation matrix above, so it is a
+controlled single-factor experiment in its own right rather than an
+additional cell of that matrix; its numbers should not be read against the
+$n=8$ rows of Table~\ref{tab:n-sweep}.
 
 \begin{table}[h]
 \centering
-\caption{Target-station placement under a prescribed leading edge. Both cells
-start from the same perturbed geometry and differ only in whether the QR
-candidate set is restricted to $x \geq$ the prescribed-LE fraction. With the
+\caption{Target-station placement under a prescribed leading edge, at
+Bernstein order $n=6$ per side rather than the $n=8$ used elsewhere in this
+section. Both cells start from the same seeded perturbed geometry and differ
+only in whether the QR candidate set is restricted to $x \geq$ the
+prescribed-LE fraction. With the
 leading-edge region left in the candidate set the solve does not converge at
 all within the 50-iteration budget, despite driving its residual to
 $1.9\times10^{-10}$. Surface offset is quoted in millichords, against the 1
