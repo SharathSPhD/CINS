@@ -1,0 +1,244 @@
+% Novelty positioning (dossier \S10): the contribution is NOT geometry unknowns in
+% a Newton system (Drela 1986/1990), NOT CST in inverse design (Lane &
+% Marshall 2010, CST as smoother). It is the combination: a complete analytic
+% basis whose linearity makes the geometric Jacobian exact and constant, and
+% whose geometric functionals make constraints linear rows, converting
+% constrained shape optimisation into constrained root-finding.
+% TODO before submission: confirm \S5.6 negative result via AIAA/ASME digital
+% collection search (no prior CST--MISES-inverse coupling). Source:
+% \dossierref{\S5.6}, \S10, \S11.
+
+Inverse aerodynamic design, given a target surface pressure or isentropic
+Mach distribution, recovering the geometry that produces it, is classically
+posed either as a well-posed but restrictive conformal-mapping problem
+\citep{lighthill1945new,volpe1986design}, or as an outer optimisation loop
+wrapped around a converged forward flow solve. The latter is the practical
+default in industry: a geometry parameterisation, a surrogate or
+gradient-based optimiser, and hundreds to thousands of fully converged flow
+solves per design. The motivation for the present paper is autobiographical.
+The author's own doctoral work on sCO$_2$ axial-turbine
+blading~\citep{sathish2019sco2} used exactly this pattern:
+Class-Shape-Transformation (CST) geometry, a B-spline control-point wrapper,
+and a Dakota/Kriging surrogate loop against MISES. That work already used CST
+for blade parameterisation, together with geometric constraints encoding
+expert design practice, but it used them \emph{inside} an optimiser. The
+present paper's claim is that the linearity which made those constraints
+convenient there is strong enough to remove the optimiser altogether. The
+earlier future-work section named the open problem verbatim: integrating CST
+directly with a Newton-based flow solver to escape the nested loop
+(\dossierref{\S1.4}).
+
+That escape route already exists in one solver. MISES's Modal-Inverse mode
+\citep{drela1990viscous} appends mode-shape amplitudes directly to its global
+Newton system and drives them so that computed surface speed matches a
+target: a determined root-find, not a search. This is not new; Drela
+described it in 1986--1990. What MISES's built-in mode shapes are
+\emph{not}, however, is a complete, geometrically meaningful, analytic
+design basis. They are heuristic bump functions, not a family whose
+coefficients double as leading-edge radius, trailing-edge thickness, or
+inscribed area. Kulfan's CST parameterisation~\citep{kulfan2008universal} is
+such a basis, and Masters et al.\ \citep{masters2017geometric} showed it is
+among the most efficient analytic families across a 2000-airfoil comparison.
+CST has also already been coupled to inverse design once, by
+Lane \& Marshall~\citep{lane2010inverse}. There, CST is used to
+\emph{smooth} a pressure-residual-driven normal-direction shape correction
+inside an outer iterative loop; CST is the smoother, not an unknown in a
+Newton system. The present work does not repeat either of these. It combines
+a property of CST that neither prior use exploits.
+
+\subsection{Related work}
+\label{sec:related}
+
+\paragraph{Classical inverse design.} Inverse aerofoil design predates any
+of the parameterisations discussed below. Lighthill's conformal-mapping
+method~\citep{lighthill1945new} is the founding well-posed formulation: a
+target speed distribution on the unit circle is mapped conformally to the
+physical aerofoil. Three integral \emph{closure conditions}, closure of the
+contour, a fixed leading-edge radius, and a prescribed circulation, are
+required for a solvable, self-consistent shape to exist at all. This
+closure-condition structure is the direct conceptual ancestor of
+\S\ref{sec:constraints}'s linear rows: both are answers to the same
+question, ``what makes an arbitrarily chosen target realisable by
+\emph{some} member of the design family,'' asked eighty years apart under
+different geometric representations. Volpe \& Melnik~\citep{volpe1986design}
+sharpened well-posedness for the transonic regime, showing that an inverse
+problem posed with pressure (rather than speed) as the target and with the
+wrong closure conditions is generically \emph{ill}-posed. Existence and
+uniqueness are not automatic once the target is chosen independently of the
+geometry family, a caveat that motivates the identifiability discussion of
+\S\ref{sec:ablations} in a different (discrete, finite-dimensional) setting.
+Eppler's design method~\citep{eppler1980airfoil} and Selig \& Maughmer's
+PROFOIL~\citep{selig1992multipoint} are the mature, still-used engineering
+descendants. Both are multi-point conformal-mapping inverse solvers that
+target several operating conditions' pressure distributions simultaneously
+by blending mode functions, and both remain outside the Newton-coupled,
+viscous-inclusive family this paper and MISES belong to. They close the
+inverse problem analytically at the potential-flow level, then couple to a
+boundary-layer method non-simultaneously, rather than solving flow and
+geometry as one system.
+
+\paragraph{Parameterisation comparison.} Sobieczky's PARSEC
+\citep{sobieczky1999parsec} parameterises an aerofoil by twelve
+directly-meaningful quantities (LE radius, thickness/camber extrema and
+their locations, TE angle and thickness) fitted by a polynomial basis. It is
+geometrically transparent in the same spirit as CST's endpoint identities
+(Eq.~\eqref{eq:endpoint}), but through a basis whose coefficients are not
+independent design freedoms in the same linear sense: PARSEC's basis
+functions depend on the target values themselves (the fit is re-solved per
+target), whereas CST's Bernstein basis $S_i(\psi)$ is fixed once $n$ is
+chosen, independent of what shape is being represented. This is the property
+Eq.~\eqref{eq:dsurface-dA} depends on. Masters et al.'s benchmark
+\citep{masters2017geometric} is the field's reference comparison: over 2000
+aerofoils and several parameterisation families (CST, PARSEC, B-splines,
+Bezier, orthogonal/SVD/POD modes derived from a training database), CST is
+found to be among the most geometrically efficient \emph{analytic} (i.e.\
+not data-driven) families, needing roughly 10--14 coefficients per surface
+for sub-0.1\%-chord fitting error on typical sections. Purely data-driven
+SVD/POD modes fit an existing database more efficiently still, at the cost
+of needing that database and losing CST's closed-form geometric-functional
+structure (\S\ref{sec:constraints}) entirely. This paper's choice of CST is
+therefore not merely convenience. It is the parameterisation Masters et
+al.'s own comparison identifies as the best-supported analytic basis, and
+the one whose particular algebraic property (linearity in $A$) this paper's
+contribution depends on.
+
+\paragraph{Newton-coupled viscous/inviscid solvers.} The architecture this
+paper appends CST to is Drela \& Giles's ISES lineage
+\citep{drela1987viscous}: a two-equation integral boundary-layer closure
+coupled \emph{simultaneously} (not iteratively) to a panel-method inviscid
+solution through a single global Newton system, with the $e^n$ transition
+model providing the closure that makes laminar-to-turbulent transition a
+smooth part of that system rather than a switched boundary condition. mfoil
+\citep{fidkowski2022coupled} is a modern, open, from-scratch
+reimplementation of exactly this architecture: the ISES/XFOIL
+viscous-inviscid coupling without XFOIL's Fortran legacy code, in Python,
+with an exposed sparse global Jacobian. This is why it serves as the Stage 1
+testbed here (\S\ref{sec:formulation}): the extended system of
+\S\ref{sec:newton-system} could not be built without an analysis code that
+already exposes its own $\partial R/\partial U$ block for direct
+augmentation. Section~5.5 of the dossier
+(\dossierref{}) additionally documents
+that MISES's Parametric-Inverse mode was designed from the outset to accept
+an arbitrary geometry-definition system via a black-box interface
+(\texttt{BPREAD}/\texttt{BPWRIT}/\texttt{BLDGEN}). The mechanism this
+paper's Stage 3 (\S\ref{sec:conclusions}) would use already exists in the
+target solver, and has never been exercised with a CST-as-unknowns
+formulation.
+
+\paragraph{Modern learned inverse-design methods.} A distinct, much newer
+line of work learns the pressure-to-geometry map directly from data rather
+than solving a physics-based system at all. Conditional GANs
+\citep{yilmaz2020cgan} and, more recently, diffusion models learn a
+stochastic generative map from a target Cp (or aerodynamic-coefficient)
+vector to a geometry, trained offline on a large precomputed database, with
+inference reduced to a single (or few-step) forward network pass. A
+classifier-free-guided denoising diffusion model reports a 34.4\% precision
+improvement over WGAN baselines on an airfoil-generation benchmark
+\citep{yu2025cddpm}. A hybrid approach, LF-PINN~\citep{lfpinn2024}, trains a
+physics-informed surrogate directly on mfoil's own low-fidelity flowfields,
+the same solver used here, and reports at least an order-of-magnitude online
+inference speedup relative to running mfoil directly, again after an
+offline training investment. These methods answer a different question
+well: given a large library of prior designs and target statistics
+resembling that library, produce a plausible geometry near-instantly. They
+do not provide a convergence guarantee, an exact constraint-row Jacobian, or
+a certificate that the returned geometry actually reproduces the requested
+Cp to any specified tolerance. The network's output is evaluated
+\emph{after} the fact by running a flow solver on it, not constrained
+\emph{during} generation the way Eq.~\eqref{eq:kkt}'s equality rows are.
+\S\ref{sec:comparison}'s comparison table places this paper's architecture
+and the learned-inverse family on common columns (flow solves per design,
+determinism, constraint handling) explicitly, because the two are not
+competing solutions to the same technical problem so much as different
+points on an accuracy-guarantee vs.\ amortised-cost trade surface.
+
+\paragraph{Turbomachinery inverse design.} Lavagnoli
+\citep{lavagnoli2026datadriven} benchmarks Kolmogorov--Arnold Networks
+against MLP and Gaussian-process regressors for inverse turbine-passage
+design, trained on $\approx$30{,}000 blade profiles generated by an
+automated MISES-coupled optimisation pipeline (inlet flow angle
+$-50^\circ$ to $0^\circ$, outlet $50^\circ$--$75^\circ$). The trained
+network infers a loading-consistent geometry in $\approx$0.1\,s with a mean
+outlet-angle error of $0.086^\circ$. Structurally this is the same
+learned-surrogate pattern as the previous paragraph, specialised to
+cascades, and it is the closest published turbomachinery analogue of this
+paper's motivating problem (\S1). It is, however, once more amortised-cost
+statistical inference over a precomputed design database, not a per-target
+root-find with a convergence certificate. Lavagnoli's pipeline includes a
+predicted-RMS \emph{feasibility proxy} that flags statistically ill-posed
+inverse targets before training-set generation. This is the
+statistical-learning analogue of this paper's realisability guard
+(\S\ref{sec:presolve}), independently motivated by the same underlying
+problem (some targets are simply not achievable by the design family in
+use), but answered by a learned classifier rather than a closed-form
+linearisation.
+
+\paragraph{The precise novelty claim.} CST's surface parameterisation
+\begin{equation}
+  \zeta(\psi) = C(\psi)\sum_i A_i S_i(\psi) + \psi\,\zeta_T
+  \label{eq:cst-intro}
+\end{equation}
+is \emph{linear} in the coefficient vector $A$. Two consequences follow, and
+neither is available to a generic (e.g.\ B-spline-with-wrapper) geometry
+representation once local-frame perturbations, LE tangent-angle
+displacements, or re-fitting are introduced to reach the same design freedom
+(\dossierref{\S1.5}). (1) The
+geometric Jacobian block $\partial\zeta/\partial A_i = C(\psi)S_i(\psi)$ is
+exact, constant, and design-independent: it is assembled once and never
+re-derived inside a Newton loop. (2) The geometric functionals that
+matter for manufacturability (LE radius, TE thickness, wedge angle,
+inscribed area, even leading-order curvature continuity) are \emph{linear}
+in $A$, so they enter the Newton system as constant-coefficient algebraic
+rows rather than non-smooth predicates or penalty terms. The contribution
+of this paper is \textbf{not} ``geometry unknowns in a Newton system'' (that
+is Drela, 1986/1990), and \textbf{not} ``CST used somewhere inside inverse
+design'' (that is Lane \& Marshall, 2010). It is the combination: an
+analytic basis whose linearity makes the geometric Jacobian exact and
+constant, \emph{and} whose geometric functionals make design constraints
+linear rows, together converting \emph{constrained shape optimisation} into
+\emph{constrained root-finding}, one square Newton system, solved once,
+with no outer loop.
+% TODO before submission: no published work is known to couple a Newton-
+% coupled *inverse* solver directly to CST-as-Newton-unknowns (as opposed to
+% CST-as-post-hoc-smoother, Lane 2010). This negative result is currently
+% based on web search only, not an AIAA/ASME Digital Collection search.
+% Confirm before claiming novelty in the submitted version.
+% Source: \dossierref{\S5.6}, \S11.
+
+\paragraph{The corrected headline.} A priori, the architecture was
+hypothesised to require ``two to three orders of magnitude fewer flow
+solves, plus determinism and uniqueness'' relative to a nested-optimisation
+baseline (\dossierref{\S1.3}). That
+number was never measured against a competent baseline, and it is not
+repeated here. A controlled ablation study (\S\ref{sec:results}) instead
+measures the architecture against a modern, properly-scaled,
+tightly-tolerance Levenberg--Marquardt solver~\citep{virtanen2020scipy}:
+\textbf{3--8x fewer flow-residual evaluations, depending on initialisation
+strategy}, under two independent fair-paired controls
+(paper/results\_digest.md~\S5.3). This measured ratio comes with
+qualitative properties the flow-solve count does not capture: determinism
+(no stochastic restarts), guaranteed local quadratic convergence, exact
+analytic constraint-row Jacobians (no finite-difference noise in the
+constraint block), and a battery of per-iteration failure-mode diagnostics
+(\S\ref{sec:fm}) the nested baseline has no equivalent of. The paper's two
+central empirical results are therefore the correction of the a priori
+$\geq$100x claim and the discovery of a station-selection identifiability
+mechanism that the original hypothesis did not anticipate
+(\S\ref{sec:ablations}).
+
+The remainder of the paper: \S\ref{sec:formulation} states the CST
+mathematics, the constraint rows, the extended Newton system and its degree-
+of-freedom accounting, the derivative strategy actually forced by the target
+solver's exposed interface, and the two solver-specific closures (forced
+transition, pre-solve/realisability) needed to make the Newton iteration
+well-posed. \S\ref{sec:fm} catalogues the four failure modes the
+architecture is vulnerable to and the diagnostics built to discriminate
+between them. \S\ref{sec:falsifiable} describes the self-consistency test
+that falsifies or confirms the hypothesis outright. \S\ref{sec:results}
+reports the T8 ablation matrix: the identifiability finding, the
+Bernstein-conditioning cliff, the corrected flow-solve comparison, and the
+quadratic-convergence evidence. \S\ref{sec:discussion} places the four
+solver-specific mitigations in a common TRIZ separation-principle frame,
+states the study's scope limits, and discusses the outdated-baseline
+finding. \S\ref{sec:conclusions} closes with the Stage 2 (cascade) and
+Stage 3 (MISES) extensions this architecture was designed to scale into.

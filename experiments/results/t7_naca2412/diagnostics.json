@@ -1,12 +1,12 @@
 {
   "manifest": {
-    "git_sha": "ddcc9850162bf8e695686d4a85680e61ac68d3ac",
+    "git_sha": "4011fbead6d6e4c2ea8e3d5cf9de344bd16cfe64",
     "config_hash": "c078a26ec4a5ca81",
-    "timestamp_utc": "2026-08-05T20:56:42.627229+00:00",
+    "timestamp_utc": "2026-08-06T06:40:23.640919+00:00",
     "cell_name": "t7_naca2412_selfconsistent",
     "config_path": null,
     "seed": 42,
-    "timestamp": "2026-08-05T20:53:32.149236+00:00",
+    "timestamp": "2026-08-06T06:37:12.485749+00:00",
     "t8_factors": {
       "airfoil": "2412",
       "station_selection": "qr_pivot",

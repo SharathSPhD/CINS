@@ -19,11 +19,22 @@ Run: .venv/bin/python experiments/run_t7.py [--verbose]
 
 from __future__ import annotations
 
+import json
 import logging
+import subprocess
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 from cins.benchmarks.pipeline import run_pipeline
 from cins.config import load_config
+
+
+def _git_sha() -> str:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
+        return "unknown"
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("t7")
@@ -68,6 +79,30 @@ def main() -> int:
                   and result.err_free_inf < cfg.gates.t7_a_recovery_inf_norm) else "FAIL",
         "ok" if verify_ok else "FAIL",
     )
+
+    # Archive the summary alongside the per-iteration diagnostics. Without
+    # this, the numbers the paper quotes for T7 (err_free_inf, the
+    # release-and-verify deltas, the iteration count) existed only in console
+    # output, while ``run.log`` in the same directory could still hold an
+    # older run's values. Both audits of the manuscript flagged the resulting
+    # artifact disagreement, so the summary is now written every run.
+    out = Path("experiments/results/t7_naca2412/result.json")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    payload = result.to_dict()
+    payload["gate"] = {
+        "passed": bool(ok),
+        "recovery_threshold": float(cfg.gates.t7_a_recovery_inf_norm),
+        "max_newton_iters": int(cfg.gates.t7_max_newton_iters),
+    }
+    payload.setdefault("manifest", {})
+    payload["manifest"].update({
+        "config_hash": cfg.config_hash(),
+        "git_sha": _git_sha(),
+        "station_addressing": "surface_x_interpolated",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    })
+    out.write_text(json.dumps(payload, indent=2, default=str) + "\n")
+    log.info("wrote %s", out)
     return 0 if ok else 1
 
 

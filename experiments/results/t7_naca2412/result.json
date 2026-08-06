@@ -1,0 +1,62 @@
+{
+  "cell_name": "t7_naca2412_selfconsistent",
+  "manifest": {
+    "cell_name": "t7_naca2412_selfconsistent",
+    "git_sha": "4011fbead6d6e4c2ea8e3d5cf9de344bd16cfe64",
+    "config_hash": "c078a26ec4a5ca81",
+    "config_path": null,
+    "seed": 42,
+    "timestamp": "2026-08-06T06:40:27.814553+00:00",
+    "t8_factors": {
+      "airfoil": "2412",
+      "station_selection": "qr_pivot",
+      "init": "presolve",
+      "alpha_free": false,
+      "dof_offset": 0,
+      "n_perturb_frac": 0.05
+    },
+    "cst": {
+      "n_upper": 8,
+      "n_lower": 8,
+      "le_treatment": "prescribed"
+    },
+    "transition_mode": "forced",
+    "station_addressing": "surface_x_interpolated"
+  },
+  "converged": true,
+  "iterations": 6,
+  "err_free_inf": 2.7466334762138445e-11,
+  "err_all_inf": 2.7466334762138445e-11,
+  "residual_history": [
+    0.000584593776316605,
+    2.0700538049847794e-05,
+    1.570994179782948e-07,
+    1.2055777107489451e-08,
+    2.258680379910663e-10,
+    4.840861009542549e-11
+  ],
+  "convergence_order": -1.9271224488647878,
+  "n_residual_evaluations": 166,
+  "n_flow_solves_equivalent": 120,
+  "release_verify": {
+    "cl": 0.44909127052379627,
+    "cl_target": 0.4490912705271837,
+    "dcl": 3.387401470433815e-12,
+    "cd": 0.005773599365564686,
+    "cd_target": 0.005773599365534451,
+    "dcd": 3.023536282453776e-14,
+    "converged": true,
+    "ok": true
+  },
+  "realisability": 0.0003896196124540824,
+  "model_gap": 0.10995022271106457,
+  "submap_cond": 90.26414500286232,
+  "wall_time_s": 242.83493808307685,
+  "dof_check_error": null,
+  "notes": [],
+  "gate": {
+    "passed": true,
+    "recovery_threshold": 0.0001,
+    "max_newton_iters": 9
+  }
+}

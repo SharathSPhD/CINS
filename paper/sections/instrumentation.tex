@@ -1,0 +1,49 @@
+\label{sec:fm}
+% FM-1 rank/DOF, FM-2 Bernstein conditioning, FM-3 LE-singular rows, FM-4 C0
+% viscous closure; diagnostics D-1..D-6.                % <- T6, SPEC.md \S6
+
+Four failure modes were identified a priori
+(\dossierref{\S4}) as the ways the
+architecture of \S\ref{sec:formulation} can fail without that failure being
+obviously attributable to its true cause. Table~\ref{tab:fm} summarises
+each, its diagnostic, and its mitigation; \S\ref{sec:newton-system}--
+\S\ref{sec:presolve} describe FM-1, FM-4's mechanism and FM-1's realisability
+guard in detail, and \S\ref{sec:ablations} reports the empirical FM-2 cliff.
+
+\begin{table}[h]
+\centering
+\caption{The four failure modes identified a priori, each with the
+diagnostic that detects it and the mitigation adopted. All four were
+predicted before implementation and all four were observed; the instrumentation
+exists so that a failed solve reports which mode it hit rather than only that
+it failed. Source: SPEC.md~\S8, \dossierref{\S4}.}
+\label{tab:fm}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}l l L L L@{}}
+\toprule
+ID & Name & Mechanism & Diagnostic & Mitigation \\
+\midrule
+FM-1 & DOF/realisability & rank-deficient or over-determined & D-2 (rank/cond $J$) & Eq.~\eqref{eq:dof} assertion; T4 realisability \\
+FM-2 & Bernstein conditioning & Gram matrix $\mathrm{cond}\sim4^n$ & D-3 ($\mathrm{cond}(G^\top G)$ vs $n$) & keep $n\lesssim10$--12/side; orthogonalise \\
+FM-3 & LE-singular Jacobian rows & $\sqrt\psi$ non-analytic at $\psi=0$ & D-4 (row-norm vs station) & row scaling; prescribed-LE (\S\ref{sec:falsifiable}) \\
+FM-4 & $C^0$ viscous closure & transition-station kink & D-5 (transition history) & forced trip, release-and-verify (\S\ref{sec:transition}) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The remaining diagnostics, D-1 (per-block residual norms, discriminates
+\emph{which} block stalls) and D-6 (Newton convergence history, the
+headline figure confirming the quadratic-tail architectural claim), are
+not tied to a single failure mode; they are the general-purpose instruments
+used throughout \S\ref{sec:results}. FM-3's fix targets
+\emph{rows}, not columns: \S\ref{sec:cst-linearity} showed
+$\partial\zeta/\partial A_i$ is perfectly finite as $\psi\to0$ (it tends to
+zero), so the geometric columns are healthy. What blows up is the flow
+residual's \emph{sensitivity} to geometry near the nose (surface normals,
+metric terms, the stagnation-point mapping all have unbounded derivatives
+there), so a handful of rows near the stagnation point acquire enormous
+magnitude and destroy the coupled matrix's condition number. This is a
+concrete instance of the point made in
+\S\ref{sec:cst-linearity}: CST's linearity keeps the columns exact, but does
+not by itself guarantee the rows are well-conditioned near a genuinely
+non-analytic geometric feature.

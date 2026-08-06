@@ -1,0 +1,44 @@
+\label{sec:conclusions}
+
+Appending CST coefficients as unknowns to a coupled viscous/inviscid Newton
+solver, with geometric design constraints expressed as the linear rows CST's
+own linearity makes available, converts constrained inverse airfoil design
+from a search over an objective function into a single square, determined
+root-find. The falsifiable self-consistency test (\S\ref{sec:falsifiable})
+passes with a wide margin on every criterion, including a release-and-verify
+check the original protocol had not yet required at the time of first
+closure. The T8 ablation matrix (\S\ref{sec:results}) confirms the
+architecture's basic viability across three NACA sections and Bernstein
+orders up to a conditioning cliff at $n=12$. It also \emph{corrects} the a
+priori flow-solve-count hypothesis downward to a measured 3.1--8.1x, while
+surfacing a methodological contribution the original dossier did not
+anticipate: QR-pivoted station selection as the identifiability guard for
+square inverse systems. The paper's two central results are therefore a
+falsified numeric hypothesis (the flow-solve ratio) and a strengthened,
+unanticipated qualitative one (station-selection identifiability).
+
+\paragraph{Future work.} Three extensions are pre-planned
+(\dossierref{\S8--\S9}, publication plan
+\S10), none yet built. \textbf{Stage 2}, cascade periodicity, substitutes the
+panel-influence kernel $\ln(z-z_0)\to\ln[\sin(\pi(z-z_0)/s)]$ for pitch $s$
+(reducing to the isolated-airfoil kernel as $s\to\infty$, a free regression
+test), validated against Gostelow's exact cascade solutions before any
+turbine-cascade inverse-design claim is made. \textbf{Stage 3} carries the
+architecture into MISES itself via the Modal-Inverse \texttt{modes.xxx}
+mechanism. Because CST's perturbation modes are identical to its own basis
+functions (a direct consequence of the linearity in \S\ref{sec:cst-linearity}),
+this requires writing $C(\psi)S_i(\psi)$ into MISES's mode-file format, with
+no Fortran modification, and would demonstrate the hypothesis in a
+transonic, viscous, real-cascade solver at near-zero implementation cost if
+Route~A succeeds. The pre-registered NACA/UIUC panel evaluation
+(STATS\_PROTOCOL~\S3) is now complete (\S\ref{sec:h1-panel},
+\S\ref{sec:h1-uiuc-panel}): both panels support the accuracy component of
+H1, and the UIUC panel's composite criterion fails on the iteration-count
+component, not accuracy. The remaining gap between what this paper can
+currently claim and what was originally pre-registered is twofold: the
+Stage-1-lite, $N{=}1$ \emph{ablation} evidence (\S\ref{sec:h2}'s
+flow-solve-count comparison, the $n$-sweep, station-selection ablations)
+has not been extended to panel level. Second, three UIUC sections
+(\texttt{goe780}, \texttt{mh62}, \texttt{naca64206}) still fail the vendor
+wake-direction assertion for a cause unrelated to sharp trailing edges
+(\S\ref{sec:h1-uiuc-panel}, \S\ref{sec:limitations}).

@@ -45,6 +45,7 @@ from cins.diagnostics.recorder import NewtonDiagnostics
 from cins.solver.mfoil_adapter import (
     make_mfoil,
     mfoil_module,
+    refresh_post,
     release_transition,
     set_forced_transition,
 )
@@ -141,7 +142,12 @@ def run_analyze(req: Any) -> dict[str, Any]:
                 set_forced_transition(m, req.transition.xtr_upper, req.transition.xtr_lower)
                 try:
                     mod.solve_coupled(m)
-                    mod.calc_force(m)
+                    # Both halves of m.post, not just the forces: calc_force
+                    # alone leaves the boundary-layer distributions describing
+                    # the natural solve above, so the response would report a
+                    # tripped cl/cd beside an untripped BL (see
+                    # mfoil_adapter.refresh_post).
+                    refresh_post(m)
                 finally:
                     release_transition()
     else:
@@ -1347,6 +1353,10 @@ def run_inverse_raw(
             if not m.glob.conv:
                 release_transition()
                 return _early(["flow solve failed to converge with transition pinned"])
+            # model_gap below reads m.post.cp, which solve_coupled does not
+            # update: without this it measured the target against the natural
+            # solve's pressures rather than the tripped ones actually solved.
+            refresh_post(m)
 
         # How far the target sits from what this viscous solve can produce.
         # The gate's realisability answers the inviscid question (ADR-0004), so

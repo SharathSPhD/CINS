@@ -302,6 +302,36 @@ def set_forced_transition(m, xtr_upper: float, xtr_lower: float) -> None:
     _mfoil_mod.residual_transition = _residual_transition_forced
 
 
+def refresh_post(m) -> None:
+    """Recompute every ``m.post`` field from the current global state.
+
+    ``m.solve()`` ends by populating ``m.post``, but a bare
+    ``solve_coupled(m)`` (the call used after ``set_forced_transition``, and
+    anywhere else the global state is advanced directly) does not. The two
+    halves of ``m.post`` then go stale independently, which is easy to miss
+    because they fail differently:
+
+    * ``calc_force`` refreshes the integrated forces and ``post.cp``/``cpi``,
+      so a caller that only reads those looks correct;
+    * ``get_distributions`` refreshes the boundary-layer distributions
+      (``th``, ``ds``, ``sa``, ``ue``, ``uei``, ``cf``, ``Ret``, ``Hk``), and
+      without it those arrays still describe the *previous* solve.
+
+    Read after a forced trip, that combination reports tripped forces beside
+    an untripped boundary layer. Measured on NACA 2412 at
+    :math:`\\alpha=2^\\circ`, :math:`Re=10^6`, tripped at 5 percent chord: the
+    stale skin friction is identical to the free-transition solve to 0.0e+00
+    while :math:`c_d` moves from 0.00578 to 0.01125, and the stale curve shows
+    a mid-chord laminar separation that the tripped solve does not have
+    (:math:`c_f=1.3\\times10^{-4}` against :math:`4.8\\times10^{-3}` at
+    :math:`x/c=0.5`).
+
+    Call this after any direct ``solve_coupled`` before reading ``m.post``.
+    """
+    _mfoil_mod.get_distributions(m)
+    _mfoil_mod.calc_force(m)
+
+
 def release_transition() -> None:
     """Restore mfoil's natural e^n transition (ADR-0003)."""
     _mfoil_mod.update_transition = _original_update_transition

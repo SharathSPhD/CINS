@@ -1,0 +1,105 @@
+\label{sec:discussion}
+% TRIZ contradiction-resolution thread (docs/triz/); scope limits (dossier \S11):
+% no closed form claimed; semi-analytical architecture with no outer optimisation loop.
+
+\subsection{A common separation-principle pattern across the four mitigations}
+
+The FM-2/FM-3/FM-4 mitigations used in this paper are not independent
+engineering fixes. They are recognisable instances of a single TRIZ
+contradiction-resolution pattern, \emph{separation}, applied along
+whichever axis resolves the specific improving/worsening parameter pair in
+tension (\pth{docs/triz/FM4-transition-smoothness.md};
+\pth{docs/triz/T7-identifiability.md}):
+
+\begin{itemize}
+\item \textbf{FM-4 (forced trip, then release) is separation in time}
+  (\S\ref{sec:transition}). The contradiction is reliability (a smooth,
+  Newton-tractable residual) vs.\ model accuracy (the true $e^n$ closure).
+  Resolving it by phase, forced/smooth \emph{during} inverse iterations,
+  natural/accurate \emph{after} convergence, with a feedback verification
+  step, sacrifices no accuracy in the end while removing the $C^0$ kink
+  exactly when Newton needs it removed.
+\item \textbf{FM-3 (prescribed-LE treatment) is separation in space}. The
+  contradiction is design freedom (invert everywhere) vs.\ Jacobian-row
+  conditioning (rows near the nose blow up). Prescribing the first
+  $\approx$5\% chord geometrically and inverting only aft of it removes the
+  pathological rows entirely, at the cost of design freedom the manufacturing
+  constraints (mechanical, cooling) of a real turbine blade were going to fix
+  anyway.
+\item \textbf{FM-2 (orthogonalised basis over Tikhonov regularisation,
+  and in practice, keeping $n$ inside the pre-cliff range identified in
+  \S\ref{sec:ablations}) is TRIZ principle 3, local quality}. The tension
+  identified in the dossier is that the natural fix for ill-conditioning,
+  Tikhonov regularisation, turns a determined solve back into a
+  least-squares problem, i.e.\ back into the optimisation this architecture
+  exists to avoid. The discipline instead is to keep the basis order in its
+  well-conditioned regime (or orthogonalise it) rather than regularise a
+  poorly-conditioned one.
+\item The station-selection identifiability guard of \S\ref{sec:ablations}
+  is likewise principle-3/16 in character (local quality, partial/excessive
+  action): rather than adding more target equations (which would
+  over-determine the square system) or accepting whichever stations are
+  convenient, the existing T4 sensitivity matrix is reused (principle 25,
+  self-service) to select which $M$ rows are maximally informative.
+\end{itemize}
+
+This is offered as a methodology thread for the Discussion, not merely a
+post-hoc label: each mitigation was arrived at independently, by direct
+numerical evidence (a stalled residual, a spiked row-norm, a badly-
+conditioned submap), and only afterward recognised as sharing a common
+resolution structure.
+
+\subsection{Limitations}
+\label{sec:limitations}
+
+\begin{itemize}
+\item \textbf{Single-airfoil-family, $N{=}1$ \emph{ablations} (the $n$-sweep,
+  station-selection, and other single-factor tables of
+  \S\ref{sec:ablations}--\S\ref{sec:h2}).} These remain NACA-2412-only,
+  \texttt{seed=42}, one run per cell: Stage-1-lite evidence by design, with
+  no confidence interval reported for any of them. This caveat does
+  \emph{not} extend to the H1 convergence claim itself
+  (\S\ref{sec:h1-panel}, \S\ref{sec:h1-uiuc-panel}), which was subsequently
+  upgraded to genuine panel-level evidence across both the 20-section NACA
+  panel (18/18 generable sections, Wilson LB 0.824) and the 117-section
+  UIUC panel (83/83 converged sections meet the accuracy criterion, Wilson
+  LB 0.956). The ablation-level findings ($n$-sweep, station-selection,
+  flow-solve-count) remain NACA-2412-only and are not extended to the UIUC
+  panel by this paper.
+\item \textbf{Vendor wake-direction assertion failures beyond sharp
+  trailing edges.} Three UIUC sections, \texttt{goe780}, \texttt{mh62}, and
+  \texttt{naca64206}, still fail mfoil's wake-direction assertion
+  (\S\ref{sec:h1-uiuc-panel}) after the minimum-trailing-edge-gap fix that
+  resolved the sharp-trailing-edge case. Their trailing-edge gap is
+  already above the minimum, so the cause is distinct from the case the
+  fix addressed. This is recorded as an open item, not resolved here.
+\item \textbf{Subcritical, isolated airfoil.} All results use mfoil's
+  Kármán--Tsien compressibility correction (subcritical only) on an
+  isolated airfoil: no cascade periodicity, no pitch/stagger, no AVDR
+  streamtube contraction (\dossierref{\S6.2}). The hypothesis under test is a claim about solver
+  \emph{architecture}, not turbine aerodynamics, and is answered as well on
+  an isolated airfoil as on a cascade. The cascade and transonic regimes,
+  however, are genuinely untested here.
+\item \textbf{Single operating condition.} All cells share one
+  \texttt{operating.*} block (one $Re$, one $\alpha$, one Mach regime); no
+  claim in this paper generalizes across flow regimes.
+\end{itemize}
+
+\subsection{The outdated-baseline finding}
+
+The pre-registered $\geq$100x claim (STATS\_PROTOCOL H2) is not simply
+missed by the measured 3.1--8.1x. The two independent fair-paired controls
+in \S\ref{sec:h2} give a plausible account of \emph{why} it lands where it
+does. \texttt{scipy.optimize.least\_squares(method="lm")}, tightly tolerance
+($\mathrm{ftol}=\mathrm{xtol}=\mathrm{gtol}=10^{-8}$) and properly scaled
+($x\_scale$ from $|x_0|$, floored at $10^{-3}$) over the same 16
+well-conditioned free coefficients, is a genuinely strong comparator. It
+converges the cold-start case in 6 outer LM iterations, nothing like the
+Dakota-surrogate/Kriging-in-the-loop nested-optimisation baselines that a
+$\geq$100x figure of that magnitude typically describes in the older
+aerodynamic-shape-optimisation literature the dossier's original framing
+appears to draw on (benchmarks/REPORT.md). \textbf{The pre-registered
+threshold plausibly encodes an outdated class of nested-optimisation
+baseline.} Measuring against a strong modern gradient-based baseline and
+reporting the resulting 3--8x ratio directly is a more informative
+comparison than either confirming or missing the original number.

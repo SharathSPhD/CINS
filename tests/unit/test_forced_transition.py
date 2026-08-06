@@ -23,6 +23,7 @@ from cins.solver.mfoil_adapter import (
     forced_transition,
     make_mfoil,
     mfoil_module,
+    refresh_post,
     release_transition,
     set_forced_transition,
 )
@@ -200,3 +201,66 @@ class TestForcedTurbPattern:
         # require laminarizing -- not supported (ADR-0003).
         with pytest.raises(ValueError):
             set_forced_transition(m, 0.99, 0.99)
+
+
+class TestPostRefresh:
+    """``m.post`` has two halves that go stale independently after a bare
+    ``solve_coupled``, and only one of them is obvious.
+
+    ``calc_force`` refreshes the integrated forces and the pressures, so a
+    tripped solve reports a changed ``cd`` and looks right. The boundary-layer
+    distributions come from ``get_distributions``, which nothing calls, so
+    they keep describing the previous solve. The combination reports a tripped
+    ``cd`` beside an untripped boundary layer, which is why this is pinned.
+    """
+
+    @staticmethod
+    def _upper_cf(refresh: bool):
+        m = _natural_solve()
+        set_forced_transition(m, CFG.transition.xtr_upper, CFG.transition.xtr_lower)
+        try:
+            _MM.solve_coupled(m)
+            if refresh:
+                refresh_post(m)
+            else:
+                _MM.calc_force(m)
+            x = np.asarray(m.foil.x[0])
+            n = m.foil.N
+            le = int(np.argmin(x))
+            cf = np.asarray(m.post.cf)[:n]
+            xu, cfu = x[le:n], cf[le:n]
+            order = np.argsort(xu)
+            return xu[order], cfu[order], float(m.post.cd)
+        finally:
+            release_transition()
+
+    @staticmethod
+    def _natural_upper_cf():
+        m = _natural_solve()
+        x = np.asarray(m.foil.x[0])
+        n = m.foil.N
+        le = int(np.argmin(x))
+        cf = np.asarray(m.post.cf)[:n]
+        xu, cfu = x[le:n], cf[le:n]
+        order = np.argsort(xu)
+        return xu[order], cfu[order], float(m.post.cd)
+
+    def test_refresh_post_updates_the_boundary_layer(self):
+        _, cf_nat, cd_nat = self._natural_upper_cf()
+        _, cf_ref, cd_trip = self._upper_cf(refresh=True)
+
+        # The trip must change both halves. Forcing transition at 5 percent
+        # chord roughly doubles cd on NACA 2412 at these conditions, and the
+        # skin friction has to move with it.
+        assert cd_trip > 1.5 * cd_nat
+        assert np.max(np.abs(cf_ref - cf_nat)) > 1e-3
+
+    def test_calc_force_alone_leaves_the_boundary_layer_stale(self):
+        """The regression itself: forces move, distributions do not."""
+        _, cf_nat, cd_nat = self._natural_upper_cf()
+        _, cf_stale, cd_trip = self._upper_cf(refresh=False)
+
+        assert cd_trip > 1.5 * cd_nat  # the solve really was tripped
+        # ...yet every boundary-layer sample is bit-identical to the natural
+        # solve, because get_distributions was never re-run.
+        assert np.array_equal(cf_stale, cf_nat)

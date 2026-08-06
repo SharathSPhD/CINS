@@ -1,24 +1,28 @@
 fit_cst: n=8 N1=0.500 N2=1.000 rms=3.987e-05 cond(GtG)=1.085e+05 chord=1.000000 x0=0.000000
-A* fitted: n=8, rms=3.99e-05
-target generated: cl=0.4410 cd=0.01125 (tripped)
-perturbed offset ||A0-A*||_inf = 2.322e-02
+A* fitted: airfoil=2412 n=8 rms=3.99e-05
+target generated (tripped): cl=0.4410 cd=0.01125
+init=presolve ||A0-A*||_inf = 2.322e-02
 build_sensitivity_matrix: n_A=18 n_stations=200 fd_step=1.000e-03
 presolve: n_A=18 n_constraints=0 realisability=0.0008 (threshold 0.0500) kkt_cond=1.410e+04 realisable=True
-presolve pass 1: ||A-A*||_inf = 9.160e-03 realisability(inviscid)=0.0008 model_gap(viscous)=0.1094
+presolve pass 1: ||A-A*||_inf=9.160e-03 realisability=0.0008 model_gap=0.1094
 build_sensitivity_matrix: n_A=18 n_stations=200 fd_step=1.000e-03
 presolve: n_A=18 n_constraints=0 realisability=0.0004 (threshold 0.0500) kkt_cond=1.044e+04 realisable=True
-presolve pass 2: ||A-A*||_inf = 4.668e-03 realisability(inviscid)=0.0004 model_gap(viscous)=0.1100
+presolve pass 2: ||A-A*||_inf=4.668e-03 realisability=0.0004 model_gap=0.1100
 build_sensitivity_matrix: n_A=18 n_stations=200 fd_step=1.000e-03
-station selection: cond(submap) = 9.026e+01 (QR-pivoted)
+station selection (qr_pivot): n_pick=16 cond(submap)=90.26414500286232
 DOF accounting: M=16 K=0 n_A_free=16 (+0 alpha)
-station x-correspondence: max |dx/c| = 6.06e-06 (guard 2e-5)
 DOF accounting: M=16 K=0 n_A_free=16 (+0 alpha)
-it=0 |R|=9.475e-13 |T|=5.851e-04 |G|=0.000e+00 omega_A=1.00
-it=1 |R|=3.135e-06 |T|=4.543e-08 |G|=0.000e+00 omega_A=1.00
-it=2 |R|=1.037e-10 |T|=3.331e-16 |G|=0.000e+00 omega_A=1.00
+it=0 |R|=9.475e-13 |T|=5.846e-04 |G|=0.000e+00 omega_A=1.00
+it=1 |R|=3.005e-06 |T|=2.048e-05 |G|=0.000e+00 omega_A=1.00
+it=2 |R|=5.647e-09 |T|=1.570e-07 |G|=0.000e+00 omega_A=1.00
+it=3 |R|=5.871e-11 |T|=1.206e-08 |G|=0.000e+00 omega_A=1.00
+it=4 |R|=7.382e-11 |T|=2.135e-10 |G|=0.000e+00 omega_A=1.00
 NewtonDiagnostics.finalize: wrote experiments/results/t7_naca2412/diagnostics.json
-RESULT: converged=True iters=4 ||A-A*||_inf(free16)=1.079e-11 (all18=1.079e-11, 2 prescribed) order=0.047563685107602824
-residual history: ['5.85e-04', '3.14e-06', '1.04e-10', '6.35e-11']
-release-and-verify (natural transition): cl=0.449091 (target 0.449091, d=8.0e-13) cd=0.005774 (target 0.005774, d=1.1e-14) conv=True
+RESULT: converged=True iters=6 err_free_inf=2.747e-11 err_all_inf=2.747e-11 order=-1.9271224488647878
+release-and-verify: dcl=3.39e-12 dcd=3.02e-14 conv=True ok=True
+RESULT: converged=True iters=6 ||A-A*||_inf(free)=2.747e-11 (all=2.747e-11) order=-1.9271224488647878
+residual history: ['5.85e-04', '2.07e-05', '1.57e-07', '1.21e-08', '2.26e-10', '4.84e-11']
+release-and-verify (natural transition): cl=0.449091 (target 0.449091, d=3.4e-12) cd=0.005774 (target 0.005774, d=3.0e-14) conv=True
 T7 GATE: PASS (recovery ok, release-verify ok)
+wrote experiments/results/t7_naca2412/result.json
 EXIT=0
