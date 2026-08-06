@@ -1,138 +1,173 @@
-\label{sec:falsifiable}
-% <- T7; D-6 is the headline figure; protocol dossier \S7.8, numbers The architecture's central claim, that appending CST coefficients to
-mfoil's Newton system yields a determined, quadratically convergent
-root-find, is falsifiable by a single self-consistency experiment with a
-\emph{known} answer, guaranteed realisable by construction. The protocol
-fits CST to a known airfoil, runs mfoil in direct mode to generate a target
-Cp/edge-velocity distribution from that fit, perturbs the coefficients (or
-uses the \S\ref{sec:presolve} pre-solve) to obtain a starting guess, and
-asks whether the monolithic inverse Newton iteration recovers the original
-coefficient vector $A^\ast$. Any failure of this test isolates cleanly to
-one of the Table~\ref{tab:fm} failure modes rather than to target
-infeasibility. This is why this test, not a search over independently
-chosen targets, is the load-bearing evidence for the hypothesis
-(\dossierref{\S7.8}, \S7.10).
+The architecture's central claim, that appending CST coefficients to
+\texttt{mfoil}'s Newton system yields a determined root-find rather than a
+search, is falsifiable by a single self-consistency experiment with a
+\emph{known} answer, guaranteed realisable by construction. The protocol fits
+CST to a known airfoil, runs \texttt{mfoil} in direct mode to generate a
+target pressure and edge-velocity distribution from that fit, perturbs the
+coefficients or uses the pre-solve of Section~\ref{sec:presolve} to obtain a
+starting guess, and asks whether the monolithic inverse Newton iteration
+recovers the original coefficient vector $A^\ast$, following the procedure
+stated as pseudocode in Section~\ref{sec:algorithms}. Any failure of this test
+isolates cleanly to one of the Table~\ref{tab:fm} failure modes rather than to
+target infeasibility. This is why this test, and not a search over
+independently chosen targets, is the load-bearing evidence for the hypothesis.
+It is also, by the same construction, the test's principal weakness, and
+Section~\ref{sec:validity} states that weakness in full rather than leaving it
+implicit here.
 
-\paragraph{Winning configuration.} NACA 2412, $n=8$ per side,
-\texttt{le\_treatment=prescribed} (the first $\approx$5\% chord is fixed
-geometrically rather than left inverse: the ``mixed direct-inverse''
-mitigation for FM-3, the cheapest test of the whole hypothesis since it
-isolates the LE question from the architecture question), transition
-forced (\S\ref{sec:transition}), stations chosen by QR column pivoting
-(\S\ref{sec:ablations}), initialized from the T4 pre-solve, $\alpha$ fixed.
+\paragraph{Reference configuration.} NACA 2412, $n=8$ per side, leading edge
+prescribed, meaning the first 5 percent of chord is fixed geometrically rather
+than left inverse. That is the mixed direct-inverse mitigation for the
+leading-edge failure mode of Section~\ref{sec:fm}, and it is the cheapest test
+of the whole hypothesis because it isolates the leading-edge question from the
+architecture question. Transition is forced during the inverse iterations
+(Section~\ref{sec:transition}), target stations are chosen by QR column
+pivoting (Section~\ref{sec:ablations}), the iteration is initialised from the
+linear pre-solve, and the angle of attack is held fixed. This configuration is
+referred to throughout the rest of the paper as the reference configuration.
 
-\paragraph{Protocol, including release-and-verify.} Success criterion: $\|A-A^\ast\|_\infty < 10^{-4}$ within
-$\leq9$ Newton iterations, with a visible quadratic tail in the D-6
-convergence history. Because the inverse solve runs under the forced-
-transition closure of \S\ref{sec:transition}, the protocol additionally
-requires releasing transition and re-solving in fully natural (direct) mode
-at the recovered geometry, verifying that the forced-transition solve did
-not silently converge to an aerodynamically different answer than the
-natural-transition physics would report (ADR-0003 mandate).
+\paragraph{Protocol, including release-and-verify.} The success criterion is
+$\norm{A-A^\ast}_\infty < 10^{-4}$ within nine Newton iterations, together with
+a residual history showing sustained superlinear decrease. Because the inverse
+solve runs under the forced-transition closure of
+Section~\ref{sec:transition}, the protocol additionally requires releasing
+transition and re-solving in fully natural, direct mode at the recovered
+geometry, then comparing the resulting aerodynamic coefficients against those
+of the \emph{reference section} solved in the same natural mode. This is a
+check that the forced-transition inverse solve recovered the geometry, rather
+than merely finding a zero of the forced-mode residual that happens to be
+aerodynamically different.
 
-\paragraph{Result: PASS, with large margin (Table~\ref{tab:t7}).} Measured
-against a $10^{-4}$/9-iteration gate: $\norm{A-A^\ast}_\infty =
-2.747\times10^{-11}$ in 6 Newton iterations, with the target-block residual
-history $5.85\times10^{-4} \to 2.05\times10^{-5} \to 1.57\times10^{-7} \to
-1.21\times10^{-8} \to 2.14\times10^{-10} \to 9.47\times10^{-12}$ showing the
-quadratic tail directly (Figure~\ref{fig:h3}). Release-and-verify against a
-$\Delta c_l<10^{-3}$, $\Delta c_d<2\times10^{-4}$ gate gives
-$\Delta c_l = 3.4\times10^{-12}$, $\Delta c_d = 3.0\times10^{-14}$, both
-essentially at floating-point noise: the forced-transition solve and
-the natural-transition physics agree to machine precision at the recovered
-design ($c_l=0.449091$, $c_d=0.005774$ under both). Realisability
-(inviscid-consistent, ADR-0004 metric 1) is $3.9\times10^{-4}$; model gap
-(diagnostic only) is $0.110$ (\S\ref{sec:presolve}). Sixteen coefficients are
-\emph{recovered} by the Newton iteration; the two leading-edge coefficients
-$A_{u,0}$ and $A_{l,0}$ are \emph{prescribed} by the
-\texttt{le\_treatment=prescribed} configuration and are not recovered. The
-error norms quoted above are over the 16 free coefficients
-(\citep{cinsrepo}).
+\paragraph{Result.} Measured against the $10^{-4}$ and nine-iteration
+criterion, the solve returns $\norm{A-A^\ast}_\infty = 2.747\x10^{-11}$ in six
+Newton iterations, with the target-block residual history
+$5.85\x10^{-4} \to 2.05\x10^{-5} \to 1.57\x10^{-7} \to 1.21\x10^{-8} \to
+2.13\x10^{-10} \to 9.47\x10^{-12}$, plotted alongside the ablation runs in
+Figure~\ref{fig:convergence}. Release-and-verify against a
+$\Delta c_l<10^{-3}$, $\Delta c_d<2\x10^{-4}$ criterion gives
+$\Delta c_l = 3.4\x10^{-12}$ and $\Delta c_d = 3.0\x10^{-14}$, both essentially
+at floating-point noise: the released solve at the recovered geometry
+reproduces the reference section's natural-transition coefficients
+($c_l=0.449091$, $c_d=0.005774$) to machine precision. Because both sides of
+that comparison are natural-mode solves at geometries agreeing to
+$2.7\x10^{-11}$, agreement at this level is what smoothness alone would
+predict; the check confirms that no aerodynamically distinct root was reached,
+and should not be read as independent evidence of accuracy. Realisability,
+computed inviscid-consistently as Section~\ref{sec:presolve} requires, is
+$3.90\x10^{-4}$; the model gap, diagnostic only, is $0.110$. Sixteen
+coefficients are \emph{recovered} by the Newton iteration; the two
+leading-edge coefficients $A_{u,0}$ and $A_{l,0}$ are \emph{prescribed} by the
+configuration and are not recovered, so all error norms quoted here are over
+the 16 free coefficients. Table~\ref{tab:t7} collects the criteria and the
+measured values.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
-\caption{T7 falsifiable test at the winning configuration: PASS on every
-criterion, each by several orders of magnitude. Run under the
-$(\text{surface}, x)$ target-station addressing of
-\S\ref{sec:newton-system}, which is \emph{not} the addressing used for the
-ablation matrix of \S\ref{sec:results}. Source:
-\pth{experiments/results/t7_naca2412/result.json}.}
+\caption{The falsifiable test at the reference configuration: every criterion
+met, each by several orders of magnitude.}
 \label{tab:t7}
-\begin{tabular}{lll}
+\begin{tabularx}{\textwidth}{@{}L c c@{}}
 \toprule
 Criterion & Threshold & Measured \\
 \midrule
-$\norm{A-A^\ast}_\infty$ over 16 free coefficients & $<10^{-4}$ & $\mathbf{2.747\times10^{-11}}$ \\
-Newton iterations & $\leq9$ & $\mathbf{6}$ \\
-Quadratic tail (D-6) & visible & $5.85\times10^{-4}\to1.57\times10^{-7}\to9.47\times10^{-12}$ \\
-Release-and-verify $\Delta c_l$ & $<10^{-3}$ & $\mathbf{3.4\times10^{-12}}$ \\
-Release-and-verify $\Delta c_d$ & $<2\times10^{-4}$ & $\mathbf{3.0\times10^{-14}}$ \\
+$\norm{A-A^\ast}_\infty$ over the 16 free coefficients & $<10^{-4}$ & $2.747\x10^{-11}$ \\
+Newton iterations & $\leq9$ & $6$ \\
+Sustained decrease of the target block & required & 7 decades over 5 steps \\
+Release-and-verify $\Delta c_l$ & $<10^{-3}$ & $3.4\x10^{-12}$ \\
+Release-and-verify $\Delta c_d$ & $<2\x10^{-4}$ & $3.0\x10^{-14}$ \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-An independently-run six-vector adversarial review probed circularity, station-index correspondence, the
-pinned-coefficient framing, the absence (at the time) of release-and-verify,
-realisability semantics, and the submap/system conditioning category error;
-every confirmed finding is reflected in this paper's reporting discipline:
-the free-16 against all-18 split above, and ADR-0004's two-metric
-realisability rule. The station-index correspondence finding was closed
-differently from the others. It was originally answered with a numeric guard,
-asserting that the selection-time node and the target's own paneling agreed
-to $\max|\Delta x/c|<2\times10^{-5}$. That guard has since been removed,
-because addressing a station by $(\text{surface}, x/c)$ and interpolating the
-target's own $C_p$ curve at that $x$ makes the correspondence exact rather
-than approximate, so there is no longer a quantity for the guard to bound
-(\S\ref{sec:newton-system}).
+An independently-run six-vector adversarial review probed circularity,
+station-index correspondence, the pinned-coefficient framing, the absence at
+the time of a release-and-verify step, realisability semantics, and the
+conflation of submap conditioning with system conditioning. Every confirmed
+finding is reflected in this paper's reporting discipline: the split between
+free and prescribed coefficients above, and the two-metric realisability rule
+of Section~\ref{sec:presolve}. The station-index correspondence finding was
+closed differently from the others. It was originally answered with a numeric
+guard, asserting that the selection-time node and the target's own paneling
+agreed to $\max|\Delta x/c|<2\x10^{-5}$. That guard has since been removed,
+because addressing a station by surface and chordwise fraction, and
+interpolating the target's own pressure curve at that fraction, makes the
+correspondence exact rather than approximate, so there is no longer a quantity
+for the guard to bound. Two consequences are recorded here rather than left
+implicit. Interpolated addressing is what introduces the neglected
+$\partial T/\partial A$ term of Section~\ref{sec:newton-system}, and with it
+the inexact-Newton behaviour analysed in Section~\ref{sec:h3}. And the runs of
+Section~\ref{sec:results}, which predate the change, retain the earlier
+nearest-node addressing with a residual correspondence error of up to
+$2.0\x10^{-4}$ in chord fraction, ten times the bound the retired guard
+imposed; Section~\ref{sec:results} states where that matters.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.75\textwidth]{h3_convergence_overlay.png}
-\caption{D-6: Newton residual-norm history for the T7 baseline, overlaid
-with the \texttt{t8\_station\_even} wrong-root case (\S\ref{sec:ablations})
-and the \texttt{t8\_n12} conditioning-cliff case (\S\ref{sec:ablations}).
-Source: \pth{experiments/results/t8/figures/h3_convergence_overlay.png}.}
-\label{fig:h3}
+\caption{Newton residual history of the node-indexed baseline run, overlaid
+with the evenly-spaced-station wrong-root case and the $n=12$
+conditioning-cliff case of Section~\ref{sec:ablations}.}
+\label{fig:convergence-overlay}
 \end{figure}
 
-The Newton residual history in Figure~\ref{fig:h3} is a scalar summary.
-Figures~\ref{fig:t7-geometry}--\ref{fig:t7-flow} give the geometry- and
-flow-field-level view of the same result, regenerated directly from a fresh
-re-run of the winning configuration (\pth{src/cins/benchmarks/paper_
-figures.py}, never hand-plotted). Figure~\ref{fig:t7-geometry} overlays the
-target and Newton-recovered aerofoil outlines, visually indistinguishable
-at full-chord scale, with the LE-region inset showing the same at the scale
-where FM-3 (\S\ref{sec:fm}) would be visible if the prescribed-LE mitigation
-were absent. It also includes a per-coefficient recovery-error bar chart
-making explicit which two of eighteen coefficients are pinned rather than
-recovered (\S\ref{sec:presolve}'s free-16/prescribed-2 framing).
-Figure~\ref{fig:t7-cp} compares target and recovered $C_p$ both as a full
-curve and restricted to the 16 QR-pivoted stations the Newton system
-actually solved against, confirming the coefficient-level agreement of
-Table~\ref{tab:t7} is not an artifact of comparing at only the fitted
-stations. Figure~\ref{fig:t7-flow} shows the converged, released
-(natural-transition) flow solution at the recovered geometry, $C_p$ and
-boundary-layer displacement thickness $\delta^*/c$, the physical state
-the release-and-verify $\Delta c_l$ check of Table~\ref{tab:t7} was
-computed from.
+Figure~\ref{fig:convergence-overlay} places that history in context by
+overlaying the node-indexed baseline against the two ablation runs that fail
+for different reasons, the evenly-spaced-station case that converges to a
+wrong root and the $n=12$ case that converges slowly; all three are analysed
+in Section~\ref{sec:ablations}. A residual history is in any case a scalar
+summary. Figures~\ref{fig:t7-geometry} to~\ref{fig:t7-flow} give the geometry
+and flow-field view of the same result, regenerated directly from a fresh
+re-run of the reference configuration rather than hand-plotted.
+Figure~\ref{fig:t7-geometry} overlays the target and Newton-recovered airfoil
+outlines, visually indistinguishable at full-chord scale, with a leading-edge
+inset showing the same at the scale where the leading-edge failure mode would
+be visible if the prescribed-nose mitigation were absent. It also includes a
+per-coefficient recovery-error bar chart making explicit which two of eighteen
+coefficients are pinned rather than recovered.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.85\textwidth]{paper/fig_t7_geometry_overlay.png}
-\caption{Target vs.\ Newton-recovered geometry, T7 winning configuration (NACA 2412, $n{=}8$/side), with LE-region inset and per-coefficient recovery-error bar chart (gray = prescribed by \texttt{le\_treatment}, not Newton-recovered). Source: \pth{experiments/results/t8/figures/paper/fig_t7_geometry_overlay.png}.}
+\caption{Target against Newton-recovered geometry at the reference
+configuration, with a leading-edge inset and a per-coefficient recovery-error
+bar chart. Grey bars are prescribed, not recovered.}
 \label{fig:t7-geometry}
 \end{figure}
 
-\begin{figure}[h]
+Figure~\ref{fig:t7-cp} compares target and recovered pressure distributions
+both as a full curve and restricted to the 16 QR-pivoted stations the Newton
+system actually solved against. The distinction matters: agreement at the
+solved stations is enforced by construction, whereas agreement away from them
+is not, and it is the full curve that shows the recovered geometry reproduces
+the target everywhere rather than only where it was sampled. This is the
+pressure-level counterpart of the coefficient-level agreement in
+Table~\ref{tab:t7}, and rules out the possibility that the reported error is
+an artifact of comparing only at the fitted stations.
+
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{paper/fig_t7_cp_comparison.png}
-\caption{Target vs.\ recovered-geometry $C_p$ (forced-transition, aero sign convention: $y$-axis inverted): full curve (left) and the 16 QR-pivoted target stations only (right). Source: \pth{experiments/results/t8/figures/paper/fig_t7_cp_comparison.png}.}
+\caption{Target against recovered pressure distribution under forced
+transition, plotted in the aerodynamic convention with inverted vertical axis:
+full curve (left) and the 16 QR-pivoted target stations only (right).}
 \label{fig:t7-cp}
 \end{figure}
 
-\begin{figure}[h]
+Figure~\ref{fig:t7-flow} shows the converged, released, natural-transition
+flow solution at the recovered geometry: the pressure distribution and the
+boundary-layer displacement thickness. This is the physical state from which
+the release-and-verify comparison of Table~\ref{tab:t7} was computed, and the
+displacement-thickness panel is worth reading alongside
+Figure~\ref{fig:viscous}: with transition released, the laminar run extends
+well aft of the 5 percent trip used during the inverse iterations, which is
+precisely the difference the release step exists to check the solve did not
+absorb into geometry.
+
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{paper/fig_t7_flow_solution.png}
-\caption{Converged flow solution at the recovered geometry: natural-transition release-and-verify $C_p$ (left) and displacement thickness $\delta^*/c$ (right). Source: \pth{experiments/results/t8/figures/paper/fig_t7_flow_solution.png}.}
+\caption{Converged flow solution at the recovered geometry after transition is
+released: pressure distribution (left) and displacement thickness
+$\delta^*/c$ (right).}
 \label{fig:t7-flow}
 \end{figure}

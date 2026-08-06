@@ -34,3 +34,6 @@ experiments/results/demo/vertical/
 /docs/
 CLAUDE.md
 **/CLAUDE.md
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.bbl

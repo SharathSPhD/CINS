@@ -1,702 +1,774 @@
-\label{sec:results}
-% <- T8; ablations from paper/results_digest.md; identifiability LEADS.
-% CAVEAT (state once, applies to every subsection): all T8 numbers are N=1
-% (single seed=42 run per cell); no confidence intervals are statistically
-% defensible at N=1 (STATS_PROTOCOL Stage-1-lite scoping). T8 as executed is
-% a single-airfoil (NACA 2412) ablation matrix plus two extra single-airfoil
-% cells (0012, 4415), NOT the pre-registered ~20-section NACA panel
-% (configs/experiments/panel_naca.yaml does not exist). Source:
-% paper/results_digest.md preamble; experiments/results/t8/ANALYSIS.md \S0.
+Every number in this section traces to an archived run record, and
+Appendix~\ref{app:prov} names the record behind each table and figure. Unless
+otherwise stated, values are single runs at a fixed seed; no confidence
+intervals are reported for them because none is statistically defensible at
+one run per configuration. The order sweep, the station-selection comparison
+and the other single-factor \emph{ablations} in this section are a
+single-airfoil matrix on NACA 2412 plus two additional single-airfoil runs on
+NACA 0012 and 4415. These are deliberately narrow comparisons designed to
+isolate one factor at a time, not panel studies, and convergence-fraction
+language is avoided in those subsections for that reason.
+Sections~\ref{sec:h1-panel} and~\ref{sec:h1-uiuc-panel} are the exceptions:
+they report the two pre-registered panels, run subsequently at the
+configuration these ablations identify, and their interval estimates are
+stated there on their own terms.
 
-Every number in this section traces to a \texttt{result.json} or
-\texttt{diagnostics.json} artifact under \pth{experiments/results/t8/}. All values are $N{=}1$
-(single \texttt{seed=42} run per cell); no confidence intervals are reported
-because none are statistically defensible at $N{=}1$, per
-\citep{cinsrepo}'s Stage-1-lite scoping. The $n$-sweep,
-station-selection, and other single-factor \emph{ablation} tables in this
-section are a single-airfoil (NACA 2412) matrix plus two extra
-single-airfoil cells (0012, 4415). These are deliberately narrow,
-$N{=}1$-per-cell comparisons designed to isolate one factor at a time, not
-a panel study.
-Panel-level convergence-\emph{fraction} language is deliberately avoided in
-those subsections for that reason. \S\ref{sec:h1-panel} is the one
-exception: it reports the pre-registered $\approx$20-section NACA panel
-(\pth{configs/experiments/panel_naca/*.yaml}), run subsequently at the
-winning configuration identified by this section's ablations, and its
-Wilson-interval convergence-fraction claim is reported there on its own
-terms.
-
-\paragraph{Station-addressing provenance.} The ablation matrix in this
-section was run with target stations addressed by panel-node index, which was
-the implementation at the time. Addressing was subsequently changed to
-$(\text{surface}, x/c)$ with interpolation between the two bracketing nodes,
+\paragraph{Station-addressing provenance.} The ablation matrix in this section
+was run with target stations addressed by panel-node index, which was the
+implementation at the time. Addressing was subsequently changed to surface and
+chordwise fraction with interpolation between the two bracketing nodes,
 because a node index stops denoting the same physical location once the
-geometry moves, which is precisely what an inverse solve does
-(\S\ref{sec:newton-system}). The change moves the T7 figures quoted in
-\S\ref{sec:falsifiable} from $1.08\times10^{-11}$ in 4 iterations to
-$2.75\times10^{-11}$ in 6, both far inside the $10^{-4}$/9-iteration gate,
-and leaves the QR-selected submap conditioning unchanged at 90.3. Every cell
-in this section shares the earlier addressing, so the within-matrix
-comparisons that the ablations rest on are unaffected; what must not be done
-is to read a single number from this section alongside a single number from
-\S\ref{sec:falsifiable} as though they came from one run. Where that
-distinction matters, it is stated at the point of use.
+geometry moves, which is precisely what an inverse solve does. The change
+moves the reference-configuration figures quoted in
+Section~\ref{sec:falsifiable} from $1.08\x10^{-11}$ in four iterations to
+$2.75\x10^{-11}$ in six, both far inside the criterion, and leaves the
+QR-selected submap conditioning unchanged at $90.3$. Every run in this section
+shares the earlier addressing, so the within-matrix comparisons the ablations
+rest on are unaffected; what must not be done is to read a single number from
+this section alongside a single number from Section~\ref{sec:falsifiable} as
+though they came from one run. Where that distinction matters it is stated at
+the point of use.
 
-\subsection{Station-selection identifiability: the central methodological result}
+\subsection{Station-selection identifiability}
 \label{sec:ablations}
 
-This finding leads the ablation discussion, ahead of the flow-solve count,
-because it is the most novel, most precisely quantified, and most
-consequential result in T8. The square extended Newton system (\S\ref{sec:newton-system}) demands
-exactly $M$ target-station equations. With evenly-spaced stations, between-
-station Cp information is discarded, and the resulting $16\times16$ station-
-sensitivity submap can be badly ill-conditioned. Table~\ref{tab:identifiability}
-reports the two configurations that isolate this mechanism.
+This finding leads the ablation discussion, ahead of the cost comparison,
+because it is the most novel, most precisely quantified and most consequential
+result reported here. The square extended Newton system
+(Section~\ref{sec:newton-system}) demands exactly $M$ target-station
+equations. With evenly-spaced stations, between-station pressure information
+is discarded, and the resulting $16\times16$ station-sensitivity submap can be
+badly ill-conditioned. Table~\ref{tab:identifiability} reports the two
+configurations that isolate this mechanism.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
-\caption{Station-selection ablation, the paper's central methodological
-result. Both cells report \texttt{converged: true} and drive the residual to
-the solver floor, yet their recovery errors differ by eight orders of
-magnitude: only the QR-pivoted selection recovers the generating design, and
-the evenly-spaced selection converges to a spurious root while its station
-submap conditions at $3\times10^{12}$. Source:
-\pth{experiments/results/t8/ANALYSIS.md}~\S4.}
+\caption{Station-selection ablation. Both runs report convergence and drive
+the residual to the solver floor, yet their recovery errors differ by eight
+orders of magnitude.}
 \label{tab:identifiability}
-\begin{tabular}{lccc}
+\begin{tabularx}{\textwidth}{@{}L c c c@{}}
 \toprule
-Selection & $\mathrm{err\_all\_inf}$ & Submap $\mathrm{cond}$ & Newton \texttt{converged} flag \\
+Station selection & $\norm{A-A^\ast}_\infty$ & Submap condition & Reported converged \\
 \midrule
-\texttt{qr\_pivot} (winning config) & $\mathbf{1.08\times10^{-11}}$ & 90.3 & \texttt{true} \\
-\texttt{even} (evenly-spaced) & $\mathbf{1.43\times10^{-3}}$ (FAILS $10^{-4}$ gate) & $3.47\times10^{12}$ & \texttt{true} \\
+QR-pivoted (reference configuration) & $1.08\x10^{-11}$ & $90.3$ & yes \\
+Evenly spaced & $1.43\x10^{-3}$ (misses the $10^{-4}$ criterion) & $3.47\x10^{12}$ & yes \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-Both cells' Newton loops report their own internal \texttt{converged: true};
-the residual reaches the solver's floor in both cases. \textbf{Only
-\texttt{qr\_pivot} recovers the correct design.} ``Converged'' and
-``correct'' are different claims, invisible unless $\mathrm{err\_all\_inf}$
-is checked against the true coefficients rather than the residual norm
-alone (experiments/results/t8/ANALYSIS.md~\S0, Deviation 5). The mechanism:
-with evenly-spaced stations, near-null coefficient directions exist whose
-motion changes the sampled Cp by less than floating-point precision.
-Newton converges to \emph{any} of several exact roots of the (badly-
-conditioned) discrete system, a structural non-uniqueness of the sampled
-problem, not a numerical accident. This reproduces and sharpens a pre-T8
-finding (\citep{cinsrepo}: cond $\sim10^7$, error
-$1.4\times10^{-3}$--$6\times10^{-2}$ with evenly-spaced stations) with a
-controlled ablation cell. Two contributing null-direction families were
-identified and eliminated \emph{before} the station-selection fix, each
-verified empirically (\citep{cinsrepo}): a
-camber--$\alpha$ equivalence (freeing $\alpha$ lets a slightly different
-camber at a slightly different $\alpha$ interpolate the same samples, so
-$\alpha$ is fixed for self-consistency tests), and a prescribed-LE mismatch
-(excluding LE stations while leaving the LE-dominant coefficients free
-leaves $A_0$ unobservable, which is why \texttt{le\_treatment=prescribed}
-\emph{fixes} $A_{u,0}$/$A_{l,0}$ rather than merely dropping LE-region
-target rows).
+Both runs' Newton loops report their own internal convergence, and the
+residual reaches the solver's floor in both cases. Only QR-pivoted selection
+recovers the correct design. Converged and correct are different claims,
+invisible unless the coefficient error is checked against the true
+coefficients rather than the residual norm alone. The mechanism is that with
+evenly-spaced stations there exist near-null coefficient directions whose
+motion changes the sampled pressure by less than floating-point precision.
+Newton then converges to \emph{any} of several exact roots of the
+badly-conditioned discrete system: a structural non-uniqueness of the sampled
+problem, not a numerical accident. Two contributing null-direction families
+were identified and eliminated \emph{before} the station-selection fix, each
+verified empirically. The first is a camber--incidence equivalence: freeing
+$\alpha$ lets a slightly different camber at a slightly different incidence
+interpolate the same samples, so $\alpha$ is held fixed for self-consistency
+tests. The second is a prescribed-nose mismatch: excluding leading-edge
+stations while leaving the leading-edge-dominant coefficients free leaves
+$A_0$ unobservable, which is why the prescribed treatment \emph{fixes}
+$A_{u,0}$ and $A_{l,0}$ rather than merely dropping leading-edge target rows.
 
-The resolution keeps the system square, with no least-squares relaxation
-and no reintroduced optimisation, and instead makes each of the $M$
-equations maximally informative. The T4 pre-solve (\S\ref{sec:presolve})
-already builds the full $(200\times n_A)$ sensitivity matrix for
-initialisation; reusing it to \emph{select} the $M$ target stations by QR
-column pivoting chooses the rows that maximise the resulting square
-submap's conditioning. The measured effect: submap condition
-$10^7\to90.3$; recovery error $1.4\times10^{-3}\to1.08\times10^{-11}$.
-Full-curve sensitivity information enters only through the
-(already-required) linear pre-solve, and the nonlinear Newton solve stays
-square and determined throughout (\citep{cinsrepo}).
-Sensitivity-optimal station selection is therefore the identifiability
-guard for determined inverse systems, a methodological contribution of this
-paper beyond the original dossier hypothesis: a practical answer to the
-non-uniqueness caveat inverse problems inherit from Lighthill's and
-Volpe \& Melnik's well-posedness constraints
-(\S\ref{sec:presolve}; \dossierref{\S7.10}),
-without abandoning the root-finding architecture for a least-squares
-relaxation.
+The resolution keeps the system square, with no least-squares relaxation and
+no reintroduced optimisation, and instead makes each of the $M$ equations
+maximally informative. The pre-solve of Section~\ref{sec:presolve} already
+builds the full $200\times n_A$ sensitivity matrix for initialisation; reusing
+it to \emph{select} the $M$ target stations by QR column pivoting chooses
+rows greedily by decreasing residual norm in the orthogonal complement of
+those already chosen. That is a standard rank-revealing heuristic rather than
+a conditioning optimum, since optimal subset selection is combinatorial, but
+its measured effect here is decisive: submap condition $3.47\x10^{12}$ against
+$90.3$, and recovery error $1.43\x10^{-3}$ against $1.08\x10^{-11}$. An
+earlier, uncontrolled observation of the same mechanism had reported a submap
+condition near $10^{7}$ with recovery errors between $1.4\x10^{-3}$ and
+$6\x10^{-2}$; the controlled comparison here reproduces the effect and sharpens
+it, and the two conditioning figures should not be read as measurements of the
+same quantity. Full-curve sensitivity information enters only through the
+already-required linear pre-solve, and the nonlinear Newton solve stays square
+and determined throughout. Sensitivity-optimal station selection is therefore
+the identifiability guard for determined inverse systems, a methodological
+contribution beyond the original hypothesis: a practical answer to the
+non-uniqueness caveat inverse problems inherit from Lighthill's and Volpe and
+Melnik's well-posedness constraints (Section~\ref{sec:related}), without
+abandoning the root-finding architecture for a least-squares relaxation.
 
-Figure~\ref{fig:station-selection} summarises the ablation of
-Table~\ref{tab:identifiability}: the same solver, the same target and the
-same convergence flag produce recovery errors eight orders of magnitude
-apart, separated only by which stations were sampled.
+One asymmetry in this comparison should be recorded. The two arms do not draw
+from a bit-identical candidate set: the evenly-spaced arm additionally omits
+the two nodes flanking the stagnation point, and the two arms index slightly
+different chordwise grids. The effect is far too small to account for eight
+orders of magnitude in recovery error, and the conditioning gap is itself
+eleven orders, but the comparison is not a strictly single-factor one and is
+not presented as such.
 
-\begin{figure}[h]
+Figure~\ref{fig:station-selection} summarises the ablation: the same solver,
+the same target and the same convergence flag produce recovery errors eight
+orders of magnitude apart, separated only by which stations were sampled.
+
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.75\textwidth]{station_selection.png}
-\caption{Station-selection identifiability at a glance: recovery error, QR-pivoted vs.\ evenly-spaced target stations, annotated with submap conditioning. Source: \pth{experiments/results/t8/figures/station_selection.png}.}
+\caption{Recovery error under QR-pivoted against evenly-spaced target
+stations, annotated with the conditioning of each station submap.}
 \label{fig:station-selection}
 \end{figure}
 
 \subsection{Where the stations are placed: the prescribed leading edge}
 \label{sec:le-identifiability}
 
-\S\ref{sec:ablations} records one half of a requirement: excluding
-leading-edge target stations while leaving the LE-dominant coefficients free
-leaves $A_0$ unobservable, which is why \texttt{le\_treatment=prescribed}
-fixes $A_{u,0}$ and $A_{l,0}$ rather than merely dropping LE-region rows. The
-other half is the converse, and it was found while extending the method to
-arbitrary user-supplied targets: once the leading edge \emph{is} prescribed,
-the LE-region target stations must in turn be excluded. The two conditions are
-not independent choices. Prescribing the nose without restricting the
-candidate stations, or restricting the stations without prescribing the nose,
-each leaves a near-null direction in the sampled system; only the pair is
-identifiable.
+Section~\ref{sec:ablations} records one half of a requirement: excluding
+leading-edge target stations while leaving the leading-edge-dominant
+coefficients free leaves $A_0$ unobservable, which is why the prescribed
+treatment fixes $A_{u,0}$ and $A_{l,0}$ rather than merely dropping
+leading-edge rows. The other half is the converse, and it was found while
+extending the method to arbitrary user-supplied targets: once the leading edge
+\emph{is} prescribed, the leading-edge target stations must in turn be
+excluded. The two conditions are not independent choices. Prescribing the nose
+without restricting the candidate stations, or restricting the stations
+without prescribing the nose, each leaves a near-null direction in the sampled
+system; only the pair is identifiable.
 
-Under the prescribed-LE treatment (FM-3, \S\ref{sec:fm}), $A_{u,0}$ and
-$A_{l,0}$ are given rather than solved, so a target row placed inside the
-prescribed region constrains pressure over a piece of surface that cannot
-move. The effect on sampling is not a uniform loss of information, and
-Figure~\ref{fig:le-identifiability}(a) is worth reading carefully on this
-point. Across the prescribed region the norm of
-$\partial C_p/\partial A_{\text{free}}$ spans nearly two orders of magnitude,
-from $0.054$ at the nose itself to $3.90$ just aft of it, against a median of
-$1.47$ over the rest of the chord. The region therefore contains both the
-single least informative station on the surface and some of the most
-sensitive. That combination is what makes unrestricted QR selection a poor
-choice here rather than merely a neutral one: the pivoting is drawn to the
-high-sensitivity nose stations, and the rows it selects there are strongly
+Under the prescribed treatment, $A_{u,0}$ and $A_{l,0}$ are given rather than
+solved, so a target row placed inside the prescribed region constrains
+pressure over a piece of surface that cannot move. The effect on sampling is
+not a uniform loss of information, and Figure~\ref{fig:le-identifiability}(a)
+is worth reading carefully on this point. Across the prescribed region the
+norm of the pressure sensitivity to the free coefficients spans nearly two
+orders of magnitude, from $0.054$ at the nose itself to $3.90$ just aft of it,
+against a median of $1.47$ over the rest of the chord. The region therefore
+contains both the single least informative station on the surface and some of
+the most sensitive. That combination is what makes unrestricted QR selection a
+poor choice here rather than merely a neutral one: the pivoting is drawn to
+the high-sensitivity nose stations, and the rows it selects there are strongly
 mutually correlated, because a small neighbourhood of a fixed nose produces
 nearly the same pressure response for every free coefficient. The extended
 system stays formally square and full-rank while becoming numerically
 near-dependent, which is the same underlying condition as
 Table~\ref{tab:identifiability} reached from the opposite direction.
 
-Restricting the QR candidate set to $x \geq$ the prescribed-LE fraction, as
-Algorithm~\ref{alg:qrpivot} specifies, removes the degeneracy.
+Restricting the QR candidate set to stations at or aft of the prescribed-nose
+fraction, as Algorithm~\ref{alg:qrpivot} specifies, removes the degeneracy.
 Table~\ref{tab:le-identifiability} reports the effect on a viscous
 self-consistency target, holding everything else fixed. The comparison is run
 at $n=6$ per side, not the $n=8$ of the ablation matrix above, so it is a
-controlled single-factor experiment in its own right rather than an
-additional cell of that matrix; its numbers should not be read against the
-$n=8$ rows of Table~\ref{tab:n-sweep}.
+controlled single-factor experiment in its own right rather than an additional
+entry in that matrix; its numbers should not be read against the $n=8$ rows of
+Table~\ref{tab:n-sweep}. Like the rest of this section it is a single run per
+arm.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
 \caption{Target-station placement under a prescribed leading edge, at
-Bernstein order $n=6$ per side rather than the $n=8$ used elsewhere in this
-section. Both cells start from the same seeded perturbed geometry and differ
-only in whether the QR candidate set is restricted to $x \geq$ the
-prescribed-LE fraction. With the
-leading-edge region left in the candidate set the solve does not converge at
-all within the 50-iteration budget, despite driving its residual to
-$1.9\times10^{-10}$. Surface offset is quoted in millichords, against the 1
-millichord that \S\ref{sec:formulation}'s fit gate allows a CST
-representation itself. Source:
-\pth{experiments/results/le_stations/result.json}.}
+Bernstein order $n=6$ per side. Both arms start from the same seeded perturbed
+geometry. Surface offset is in millichords.}
 \label{tab:le-identifiability}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}L c c@{}}
 \toprule
-Quantity & LE stations in candidate set & LE stations excluded \\
+Quantity & Leading-edge stations in candidate set & Leading-edge stations excluded \\
 \midrule
 Candidate stations & 200 & 169 \\
 Submap condition & $31.7$ & $19.9$ \\
-Converged & \textbf{no} & \textbf{yes} \\
-Newton iterations & 50 (budget exhausted) & \textbf{7} \\
-Final residual & $1.89\times10^{-10}$ & $8.21\times10^{-11}$ \\
-$\norm{A-A^*}_\infty$ (free)& $6.97\times10^{-1}$ & $\mathbf{4.10\times10^{-3}}$ \\
-Max surface offset (mc) & $11.74$ & $\mathbf{0.127}$ \\
+Converged & no & yes \\
+Newton iterations & 50 (budget exhausted) & 7 \\
+Final residual & $1.89\x10^{-10}$ & $8.21\x10^{-11}$ \\
+$\norm{A-A^\ast}_\infty$ over free coefficients & $6.97\x10^{-1}$ & $4.10\x10^{-3}$ \\
+Maximum surface offset (millichords) & $11.74$ & $0.127$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The residual is not what separates the two columns. The unrestricted cell
-drives its residual to $1.9\times10^{-10}$, within an order of magnitude of
-the restricted cell's, and still fails to converge inside a 50-iteration
-budget while ending $11.7$ millichords from the target surface. Restricting
-the candidate set converges in 7 iterations to $0.127$ millichords, a
-ninety-fold improvement in the recovered shape, with the submap conditioning
-improving only from $31.7$ to $19.9$. A conditioning number that moves by
-less than a factor of two therefore does not bound the effect: what matters
-is whether the equations are spent on a part of the surface the solver is
-allowed to move.
+The residual is not what separates the two columns. The unrestricted arm
+drives its residual to $1.89\x10^{-10}$, within an order of magnitude of the
+restricted arm's, and still fails to converge inside a 50-iteration budget
+while ending $11.7$ millichords from the target surface. Restricting the
+candidate set converges in seven iterations to $0.127$ millichords, a
+ninetyfold improvement in the recovered shape, with the submap conditioning
+improving only from $31.7$ to $19.9$. A conditioning number that moves by less
+than a factor of two therefore does not bound the effect: what matters is
+whether the equations are spent on a part of the surface the solver is allowed
+to move. For scale, a CST fit of this order is itself permitted a
+root-mean-square deviation of one millichord from the section it represents,
+so the restricted arm's peak offset sits inside the representation's own
+tolerance while the unrestricted arm's exceeds it by an order of magnitude.
 
-This reinforces rather than repeats \S\ref{sec:ablations}. There, the
+This reinforces rather than repeats Section~\ref{sec:ablations}. There, the
 degeneracy came from discarding between-station information across the whole
-chord, and both configurations converged, one of them to a wrong root. Here
-it comes from spending equations on a region that has been removed from the
+chord, and both configurations converged, one of them to a wrong root. Here it
+comes from spending equations on a region that has been removed from the
 design space, and the failure is visible as non-convergence rather than as a
 confident wrong answer. Neither is detectable from the residual norm alone.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{fig_le_identifiability.png}
-\caption{Why target stations must be kept out of a prescribed leading edge.
-(a)~the sensitivity of surface pressure to the free coefficients across the
-chord, with the prescribed region shaded: it does not vanish there but varies
-by nearly two orders of magnitude, holding both the least and some of the most
-sensitive stations; (b)~the stations chosen by unrestricted
-QR against those chosen from the restricted candidate set, with the resulting
-submap conditioning; (c)~the effect on the solve, plotted relative to the
-unrestricted case on a logarithmic axis. Values as in
-Table~\ref{tab:le-identifiability}.}
+\caption{Why target stations must be kept out of a prescribed leading edge:
+(a)~pressure sensitivity to the free coefficients across the chord, prescribed
+region shaded; (b)~stations chosen by unrestricted against restricted QR;
+(c)~the effect on the solve, relative to the unrestricted case.}
 \label{fig:le-identifiability}
 \end{figure}
 
-\subsection{Bernstein order $n$: the FM-2 conditioning cliff}
+\subsection{Bernstein order: the basis-conditioning cliff}
+\label{sec:nsweep}
 
-Table~\ref{tab:n-sweep} sweeps Bernstein order $n$ (per side) from 4 to 12,
-reporting the three ADR-0004-distinct conditioning quantities alongside
-iteration count and recovery error. These are distinct matrices, plotted
-and reported separately per \S\ref{sec:presolve}'s reporting rule.
+Table~\ref{tab:n-sweep} sweeps Bernstein order $n$ per side from 4 to 12,
+reporting the three distinct conditioning quantities alongside iteration count
+and recovery error. These are three different matrices, reported separately
+under the rule stated in Section~\ref{sec:presolve}: the condition number of
+the selected station submap, the condition number of the assembled extended
+Jacobian, and the condition number of the Bernstein Gram matrix used for
+fitting.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
 \caption{Bernstein order sweep, $n=4$ to $12$ per side. Iteration count is
-flat at 3 to 4 through $n=10$ and then jumps to 21 at $n=12$, a cliff rather
-than a gradual degradation, while all three conditioning measures climb
-monotonically throughout. Source:
-\pth{experiments/results/t8/ANALYSIS.md}~\S4.}
+flat through $n=10$ and then jumps at $n=12$, while all three conditioning
+measures climb monotonically.}
 \label{tab:n-sweep}
-\begin{tabular}{lccccc}
+\begin{tabularx}{\textwidth}{@{}c c c c c C@{}}
 \toprule
-$n$ & Iterations & $\mathrm{err\_all\_inf}$ & Submap $\mathrm{cond}$ & $\mathrm{cond}(J)$, D-2, it.\,0 & T2 Gram/fit $\mathrm{cond}$ \\
+$n$ & Iterations & $\norm{A-A^\ast}_\infty$ & Submap $\cond$ & $\cond(J)$ at iteration 0 & Gram $\cond$ \\
 \midrule
-4 & 3 & $8.08\times10^{-12}$ & 10.6 & $6.46\times10^7$ & 498 \\
-6 & 4 & $1.59\times10^{-10}$ & 20.4 & $8.46\times10^7$ & 7{,}327 \\
-8 & 4 & $1.08\times10^{-11}$ & 90.3 & $1.57\times10^8$ & 108{,}538 \\
-10 & 4 & $1.46\times10^{-10}$ & 592 & $4.52\times10^8$ & 1{,}626{,}188 \\
-\textbf{12} & \textbf{21} (FAILS 9-iter gate) & $6.31\times10^{-10}$ & 1{,}144 & $2.07\times10^9$ & 24{,}579{,}174 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Iteration count is flat at 3--4 through $n=10$, then jumps to 21 at $n=12$.
-This is a genuine cliff, not gradual degradation, though it tracks (without
-being identical to) all three independently-measured conditioning series,
-which climb monotonically with $n$ throughout the sweep (roughly
-$4^n$-like growth in the T2 Gram/fit condition, consistent with the a
-priori FM-2 hypothesis, \dossierref{\S4}
-FM-2). $n=12$ still eventually reaches the accuracy gate
-($6.31\times10^{-10}<10^{-4}$); it fails only the iteration-count budget,
-which is itself informative: FM-2 degrades convergence \emph{speed} before
-it degrades final accuracy. Figure~\ref{fig:nsweep}.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.85\textwidth]{n_sweep.png}
-\caption{Iterations and $\mathrm{err\_all\_inf}$ vs.\ Bernstein order $n$, with the three ADR-0004-distinct conditioning series plotted separately. Source: \pth{experiments/results/t8/figures/n_sweep.png}.}
-\label{fig:nsweep}
-\end{figure}
-
-\subsection{FM-1, FM-4, and other single-factor ablations}
-
-Table~\ref{tab:other-ablations} reports the remaining single-factor
-ablations against the \texttt{t8\_n08\_baseline} cell.
-
-\begin{table}[h]
-\centering
-\caption{Single-factor ablations vs.\ baseline. Source: paper/results\_digest.md~\S5.2.}
-\label{tab:other-ablations}
-\footnotesize
-\begin{tabularx}{\textwidth}{@{}l c c c L@{}}
-\toprule
-Factor & Cell & Iterations & $\mathrm{err\_all\_inf}$ & Notes \\
-\midrule
-Transition free vs.\ forced & \texttt{t8\_transition\_free} & 4 & $1.28\times10^{-11}$ & no material difference (FM-4 mitigation cost is negligible once applied) \\
-$\alpha$ free vs.\ fixed & \texttt{t8\_alpha\_free} & 5 & $2.31\times10^{-9}$ & 1 extra iteration; consistent with the camber--$\alpha$ null direction (\S\ref{sec:ablations}) \\
-Init: perturbed vs.\ presolve & \texttt{t8\_init\_perturbed} & 5 & $2.12\times10^{-11}$ & 43 vs.\ 120 flow-solve-equiv (\S\ref{sec:h2}); presolve buys efficiency, not correctness \\
-LE treatment: none vs.\ prescribed & \texttt{t8\_le\_none} & 4 & $6.50\times10^{-10}$ & submap cond roughly doubles (195.6 vs.\ 90.3), still passes gate by 6 orders of magnitude \\
-DOF over-determined ($+1$) & \texttt{t8\_dof\_over} & 0 (clean fail) & n/a & Eq.~\eqref{eq:dof} violated; \texttt{"M+K=17 but n\_A\_free+n\_alpha=16"} \\
-DOF under-determined ($-1$) & \texttt{t8\_dof\_under} & 0 (clean fail) & n/a & Eq.~\eqref{eq:dof} violated; \texttt{"M+K=15 but n\_A\_free+n\_alpha=16"} \\
+4 & 3 & $8.08\x10^{-12}$ & $10.6$ & $6.46\x10^{7}$ & $498$ \\
+6 & 4 & $1.59\x10^{-10}$ & $20.4$ & $8.46\x10^{7}$ & $7{,}327$ \\
+8 & 4 & $1.08\x10^{-11}$ & $90.3$ & $1.57\x10^{8}$ & $108{,}538$ \\
+10 & 4 & $1.46\x10^{-10}$ & $592$ & $4.52\x10^{8}$ & $1{,}626{,}188$ \\
+12 & 21 & $6.31\x10^{-10}$ & $1{,}144$ & $2.07\x10^{9}$ & $24{,}579{,}174$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The two DOF-mis-squared cells fail at construction time with an explicit,
-correct error string and zero Newton iterations spent. The FM-1 guard
-(Eq.~\eqref{eq:dof}) catches deliberate over/under-determination cleanly:
-no silent corruption, no wrong answer (experiments/results/t8/ANALYSIS.md~\S4).
+Iteration count is flat at three to four through $n=10$, then jumps to 21 at
+$n=12$, missing the nine-iteration budget. This is a genuine cliff, not
+gradual degradation, though it tracks, without being identical to, all three
+independently-measured conditioning series, which climb monotonically with $n$
+throughout the sweep. The Gram condition number grows by a factor of
+approximately 15 for every increment of two in $n$, that is, close to $3.9^{\,n}$,
+which is the $4^{\,n}$ growth anticipated a priori for a Bernstein basis and one
+of the cleanest quantitative confirmations in this study. Notably, $n=12$ still
+reaches the accuracy criterion, at $6.31\x10^{-10}$ against a $10^{-4}$
+threshold; it misses only the iteration budget, which is itself informative,
+since it locates the degradation in convergence \emph{speed} before final
+accuracy. Figure~\ref{fig:nsweep} plots the sweep, with the three conditioning
+series on separate axes so that the reader is not invited to read them as one
+quantity.
 
-\subsection{H1: NACA panel generalization}
-\label{sec:h1-panel}
-
-Table~\ref{tab:airfoils} adds two additional single-airfoil cells
-(0012, 4415) to the 2412 baseline reported throughout
-\S\ref{sec:falsifiable}; that 3-airfoil table alone is $N{=}1$ per section
-and explicitly not a generalization claim. It was subsequently superseded by the
-pre-registered H1 evaluation itself, run post-review after the T8 ablation
-matrix closed (experiments/results/t8/ANALYSIS.md, ``H1 addendum''):
-the winning configuration (\S\ref{sec:falsifiable}) applied to a 20-section
-NACA panel spanning 9--25\% thickness and 0--6\% camber across both 4- and
-5-digit families (\pth{configs/experiments/panel_naca/*.yaml},
-\texttt{seed=42}).
-
-\begin{table}[h]
+\begin{figure}[htbp]
 \centering
-\caption{Three-airfoil detail (baseline + 2 extras). Source: paper/results\_digest.md~\S5.2.}
-\label{tab:airfoils}
-\begin{tabular}{lcccc}
+\includegraphics[width=0.85\textwidth]{n_sweep.png}
+\caption{Iterations and recovery error against Bernstein order $n$, with the
+three distinct conditioning series plotted separately. The Gram series is
+carried to $n=16$, two orders beyond the runs of Table~\ref{tab:n-sweep}.}
+\label{fig:nsweep}
+\end{figure}
+
+\subsection{Remaining single-factor ablations}
+\label{sec:other-ablations}
+
+Table~\ref{tab:other-ablations} reports the remaining single-factor ablations
+against the $n=8$ baseline. Three findings are worth drawing out. Forcing
+transition costs essentially nothing once the closure of
+Section~\ref{sec:transition} is correct, which is what makes it usable as a
+default rather than a last resort. Freeing the angle of attack costs one extra
+iteration and two orders of magnitude of final accuracy, consistent with the
+camber--incidence null direction identified in Section~\ref{sec:ablations} and
+the reason incidence is held fixed for self-consistency tests. And skipping
+the pre-solve costs one extra iteration without costing correctness, which is
+the observation Section~\ref{sec:cost} develops.
+
+\begin{table}[htbp]
+\centering
+\caption{Single-factor ablations against the $n=8$ baseline.}
+\label{tab:other-ablations}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}l c c L@{}}
 \toprule
-Airfoil & Iterations & $\mathrm{err\_all\_inf}$ & Submap $\mathrm{cond}$ & Model gap \\
+Factor varied & Iterations & $\norm{A-A^\ast}_\infty$ & Comment \\
 \midrule
-2412 (baseline) & 4 & $1.08\times10^{-11}$ & 90.3 & 0.110 \\
-0012 & 4 & $3.15\times10^{-11}$ & 83.9 & 0.083 \\
-4415 & 3 & $4.35\times10^{-11}$ & 117.9 & 0.163 \\
+Transition free rather than forced & 4 & $1.28\x10^{-11}$ & no material difference; the mitigation is close to free once applied \\
+Incidence free rather than fixed & 5 & $2.31\x10^{-9}$ & one extra iteration, consistent with the camber--incidence null direction \\
+Perturbed rather than pre-solved start & 5 & $2.12\x10^{-11}$ & 43 against 120 counted solves (Section~\ref{sec:cost}) \\
+Leading edge free rather than prescribed & 4 & $6.50\x10^{-10}$ & submap condition roughly doubles, $195.6$ against $90.3$; still six orders inside the criterion \\
+Deliberately over-determined by one row & 0 & not applicable & Eq.~\eqref{eq:dof} violated; fails at construction with an explicit message \\
+Deliberately under-determined by one row & 0 & not applicable & Eq.~\eqref{eq:dof} violated; fails at construction with an explicit message \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-\paragraph{Result: 18/18 generable sections recovered, at $\mathrm{err\_free\_inf}\leq1.51\times10^{-10}$
-in 3--7 Newton iterations each.} Two of the 20 pre-registered sections
-produced no result and are excluded under the pre-registered \S6-class
-exclusion rules (experiments/results/t8/ANALYSIS.md, ``H1 addendum,''
-Deviation~11), not counted as failures:
-For \texttt{panel\_0006}, the forced-trip \emph{target} generation itself
-fails to converge for this 6\%-thin section at a 5\% trip location, so no
-inverse problem was ever posed (a direct-solve non-convergence exclusion,
-exactly the pre-registered rule's intended case, not an architecture
-failure). For \texttt{panel\_44012}, the vendor NACA 5-digit geometry
-generator does not implement the 44XXX mean-line family, a pre-registration
-defect (the target list included a section outside the implemented geometry
-generator), not a solver failure. Figure~\ref{fig:h1-gallery} shows 6
-representative recovered sections spanning this range: thin symmetric
-(0009), thick symmetric (0025), the cambered baseline (2412), a thick
-cambered section (4415), a standard (non-reflexed) 5-digit-camber NACA5 (23012), and a high-camber
-section (6412). Target and recovered outlines are visually
-indistinguishable at this scale, consistent with the $\leq1.51\times10^{-10}$
-coefficient-level agreement.
+The two deliberately mis-squared configurations fail at construction time with
+the explicit, correct error strings quoted in
+Section~\ref{sec:newton-system} and zero Newton iterations spent. The
+degrees-of-freedom guard catches over- and under-determination cleanly, with
+no silent corruption and no wrong answer, which is the behaviour the guard
+exists to produce and the reason it is an assertion rather than a diagnostic.
 
-\begin{figure}[h]
+\subsection{Generalisation: the NACA panel}
+\label{sec:h1-panel}
+
+Table~\ref{tab:airfoils} adds two additional single-airfoil runs, on NACA 0012
+and 4415, to the 2412 baseline reported throughout
+Section~\ref{sec:falsifiable}. That three-airfoil comparison is one run per
+section and is explicitly not a generalisation claim; it is included because
+its submap conditioning and model gap vary with camber and thickness in a way
+the panel results then confirm at scale. It was superseded by the
+pre-registered panel evaluation itself, run after the ablation matrix closed:
+the configuration these ablations identify, applied to a 20-section NACA panel
+spanning 6 to 25 percent thickness and 0 to 6 percent camber across both
+four- and five-digit families.
+
+\begin{table}[htbp]
+\centering
+\caption{Three-airfoil detail: the baseline and two additional sections.}
+\label{tab:airfoils}
+\begin{tabularx}{\textwidth}{@{}L c c c c@{}}
+\toprule
+Airfoil & Iterations & $\norm{A-A^\ast}_\infty$ & Submap condition & Model gap \\
+\midrule
+NACA 2412 (baseline) & 4 & $1.08\x10^{-11}$ & $90.3$ & $0.110$ \\
+NACA 0012 & 4 & $3.15\x10^{-11}$ & $83.9$ & $0.083$ \\
+NACA 4415 & 3 & $4.35\x10^{-11}$ & $117.9$ & $0.163$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\paragraph{Result.} All 18 generable sections are recovered, to
+$\norm{A-A^\ast}_\infty\leq1.51\x10^{-10}$ in three to seven Newton iterations
+each. Two of the 20 pre-registered sections returned no successful result and
+are excluded under the pre-registered exclusion rules rather than counted as
+failures. For the 6~percent-thick symmetric section, the forced-trip
+\emph{target} generation itself fails to converge at a 5~percent trip
+location, so no inverse problem was ever posed; that is a direct-solve
+non-convergence exclusion, exactly the pre-registered rule's intended case,
+and not an architecture failure. For one five-digit section, the vendor
+geometry generator does not implement the required mean-line family, which is
+a defect in the pre-registered target list rather than a solver failure. The
+18 recovered sections span 8 to 25 percent thickness.
+Figure~\ref{fig:h1-gallery} shows six recovered sections spanning most of
+that range: thin symmetric, thick symmetric, the cambered baseline, a
+thick cambered section, a standard five-digit-camber section, and a
+high-camber section. Target and recovered outlines are visually
+indistinguishable at this scale, consistent with the coefficient-level
+agreement quoted above.
+
+\begin{figure}[htbp]
 \centering
 \includegraphics[width=0.95\textwidth]{paper/fig_h1_panel_gallery.png}
-\caption{H1 panel gallery: 6 representative recovered sections (thin/thick/cambered/NACA5), target vs.\ recovered geometry, annotated with each cell's $\mathrm{err\_all\_inf}$ and iteration count from its \texttt{result.json}. Source: \pth{experiments/results/t8/figures/paper/fig_h1_panel_gallery.png} (regenerated by \pth{src/cins/benchmarks/paper_figures.py::fig_h1_panel_gallery}); scalar annotations from \pth{experiments/results/t8/panel_*/result.json}.}
+\caption{Six representative recovered NACA panel sections, target against
+recovered geometry, annotated with each section's recovery error and iteration
+count.}
 \label{fig:h1-gallery}
 \end{figure}
 
-\paragraph{Interval-arithmetic limits of the panel size (the pre-registered
-criterion still fails, on a technicality).} At $n_{\text{eff}}=18$
-successes out of 18 eligible trials, the Wilson 95\% lower bound is
-$\mathbf{0.824}$, \emph{below} the pre-registered criterion (Wilson LB
-$\geq0.9$), even though every eligible section succeeded. This is not a
-solver shortfall. A Wilson lower bound of 0.9 is mathematically
-unattainable at $n=18$ or $n=20$ regardless of outcome (the smallest
-all-success sample whose Wilson lower bound clears 0.9 is $n=35$, at
-$0.901$; $n=29$ reaches only $0.883$): the pre-registered target and the
-pre-registered panel size are mutually inconsistent, a pre-registration
-defect (experiments/results/t8/ANALYSIS.md, Deviation~12). Treating
-the excluded \texttt{panel\_0006} as a failure rather than an exclusion
-instead gives 18/19 (0.947), Wilson LB 0.754, still short of 0.9, for the
-same $n$-too-small reason. On the NACA panel alone, the architecture
-converges and recovers the true coefficients on every panel section it
-could be legitimately posed on, and the formal pre-registered statistical
-criterion fails on interval arithmetic, not on solver performance.
-\S\ref{sec:h1-uiuc-panel} reports the pre-registered UIUC extension, sized
-to resolve the interval-arithmetic limit, and gives the combined H1
+\paragraph{Why the pre-registered criterion still fails at this panel size.}
+At 18 successes out of 18 eligible trials, the Wilson 95~percent lower bound
+is $0.824$, below the pre-registered criterion of $0.9$, even though every
+eligible section succeeded. This is not a solver shortfall. A Wilson lower
+bound of $0.9$ is mathematically unattainable at 18 or 20 trials regardless of
+outcome: the smallest all-success sample whose Wilson lower bound clears $0.9$
+is 35, at $0.901$, and 29 trials reach only $0.883$. The pre-registered target
+and the pre-registered panel size are therefore mutually inconsistent, which
+is a pre-registration defect. Treating the excluded thin section as a failure
+rather than an exclusion instead gives 18 of 19, a fraction of $0.947$ with
+Wilson lower bound $0.754$, still short of $0.9$ for the same
+sample-size reason. On the NACA panel alone, the architecture converges and
+recovers the true coefficients on every section the problem could legitimately
+be posed on, and the formal statistical criterion fails on interval arithmetic
+rather than on solver performance. Section~\ref{sec:h1-uiuc-panel} reports the
+pre-registered extension, sized to resolve that limit, and gives the combined
 verdict across both panels.
 
-\subsection{H1: UIUC panel extension}
+\subsection{Generalisation: the UIUC panel}
 \label{sec:h1-uiuc-panel}
 
-Table~\ref{tab:uiuc-outcome} and Table~\ref{tab:uiuc-criteria} report the
-pre-registered UIUC panel (STATS\_PROTOCOL~\S3.3). Sections were drawn from
-the 123-file UIUC corpus, stratified by thickness and camber decile, after
-a pre-filter removed 6 sections whose $n{=}8$ CST fit exceeds the T2 gate
-(\pth{configs/experiments/panel_uiuc/*.yaml}), leaving 117 cells.
-Results are in \pth{experiments/results/t8/uiuc_panel_summary.json},
-regenerable with \texttt{python -m cins.benchmarks.panel\_summary}.
+Tables~\ref{tab:uiuc-outcome} and~\ref{tab:uiuc-criteria} report the
+pre-registered second panel. Sections were drawn from a 123-file corpus of the
+UIUC airfoil coordinate database, stratified by thickness and camber decile,
+after a pre-filter removed six sections whose $n=8$ CST fit exceeds the
+representation tolerance, leaving 117 configurations.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
-\caption{UIUC panel outcome by population. Source: experiments/results/t8/uiuc\_panel\_summary.json; experiments/results/t8/ANALYSIS.md, ``H1 addendum, part 2.''}
+\caption{UIUC panel outcome by population.}
 \label{tab:uiuc-outcome}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}l L c@{}}
 \toprule
 Population & Definition & Count \\
 \midrule
-Cells & Sections with a generated configuration & 117 \\
-No inverse problem posed & Target solve did not converge, so no target pressure distribution exists & 24 \\
-Attempted & Cells where a target existed and the inverse was run & 93 \\
+Configurations & Sections with a generated configuration & 117 \\
+No inverse problem posed & No usable starting point existed: for 23 sections the target solve did not converge, and for one the flow solve at the initial geometry failed & 24 \\
+Attempted & Configurations where a target existed and the inverse was run & 93 \\
 Converged & Newton reached the residual tolerance & 83 \\
 Attempt failures & Solver or geometry faults during the attempt & 10 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-\paragraph{Result: accuracy holds on every converged section; the composite
-criterion fails on iteration count.} Of the 117 cells, 24 pose no inverse
-problem because the target solve itself does not converge, so no target
-pressure distribution exists to match. Of the remaining 93 attempted
-cells, 83 converge and 10 fail during the attempt. All 83 converged cells
-recover the free coefficients to $\mathrm{err\_free\_inf}<10^{-4}$, a
-1.000 success fraction with Wilson 95\% lower bound 0.956. The
-iteration-budget criterion, $\leq9$ Newton iterations, holds for 73 of the
-83 converged cells (0.880, Wilson LB 0.792). The pre-registered composite
-criterion, both accuracy and iteration budget together, is 73/83 = 0.880
-among converged cells (Wilson LB 0.792) and 73/93 = 0.785 among attempted
-cells (Wilson LB 0.691), both below the pre-registered 0.9 threshold.
+\paragraph{Result.} Accuracy holds on every converged section; the composite
+criterion fails on iteration count. Of the 117 configurations, 24 pose no
+inverse problem, 83 of the remaining 93 converge, and 10 fail during the
+attempt. All 83 converged sections recover the free coefficients to better
+than $10^{-4}$, a success fraction of $1.000$ with Wilson 95~percent lower
+bound $0.956$. The iteration-budget criterion of nine Newton iterations holds
+for 73 of the 83, a fraction of $0.880$ with lower bound $0.792$. The
+pre-registered composite criterion, accuracy and iteration budget together, is
+therefore $0.880$ among converged sections and $0.785$ among attempted
+sections, with lower bounds $0.792$ and $0.691$, both below the pre-registered
+threshold of $0.9$.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
-\caption{UIUC panel criteria and Wilson 95\% lower bounds. Source: experiments/results/t8/uiuc\_panel\_summary.json.}
+\caption{UIUC panel criteria and Wilson 95~percent lower bounds.}
 \label{tab:uiuc-criteria}
-\begin{tabular}{lcc}
+\begin{tabularx}{\textwidth}{@{}L c c@{}}
 \toprule
 Criterion & Result & Wilson 95\% lower bound \\
 \midrule
-Coefficient accuracy ($\mathrm{err\_free\_inf}<10^{-4}$), among converged & 83/83 = 1.000 & 0.956 \\
-Iteration budget ($\leq9$ iterations), among converged & 73/83 = 0.880 & 0.792 \\
+Coefficient accuracy, among converged & 83/83 = 1.000 & 0.956 \\
+Iteration budget of nine, among converged & 73/83 = 0.880 & 0.792 \\
 Both criteria, among converged & 73/83 = 0.880 & 0.792 \\
 Both criteria, among attempted & 73/93 = 0.785 & 0.691 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-Ten converged sections exceed the iteration budget, requiring between 10
-and 50 Newton iterations while still recovering coefficients to between
-$1\times10^{-11}$ and $3\times10^{-10}$, the same accuracy band as the
-sections that converge within budget. The single-digit iteration
-expectation in the dossier was calibrated on NACA sections
-(\S\ref{sec:h1-panel}). It does not transfer to the wider UIUC geometry
-space, where sections with unusual camber or thickness distributions
-converge more slowly without loss of final accuracy.
+Ten converged sections exceed the iteration budget, requiring between 10 and
+50 Newton iterations while still recovering coefficients to between
+$1\x10^{-11}$ and $3\x10^{-10}$, the same accuracy band as the sections that
+converge within budget. The single-digit iteration expectation was calibrated
+on NACA sections (Section~\ref{sec:h1-panel}). It does not transfer to the
+wider UIUC geometry space, where sections with unusual camber or thickness
+distributions converge more slowly without loss of final accuracy.
+Figure~\ref{fig:uiuc-outcomes} shows both facts at once: the right panel is
+the iteration distribution, strongly peaked at three to five with a thin tail
+running to the budget ceiling, and the left panel places every section of the
+panel in the thickness--camber plane, coloured by outcome.
 
-\paragraph{Exclusion classes.} Table~\ref{tab:uiuc-exclusions} lists the
-exclusion classes spanning the 24 not-posed and 10 attempt-failure cells.
-
-\begin{table}[h]
+\begin{figure}[htbp]
 \centering
-\caption{UIUC panel exclusion classes. Source: experiments/results/t8/uiuc\_panel\_summary.json.}
+\includegraphics[width=\textwidth]{paper/fig_uiuc_outcomes.png}
+\caption{The UIUC panel by outcome: every section in the thickness--camber
+plane (left) and the iteration distribution among converged sections (right).}
+\label{fig:uiuc-outcomes}
+\end{figure}
+
+\paragraph{Exclusions and the bias they carry.}
+Table~\ref{tab:uiuc-exclusions} lists the exclusion classes spanning the 24
+sections for which no inverse problem was posed and the 10 attempt failures.
+The two target-generation classes account for 23 of the 24 not-posed
+sections: the flow solver cannot produce a converged solution for the section
+itself, so no target exists and the inverse formulation is never exercised.
+Three sections fail the vendor's wake-direction assertion after the
+minimum-trailing-edge-gap correction that resolved the sharp-trailing-edge
+case; their trailing-edge gap is already above the minimum, so the cause is
+distinct from the case that correction addressed, and this is recorded as an
+open item in Section~\ref{sec:limitations} rather than resolved here.
+
+\begin{table}[htbp]
+\centering
+\caption{UIUC panel exclusion classes.}
 \label{tab:uiuc-exclusions}
-\begin{tabular}{lc}
+\begin{tabularx}{\textwidth}{@{}L c@{}}
 \toprule
 Exclusion class & Count \\
 \midrule
-\texttt{target\_natural} & 16 \\
-\texttt{target\_forced} & 7 \\
-\texttt{solver\_stagnation} & 3 \\
-\texttt{other} & 3 \\
-\texttt{geometry\_te\_gap} & 3 \\
-\texttt{other:RuntimeError} & 1 \\
-\texttt{init\_flow\_solve} & 1 \\
+Target solve did not converge, natural transition & 16 \\
+Target solve did not converge, forced transition & 7 \\
+Solver stagnation during the inverse attempt & 3 \\
+Trailing-edge geometry rejected by the flow solver & 3 \\
+Other faults during the attempt & 3 \\
+Runtime error during the attempt & 1 \\
+Flow solve at the initial geometry did not converge & 1 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-The \texttt{target\_natural} and \texttt{target\_forced} classes account
-for 23 of the 24 not-posed cells: the flow solver cannot produce a
-converged solution for the section itself, so no target exists and the
-inverse formulation is not exercised. The \texttt{geometry\_te\_gap} class
-covers three sections, \texttt{goe780}, \texttt{mh62}, and
-\texttt{naca64206}, that fail mfoil's wake-direction assertion
-(\pth{vendor/mfoil/mfoil.py}, \texttt{build\_wake}) after the
-minimum-trailing-edge-gap fix that resolved the sharp-trailing-edge case.
-Their trailing-edge gap is already above the minimum, so the cause is
-distinct from the case the fix addressed. This is recorded as an open item
-in \S\ref{sec:limitations} rather than resolved here.
+Those 34 excluded sections are 29 percent of the panel, and the honest reading
+of the 83-of-83 accuracy figure depends on whether they are geometrically
+representative. They are not. The excluded sections have a median maximum
+thickness of $9.0$ percent chord against $12.1$ percent for the converged
+population, and 65 percent of them are thinner than 10 percent chord against
+36 percent of the converged sections; the not-posed group is also more
+cambered on average. This is visible directly in
+Figure~\ref{fig:uiuc-outcomes}, where the excluded markers cluster toward the
+thin and thin-and-cambered corner of the plane. The correct statement is
+therefore not that the architecture recovers any UIUC section, but that on
+sections for which this flow solver can produce a converged target at all, it
+recovers the coefficients to well inside the accuracy criterion, and that the
+sections it cannot produce a target for are systematically the thin ones. The
+exclusion is a property of the host analysis solver rather than of the inverse
+formulation, since the failures occur before any inverse problem is posed, but
+it bounds what the panel result can be claimed to demonstrate.
 
-\paragraph{Combined H1 verdict (NACA + UIUC).} Accuracy holds on every
-section that converged across both panels: 18 of 18 eligible NACA sections
-and 83 of 83 converged UIUC sections recover the free coefficients to
-$\mathrm{err\_free\_inf}<10^{-4}$, with observed errors clustering between
-$10^{-11}$ and $10^{-9}$. The pre-registered composite criterion, which
-also required the solve to complete within 9 Newton iterations, is not met
-on the UIUC panel: the Wilson lower bound on the composite criterion is
-0.792 among converged UIUC cells and 0.691 among attempted UIUC cells,
-both below the pre-registered 0.9 threshold. The cause is the iteration
-budget, not accuracy. The single-digit iteration expectation in the
-dossier was calibrated on NACA sections and does not transfer to the wider
-UIUC geometry space, where sections with unusual camber or thickness
-distributions take longer to converge while still reaching the same
-accuracy. \textbf{H1 verdict:} the hypothesis that the monolithic
-formulation recovers geometry on realisable targets is supported on
-accuracy across both panels, 18/18 NACA sections and 83/83 converged UIUC
-sections out of a 117-section UIUC panel. The pre-registered composite
-criterion, which also required single-digit iterations, is not met on the
-UIUC panel. The failure is isolated to the iteration-count component; the
-accuracy component holds on every converged section in both panels.
+\paragraph{Combined verdict across both panels.} Accuracy holds on every
+section that converged: 18 of 18 eligible NACA sections and 83 of 83 converged
+UIUC sections recover the free coefficients to better than $10^{-4}$, with
+observed errors clustering between $10^{-11}$ and $10^{-9}$. The
+pre-registered composite criterion, which also required completion within nine
+Newton iterations, is not met on the UIUC panel: its Wilson lower bound is
+$0.792$ among converged sections and $0.691$ among attempted sections, both
+below the pre-registered $0.9$. The cause is the iteration budget, not
+accuracy, and the budget was calibrated on a NACA family narrower than the
+population it was then applied to. The recovery hypothesis is therefore
+supported on accuracy across both panels and unsupported on the composite
+criterion, with the failure isolated to the iteration-count component.
 
-\subsection{Flow-solve count vs.\ nested optimisation}
-\label{sec:h2}
+\subsection{Computational cost against nested optimisation}
+\label{sec:cost}
 
-\paragraph{The corrected headline.} STATS\_PROTOCOL pre-registered a
-$\geq$100x flow-solve-reduction claim; it is \textbf{rejected} under both
-fair-paired controls actually run. Table~\ref{tab:h2} pairs each monolithic
-run against a nested Levenberg--Marquardt control sharing the same
-initialisation strategy, so the comparison is apples-to-apples in the same
-currency (\texttt{n\_flow\_solves\_equivalent}, both sides).
+\paragraph{The corrected headline.} A reduction of at least hundredfold in
+flow solves was pre-registered; it is \emph{rejected} under both fair-paired
+controls actually run. Table~\ref{tab:h2} pairs each monolithic run against a
+nested Levenberg--Marquardt control sharing the same initialisation strategy,
+so that the comparison is like-for-like, and reports three currencies rather
+than one.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
-\caption{Flow-solve-count comparison, monolithic vs.\ nested LM control. Source: paper/results\_digest.md~\S5.3; experiments/results/t8/ANALYSIS.md~\S2.}
+\caption{Cost comparison, monolithic against nested Levenberg--Marquardt
+control, in three currencies. Both arms of a pairing share an initialisation
+strategy.}
 \label{tab:h2}
-\begin{tabular}{lccc}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}L c c c c@{}}
 \toprule
-Pairing (shared init strategy) & Monolithic solves & Nested LM solves & Ratio \\
+Pairing & Monolithic solves & Nested solves & Solve ratio & Wall-clock ratio \\
 \midrule
-Presolve-init & 120 & 373 & $\mathbf{3.1\times}$ \\
-Perturbed-init (cold-start) & 43 & 347 & $\mathbf{8.1\times}$ \\
+Pre-solve initialisation & 120 & 373 & $3.1\x$ & $3.4\x$ \\
+Perturbed (cold) start & 43 & 347 & $8.1\x$ & $3.5\x$ \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-The nested control is \texttt{scipy.optimise.least\_squares(method="lm",
-ftol=xtol=gtol=1e-8, x\_scale="custom"(\allowbreak $|x_0|$ floored at
-$10^{-3}$))}~\citep{virtanen2020scipy}, converged both times (\texttt{xtol}
-termination), over the same 16 free coefficients. This is a competent
-modern LM solver, not a weak strawman: it converges the cold-start case in
-\texttt{n\_nfev=6} outer LM iterations, each costing multiple flow solves
-for its own finite-difference Jacobian columns. \textbf{Recommended P1
-sentence}: \emph{``The monolithic
-architecture requires 3.1--8.1x fewer flow-residual evaluations than a
-fairly-paired, well-tuned nested Levenberg--Marquardt baseline
-(\texttt{scipy.least\_squares}), depending on initialisation strategy,
-substantially less than the order-of-magnitude reduction hypothesised a
-priori, though the qualitative advantages of determinism, guaranteed local
-quadratic convergence, and exact analytic constraint-row Jacobians persist
-independent of this ratio.''} Figure~\ref{fig:h2}.
+\paragraph{Why three currencies and not one.} The counted quantity,
+\emph{flow-solve equivalents}, weights a converged viscous solve and a single
+inviscid linear solve equally, and it excludes the residual evaluations that
+the finite-difference Jacobian of Section~\ref{sec:derivatives} spends inside
+each Newton step. Both conventions favour the monolithic side. The nested
+control's every residual call is a full converged viscous solve, counted once;
+the monolithic method's residual evaluations, 100 and 133 in the two paired runs, are not
+counted at all, though each rebuilds the geometry and re-forms the panel
+influence system. Wall-clock time is immune to both conventions, and
+Figure~\ref{fig:cost} shows all three side by side. The measured wall-clock
+advantage is $3.4\x$ and $3.5\x$ on the two pairings, essentially identical,
+against solve-count ratios of $3.1\x$ and $8.1\x$. The $8.1\x$ figure is
+therefore a currency artifact: dropping the pre-solve removes 77 comparatively
+cheap inviscid solves from the monolithic count without removing the
+corresponding work. This paper reports the solve-count range because it was the
+pre-registered currency, and treats the wall-clock figure of approximately
+$3.4\x$ as the conservative statement of the result.
 
-\begin{figure}[h]
+\begin{figure}[htbp]
 \centering
-\includegraphics[width=0.75\textwidth]{h2_flow_solves.png}
-\caption{Flow-solve-count comparison, linear non-truncated axis, both fair-paired comparisons, pre-registered 100x line shown for scale. Source: \pth{experiments/results/t8/figures/h2_flow_solves.png}.}
-\label{fig:h2}
+\includegraphics[width=\textwidth]{paper/fig_cost_breakdown.png}
+\caption{Cost of the monolithic solve against its fair-paired nested control
+in three currencies: counted flow solves, residual evaluations, and measured
+wall-clock time.}
+\label{fig:cost}
 \end{figure}
 
-\subsection{Presolve vs.\ station selection as the uniqueness guard}
+The nested control is a Levenberg--Marquardt solve from
+\texttt{scipy.optimize.least\_squares} with function, step and gradient
+tolerances all at $10^{-8}$ and a per-variable scaling taken from the initial
+guess, floored at $10^{-3}$~\citep{virtanen2020scipy}, over the same 16 free
+coefficients. It converged in both pairings on the step tolerance, and it is
+a competent modern solver rather than a weak strawman: the cold-start case
+takes six outer iterations, each costing multiple flow solves for its own
+finite-difference Jacobian columns. It also reaches essentially the same final
+accuracy as the monolithic solve, $2.29\x10^{-11}$ and $2.13\x10^{-11}$ on the
+two pairings against $1.08\x10^{-11}$ and $2.12\x10^{-11}$; the difference
+between the two architectures is cost and determinism, not achievable
+precision on this class of target. One asymmetry remains in the pairing: the
+control assigns its target pressure by nearest-node remapping, with a residual
+correspondence error of $2.0\x10^{-4}$ in chord fraction, while the monolithic
+arm of the same era used the same convention. Both arms therefore share the
+older addressing, but a reader comparing against
+Section~\ref{sec:falsifiable}'s interpolated-addressing run should not mix the
+two.
 
-\texttt{t8\_init\_perturbed} (no presolve, \texttt{station\_selection=
-qr\_pivot}): 43 flow-solve-equivalents, 5 iterations, error
-$2.12\times10^{-11}$, submap cond 89.8, essentially identical to the
-baseline's 90.3, since station selection is a property of the stations
-(computed once from the T4 sensitivity matrix), not of the initial guess.
-\texttt{t8\_n08\_baseline} (presolve, same station selection): 120
-flow-solve-equivalents, 4 iterations, error $1.08\times10^{-11}$, submap
-cond 90.3. Interpretation: skipping the presolve costs one extra Newton
-iteration but \emph{reduces} total flow-solve count ($43<120$) and does not
-cost correctness. The presolve consumes roughly 77 flow-solve-
-equivalents ($\approx$64\% of the baseline total), primarily for iteration
-efficiency and starting-residual quality, not for the uniqueness guarantee,
-which comes from \texttt{station\_selection=qr\_pivot} alone. This has \emph{not} been verified in the
-sharper crossed form (\texttt{init=perturbed} $\times$
-\texttt{station\_selection=even}); it is flagged explicitly as future work,
-not as tested (experiments/results/t8/ANALYSIS.md~\S5, ``Caveat'').
+The summary sentence the evidence supports is that the monolithic
+architecture requires $3.1$ to $8.1\x$ fewer counted flow solves, and
+$3.4$ to $3.5\x$ less wall-clock time, than a fairly-paired, well-tuned nested
+Levenberg--Marquardt baseline, substantially less than the
+two-to-three-orders-of-magnitude reduction hypothesised a priori, while the qualitative
+advantages of determinism, an exact analytic Jacobian for the constraint rows,
+and per-iteration failure-mode diagnostics persist independent of this ratio.
 
-\subsection{Quadratic convergence tail}
+\paragraph{Pre-solve or station selection as the uniqueness guard.} Skipping
+the pre-solve, with QR station selection retained, gives 43 flow-solve
+equivalents in five iterations at an error of $2.12\x10^{-11}$, with a submap
+condition of $89.8$: essentially identical to the baseline's $90.3$, since
+station selection is a property of the stations, computed once from the
+sensitivity matrix, and not of the initial guess. Retaining the pre-solve
+gives 120 flow-solve equivalents in four iterations at $1.08\x10^{-11}$ and a
+submap condition of $90.3$. The pre-solve consumes roughly 77 flow-solve
+equivalents, about 64 percent of the baseline total, and buys one Newton
+iteration and a better starting residual. In wall-clock terms the two are
+indistinguishable, at $160$ against $170$ seconds, so the honest conclusion is
+that the pre-solve is close to cost-neutral rather than expensive, and that it
+is not what supplies the uniqueness guarantee. That comes from QR station
+selection alone. This has \emph{not} been verified in the sharper crossed form
+that would settle it, a perturbed start combined with evenly-spaced station
+selection, and it is flagged as untested rather than as tested.
+
+\subsection{Convergence behaviour}
 \label{sec:h3}
 
-STATS\_PROTOCOL's 3-point local order estimator
-($p\approx\log(R_k/R_{k-1})/\log(R_{k-1}/R_{k-2})$) is applied only where
-$\geq3$ residual values exist strictly above the $\approx10^{-9}$
-FD-noise floor. The raw \texttt{convergence\_order} field stored per cell
-does \emph{not} apply this exclusion and is not quoted directly. Table~\ref{tab:h3} reports the recomputed
-orders for the five cells with enough clean-tail residuals to estimate one.
+The three-point local order estimator of Eq.~\eqref{eq:order} is applied only
+where at least three residual values exist strictly above the
+finite-difference floor near $10^{-9}$ identified in
+Section~\ref{sec:derivatives}; below that floor the sequence measures the
+Jacobian's own noise rather than the iteration's convergence.
+Appendix~\ref{app:order} states the estimator, the floor rule and the residual
+block each estimate is computed on.
+Table~\ref{tab:h3} reports the estimates for the five runs with enough
+above-floor residuals to support one.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \centering
-\caption{Recomputed convergence order, clean (floor-excluded) tail. Source: paper/results\_digest.md~\S5.5; experiments/results/t8/ANALYSIS.md~\S3.}
+\caption{Local convergence order over the above-floor tail, for the five runs
+where three clean residuals exist.}
 \label{tab:h3}
-\begin{tabular}{lc}
+\begin{tabularx}{\textwidth}{@{}L c L@{}}
 \toprule
-Cell & Recomputed order (clean tail) \\
+Run & Estimated order & Note \\
 \midrule
-\texttt{t8\_alpha\_free} & 1.09 \\
-\texttt{t8\_init\_perturbed} & 2.08 \\
-\texttt{t8\_n06} & 2.46 \\
-\texttt{t8\_transition\_free} & 2.15 \\
-\texttt{t8\_n12} & 4.24 (late-tail 3-point estimate; read as ``clearly superlinear,'' not literal quartic order) \\
+Incidence free & 1.09 & the slowest of the set; consistent with the camber--incidence null direction \\
+Perturbed start & 2.08 & \\
+$n=6$ & 2.46 & \\
+Transition free & 2.15 & \\
+$n=12$ & 4.24 & late-tail estimate after a long stalled phase; read as clearly superlinear, not as a literal quartic order \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
-\textbf{Median order: 2.15} ($n{=}5$ estimable cells), meeting the pre-
-registered $\geq1.8$ target. The remaining 7/12 converged cells cannot be
-scored by this method because they reach the solver's residual floor in
-only 2 post-initial steps, too fast for a 3-point estimator to have 3 clean
-points. This is itself consistent with (though it does not formally
-confirm) fast superlinear-to-quadratic convergence: the baseline, for
-example, drops from $O(10^{-4})$ to the $\sim10^{-10}$ floor in exactly 2
-Newton steps, a $\sim$150x-per-step reduction rate not consistent with
-linear convergence (experiments/results/t8/ANALYSIS.md~\S3).
+The median estimate is $2.15$ over these five runs, meeting the pre-registered
+target of $1.8$, but the spread from $1.09$ to $4.24$ is wide enough that the
+median should not be read as a measurement of a single underlying rate. The
+remaining seven converged runs cannot be scored by this method because they
+reach the residual floor in only two post-initial steps, too fast for a
+three-point estimator to have three clean points. That is itself consistent
+with, though it does not formally confirm, fast superlinear convergence: the
+baseline, for example, drops from $5.9\x10^{-4}$ to $3.1\x10^{-6}$ and then to
+$1.0\x10^{-10}$, contracting by factors of about $190$ and then $30{,}000$, a
+pattern no linear rate produces.
+
+\paragraph{The reference run behaves differently, and the reason is
+instructive.} The self-consistency run of Section~\ref{sec:falsifiable}, which
+uses interpolated station addressing, contracts by about $1/30$ per step on
+average, between $1/13$ and $1/130$, without accelerating: its above-floor
+local order estimate is $0.53$, and the three-point estimates across its tail
+range from $0.5$ to $1.6$. It is fast, dropping seven decades in five steps, but it
+is not showing a quadratic tail. Figure~\ref{fig:convergence} makes the
+distinction visible: the left panel is the residual history and the right
+panel is the per-step contraction factor, which falls over the tail for the
+faster node-indexed runs and does not for the interpolated one. The explanation follows directly
+from Section~\ref{sec:newton-system}. Under node-index addressing
+$\partial T/\partial A$ is structurally zero and the assembled Jacobian is
+exact up to the finite-difference error in $\partial R/\partial A$; under
+interpolated addressing it is small but nonzero and is neglected, which makes
+the iteration an inexact Newton method with a bounded Jacobian error and
+therefore a linear asymptotic rate with a small contraction constant. The
+practical consequence is minor, since six iterations suffice either way, but
+the claim that should be made is fast superlinear convergence in practice,
+limited by the finite-difference Jacobian and the neglected interpolation
+term, and not guaranteed quadratic convergence. Guaranteed quadratic
+convergence would require an exact, Lipschitz, nonsingular Jacobian, and this
+implementation has none of the three by construction.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{paper/fig_convergence_orders.png}
+\caption{Residual histories with the local order estimated over the
+above-floor tail (left), and the per-step contraction factor (right), which
+falls for node-indexed runs and stays flat for the interpolated one.}
+\label{fig:convergence}
+\end{figure}
 
 \subsection{Comparative positioning against other inverse-design approaches}
 \label{sec:comparison}
 
 Tables~\ref{tab:comparison-quant} and~\ref{tab:comparison-struct} place this
 paper's architecture against five other approaches to the same underlying
-problem (given a target surface pressure or speed distribution, recover a
-geometry that produces it), each representing a structurally distinct
-formulation class. The comparison is split across two tables because its two
-halves are not commensurable in the same way:
-Table~\ref{tab:comparison-quant} collects the quantitative axes, where the
-cost column is reported in whatever unit each formulation class naturally
-exposes, and Table~\ref{tab:comparison-struct} collects the structural
-guarantees, where the classes separate sharply and no numbers are involved at
-all. Rows (i) and (ii) are this paper's own measured, fair-paired numbers
-(\S\ref{sec:h2}); rows (iii) to (vi) are drawn from the cited literature and
-are explicitly marked \emph{qualitative} wherever the source does not report a
-directly comparable metric. No number in either table is asserted unless it is
-a repository artifact from rows (i) or (ii), or attributed to a specific cited
-source.
+problem, recovering a geometry that produces a target surface pressure or
+speed distribution, each representing a structurally distinct formulation
+class. The comparison is split across two tables because its two halves are
+not commensurable in the same way. Table~\ref{tab:comparison-quant} collects
+the quantitative axes, where the cost column is reported in whatever unit each
+formulation class naturally exposes, and Table~\ref{tab:comparison-struct}
+collects the structural guarantees, where the classes separate sharply and no
+numbers are involved at all. Rows (i) and (ii) are this paper's own measured,
+fair-paired numbers (Section~\ref{sec:cost}); rows (iii) to (vi) are drawn
+from the cited literature and are marked qualitative wherever the source does
+not report a directly comparable metric. No number in either table is asserted
+unless it is a repository artifact from rows (i) or (ii), or attributed to a
+specific cited source.
 
 \begin{table}[p]
 \centering
-\caption{Comparative positioning, quantitative axes: formulation class, cost
-per design, and the precision each approach has been demonstrated to. Cost is
-reported in the unit each formulation class naturally exposes, which is why
-the column is not a single commensurable number; ``qual.'' marks an entry for
-which no directly comparable published metric exists.}
+\caption{Comparative positioning, quantitative axes. Cost is reported in the
+unit each formulation class naturally exposes.}
 \label{tab:comparison-quant}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.45cm} L L L@{}}
 \toprule
-Method & Formulation class & Flow solves per design & Demonstrated precision \\
+Method & Formulation class & Cost per design & Demonstrated precision \\
 \midrule
-(i) \textbf{This work} (CINS monolithic, \S\ref{sec:formulation}) &
+(i) This work, monolithic CST--Newton &
   constrained root-finding, single square Newton system &
-  \textbf{43--120} measured, T7 winning configuration, two initialisation
-  strategies (\S\ref{sec:h2}) &
-  $\norm{A-A^*}_\infty$ at the $10^{-11}$ level on self-consistency
+  43--120 counted solves, 160--170~s wall-clock, on the ablation-matrix runs
+  of Section~\ref{sec:cost} &
+  $\norm{A-A^\ast}_\infty$ at the $10^{-11}$ level on self-consistency
   (Table~\ref{tab:t7}) \\
-(ii) Nested LM baseline (\pth{scipy.least_squares}, \S\ref{sec:h2}) &
+(ii) Nested Levenberg--Marquardt baseline~\citep{virtanen2020scipy} &
   outer-loop nonlinear least-squares optimisation &
-  \textbf{347--373} measured on the same paired cases (\S\ref{sec:h2}) &
-  converges to \texttt{xtol} against the same coefficient-level target,
-  paired with row (i) \\
-(iii) MISES Modal-Inverse~\citep{drela1990viscous} &
+  347--373 counted solves, 540--602~s wall-clock, on the same paired cases &
+  $2.1$--$2.3\x10^{-11}$ against the same coefficient-level target, paired
+  with row (i) \\
+(iii) MISES modal inverse~\citep{drela1990viscous} &
   constrained root-finding, mode-shape amplitudes appended to the same global
   Newton system &
   one Newton solve per design, architecturally identical to row (i); exact
   count not published &
-  qual.: production-validated on transonic cascades over decades, no single
-  benchmark number available for direct comparison \\
+  qualitative: production-validated on transonic cascades over decades, no
+  single benchmark number available \\
 (iv) CST-smoothing inverse~\citep{lane2010inverse} &
-  iterative outer loop; CST used as a \emph{post-hoc smoother} on a
+  iterative outer loop; CST used as a post-hoc smoother on a
   pressure-residual-driven shape correction, solver-agnostic &
-  qual.: multiple outer iterations, count depends on the wrapped solver and is
-  not reported as a fixed number in the source &
-  qual.: subsonic and transonic cases shown converging; no
+  qualitative: multiple outer iterations, count depends on the wrapped solver
+  and is not reported as a fixed number &
+  qualitative: subsonic and transonic cases shown converging; no
   coefficient-recovery benchmark reported \\
-(v) Learned generative inverse (cGAN~\citep{yilmaz2020cgan}; CDDPM
-\citep{yu2025cddpm}; LF-PINN~\citep{lfpinn2024}) &
+(v) Learned generative inverse~\citep{yilmaz2020cgan,deng2025cddpm,wong2024lfpinn} &
   amortised statistical inference, offline-trained generative or surrogate map &
-  approximately zero \emph{online} per design after training; training-set
-  generation requires $O(10^3\text{--}10^5)$ offline flow solves, typical for
-  this literature &
-  CDDPM reports a 34.4 percent precision improvement over WGAN baselines
- ~\citep{yu2025cddpm}, a relative rather than absolute geometric-recovery
-  metric; LF-PINN reports at least a tenfold online speedup against direct
-  mfoil analysis~\citep{lfpinn2024} \\
-(vi) Adjoint target-$C_p$ optimisation (SU2~\citep{economon2016su2}) &
+  approximately zero online per design after training; training-set generation
+  requires order $10^3$ to $10^5$ offline flow solves &
+  a 34.4 percent precision improvement over Wasserstein-GAN
+  baselines~\citep{deng2025cddpm}, relative rather than absolute; at least
+  tenfold online inference speedup against direct
+  analysis~\citep{wong2024lfpinn} \\
+(vi) Adjoint target-pressure optimisation~\citep{economon2016su2} &
   gradient-based PDE-constrained optimisation, primal and adjoint pairs per
-  design-cycle iteration &
-  qual.: $O(10\text{--}100)$ primal/adjoint pairs typical for shape
-  optimisation of this scale, case- and tolerance-dependent &
-  qual.: mature and widely validated on shape-optimisation benchmarks; not run
-  in this study, so no head-to-head number is available \\
+  design cycle &
+  qualitative: order 10 to 100 primal and adjoint pairs typical at this scale,
+  case- and tolerance-dependent &
+  qualitative: mature and widely validated on shape-optimisation benchmarks;
+  not run in this study \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \begin{table}[p]
 \centering
-\caption{Comparative positioning, structural axes: what each approach
-guarantees about the solution it returns, how it handles geometric design
-constraints, and its availability. The determinism column is the one on which
-the formulation classes separate most sharply.}
+\caption{Comparative positioning, structural axes. Determinism is the column
+on which the formulation classes separate most sharply.}
 \label{tab:comparison-struct}
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.45cm} L L L@{}}
@@ -704,71 +776,71 @@ the formulation classes separate most sharply.}
 Method & Determinism and uniqueness guard & Constraint handling &
 Licence and availability \\
 \midrule
-(i) \textbf{This work} (CINS monolithic) &
+(i) This work, monolithic CST--Newton &
   deterministic Newton; QR-pivoted station selection is an explicit, measured
-  identifiability guard (\S\ref{sec:ablations}) &
-  exact linear equality rows $G A = b$, with a zero-cost constant Jacobian
-  block &
-  open~\citep{cinsrepo}; mfoil is MIT-licenced
- ~\citep{fidkowski2022coupled} \\
-(ii) Nested LM baseline &
+  identifiability guard (Section~\ref{sec:ablations}) &
+  exact linear equality rows $G A = b$ with a constant Jacobian block;
+  implemented and tested, but not exercised by the measured results
+  (Section~\ref{sec:constraints}) &
+  open~\citep{cinsrepo}; the flow solver is MIT-licensed
+  \citep{fidkowski2022coupled} \\
+(ii) Nested Levenberg--Marquardt baseline &
   deterministic given fixed initialisation and tolerances; no analogous
-  uniqueness guard, relying on local LM convergence only &
+  uniqueness guard, relying on local convergence only &
   none built in; bounds and scaling only, with no analytic constraint rows in
   this configuration &
   open~\citep{virtanen2020scipy} \\
-(iii) MISES Modal-Inverse &
+(iii) MISES modal inverse &
   deterministic Newton; no published uniqueness or identifiability study of
-  mode count against target sampling analogous to \S\ref{sec:ablations} &
+  mode count against target sampling analogous to Section~\ref{sec:ablations} &
   mode amplitudes are heuristic bump functions rather than analytic geometric
-  functionals (\S\ref{sec:related}) &
-  gated: free for faculty-signed academic use, commercial licence otherwise
- ~\citep{drela1990viscous}; no open-source port exists \\
+  functionals (Section~\ref{sec:related}) &
+  distributed under a restricted academic and commercial licence; no
+  open-source port exists \\
 (iv) CST-smoothing inverse &
   deterministic given fixed settings; no formal uniqueness guard reported &
   no analytic constraint rows; the correction is smoothed but not constrained
   to a design-parameter manifold &
   method description only, solver-agnostic, with no released code cited \\
 (v) Learned generative inverse &
-  \emph{not} deterministic for GAN and diffusion variants, which sample
-  stochastically; LF-PINN's surrogate is deterministic but is an
-  approximation rather than an exact solve. \textbf{No convergence guarantee
-  or exact-recovery certificate exists for any variant.} &
-  none intrinsic to generation; plausible-geometry constraints are learned
-  from the training distribution rather than enforced algebraically &
+  \emph{not} deterministic for adversarial and diffusion variants, which
+  sample stochastically; a trained surrogate is deterministic but
+  approximate. No convergence guarantee or exact-recovery certificate exists
+  for any variant &
+  none intrinsic to generation; plausibility is learned from the training
+  distribution rather than enforced algebraically &
   open-source code released with most cited papers, but a training database is
   required \\
-(vi) Adjoint target-$C_p$ optimisation &
+(vi) Adjoint target-pressure optimisation &
   deterministic gradient descent to a \emph{local} optimum; no uniqueness
-  guard, which is the sense in which adjoint target-$C_p$ matching remains
-  optimisation rather than root-finding \dossierref{\S6.3} &
+  guard, which is the sense in which adjoint target-pressure matching remains
+  optimisation rather than root-finding &
   general nonlinear constraints via adjoint sensitivities: flexible, but
   iterative rather than closed-form &
-  open source, LGPL~\citep{economon2016su2} \\
+  open source under the LGPL~\citep{economon2016su2} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Three patterns follow from the table. First, only rows (i) and (iii) are
-architecturally root-finding rather than optimisation or amortised
-inference. This distinction, argued in this paper's Introduction
-(\S\ref{sec:related}), is not cosmetic: a converged root-find has a
-residual-norm certificate that a converged optimisation or a sampled
-generative output does not. Second, the flow-solve-count column spans
-roughly four orders of magnitude across the table, not because the methods
-disagree about a shared quantity, but because ``flow solve'' means a
-different thing in each formulation class (a Newton linearisation vs.\ an
-LM outer iteration vs.\ an offline training epoch vs.\ a primal/adjoint
-pair). This is exactly the currency-matching discipline \S\ref{sec:h2}
-enforces for the one comparison (row (i) vs.\ row (ii)) this paper actually
-measured; rows (iii)--(vi) are reported qualitatively for this reason, not
-omitted. Third, the licence/availability column is not incidental context:
-it is the practical reason MISES's built-in Modal-Inverse mode (row (iii)),
-despite being architecturally identical to this paper's contribution, has
-not seen the open comparative study this table attempts. A \$10k-gated,
-non-open-source solver is not reproducible science. This is also why mfoil
-\citep{fidkowski2022coupled} rather than MISES is this paper's Stage 1
-testbed (\S\ref{sec:formulation}), and why the Stage 3 extension
-(\S\ref{sec:conclusions}) targets porting the architecture \emph{into}
-MISES rather than requiring readers to already have a MISES licence to
-reproduce this paper's own results.
+Three patterns follow. First, only rows (i) and (iii) are architecturally
+root-finding rather than optimisation or amortised inference. This
+distinction, argued in Section~\ref{sec:related}, is not cosmetic: a converged
+root-find has a residual-norm certificate that a converged optimisation or a
+sampled generative output does not. Second, the cost column spans roughly four
+orders of magnitude across the table, not because the methods disagree about a
+shared quantity, but because a flow solve means a different thing in each
+formulation class: a Newton linearisation, an outer least-squares iteration,
+an offline training epoch, or a primal and adjoint pair. This is exactly the
+currency-matching discipline Section~\ref{sec:cost} enforces for the one
+comparison, row (i) against row (ii), that this paper actually measured, and
+it is why rows (iii) to (vi) are reported qualitatively rather than omitted.
+Third, the availability column is not incidental context: it is the practical
+reason the MISES modal inverse mode of row (iii), despite being
+architecturally the closest relative of this paper's contribution, has not
+seen the open comparative study this table attempts. A solver behind a
+licence gate cannot be the basis of independently reproducible comparison.
+That is also why \texttt{mfoil}~\citep{fidkowski2022coupled} rather than MISES
+is this paper's testbed, and why the extension discussed in
+Section~\ref{sec:conclusions} targets porting the architecture \emph{into}
+MISES rather than requiring readers to already hold a MISES licence to
+reproduce these results.

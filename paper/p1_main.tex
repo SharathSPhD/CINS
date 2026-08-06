@@ -10,15 +10,19 @@
 % rest of the manuscript.
 %
 % Figures are produced by
-%     .venv/bin/python -m cins.benchmarks.paper_figures          (evidence)
-%     .venv/bin/python -m cins.benchmarks.paper_figures_theory   (formulation)
-% and are never hand-drawn or hand-numbered.
+%     .venv/bin/python -m cins.benchmarks.figures                 (ablations)
+%     .venv/bin/python -m cins.benchmarks.paper_figures           (evidence)
+%     .venv/bin/python -m cins.benchmarks.paper_figures_theory    (formulation)
+%     .venv/bin/python -m cins.benchmarks.paper_figures_archive   (cost, panel)
+% and are never hand-drawn or hand-numbered. Appendix E maps every float to
+% the artifact it was produced from.
 %
-% Build:  tectonic paper/p1_main.tex
+% Build:  latexmk -pdf p1_main.tex   (or: tectonic paper/p1_main.tex)
 % =====================================================================
 \documentclass[11pt]{article}
 
 \usepackage[letterpaper,margin=1in]{geometry}
+\usepackage[T1]{fontenc}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -33,7 +37,7 @@
 \usepackage[dvipsnames]{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, fit, calc,
-                backgrounds, decorations.pathreplacing}
+                backgrounds, decorations.pathreplacing, matrix}
 \usepackage[colorlinks=true,linkcolor=NavyBlue,citecolor=NavyBlue,
             urlcolor=NavyBlue]{hyperref}
 
@@ -41,27 +45,28 @@
               {../experiments/results/t8/figures/paper/}}
 
 % ---------------------------------------------------------------- layout
-% Tables here are wide (mechanism/diagnostic/mitigation prose, ablation
-% notes). tabularx with an X column lets the text column absorb the
-% remaining width instead of running past the margin.
+% Several tables carry explanatory prose in one column. tabularx with an X
+% column lets that column absorb the remaining width instead of running past
+% the margin; every table in this manuscript uses it for that reason.
 \newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{R}{>{\raggedleft\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
 \captionsetup{font=small,labelfont=bf}
 \setlength{\tabcolsep}{4.5pt}
 \renewcommand{\arraystretch}{1.12}
 
 % Long literal paths must break at the separators or they overrun the text
-% block, and several of them appear inside \caption, which is a moving
-% argument: \path is fragile there, so the robust \nolinkurl is used instead.
+% block. They appear only in the provenance appendix and the reproducibility
+% appendix, never in captions or in running prose.
 \DeclareRobustCommand{\pth}[1]{\nolinkurl{#1}}
-% The design note is part of the released repository rather than a separate
-% publication, so it is cited as such instead of being spelled out as a file
-% path in running prose.
-\newcommand{\dossierref}[1]{\citep[design note][#1]{cinsrepo}}
 
 % ------------------------------------------------------------- notation
 \newcommand{\norm}[1]{\ensuremath{\left\|#1\right\|}}
 \newcommand{\Rey}{\ensuremath{\mathrm{Re}}}
 \newcommand{\cond}{\ensuremath{\operatorname{cond}}}
+% The multiplication sign is used for every ratio in the manuscript, so that
+% "3.1 times" never appears as an upright roman x beside a digit.
+\newcommand{\x}{\ensuremath{\times}}
 
 % ------------------------------------------------- flowchart node styles
 \tikzset{
@@ -75,6 +80,8 @@
   fcfail/.style  = {fcbox, fill=BrickRed!11, draw=BrickRed!55},
   fcarrow/.style = {-{Stealth[length=2.4mm]}, draw=black!70, thick},
   fclab/.style   = {font=\scriptsize, inner sep=1.5pt, fill=white},
+  jblk/.style    = {rectangle, draw=black!55, align=center,
+                    font=\scriptsize, inner sep=3pt},
 }
 
 % =====================================================================
@@ -111,7 +118,7 @@ constrained root-finding
 \input{sections/formulation}
 
 % =====================================================================
-\section{Failure-mode instrumentation}
+\section{Failure modes and their instrumentation}
 \label{sec:fm}
 \input{sections/instrumentation}
 
@@ -126,6 +133,11 @@ constrained root-finding
 \input{sections/results}
 
 % =====================================================================
+\section{Released software artifacts}
+\label{sec:artifacts}
+\input{sections/artifacts}
+
+% =====================================================================
 \section{Discussion}
 \label{sec:discussion}
 \input{sections/discussion}
@@ -137,20 +149,29 @@ constrained root-finding
 
 % =====================================================================
 \section*{Data and code availability}
-All source, configurations, experiment manifests and figure-generation
-scripts are available at \url{https://github.com/SharathSPhD/CINS}. Every
-figure in this paper is regenerable from an archived run manifest recording
-the configuration hash, git SHA and random seed; the procedure is stated in
-Appendix~\ref{app:repro}. The flow solver is \texttt{mfoil}, used unmodified
-as a vendored dependency.
+All source, configurations, run manifests and figure-generation scripts are
+available at \url{https://github.com/SharathSPhD/CINS}, together with the
+deployed application and the project site described in
+Section~\ref{sec:artifacts}. Every figure in this manuscript is regenerable
+from the archived configuration and run record that Appendix~\ref{app:prov}
+names for it, under the procedure of Appendix~\ref{app:repro}. The flow
+solver is \texttt{mfoil}, used unmodified as a vendored dependency.
 
 \section*{Acknowledgements}
 The author thanks Krzysztof Fidkowski for releasing \texttt{mfoil} under the
 MIT licence, which made a Newton-coupled viscous solver with an accessible
-global system available for this work.
+global system available for this work, and Michael Selig and the University
+of Illinois at Urbana--Champaign for maintaining the public airfoil
+coordinate database from which the evaluation panel of
+Section~\ref{sec:h1-uiuc-panel} was drawn.
 
 % =====================================================================
 \appendix
+% Renders appendix headings as "Appendix A. Title" while leaving \ref
+% returning the bare letter, so "Appendix~\ref{app:area}" reads "Appendix A".
+\makeatletter
+\renewcommand{\@seccntformat}[1]{Appendix~\csname the#1\endcsname.\quad}
+\makeatother
 \input{sections/appendix}
 
 % =====================================================================

@@ -1,103 +1,162 @@
-\label{sec:discussion}
-% TRIZ contradiction-resolution thread; scope limits (dossier \S11):
-% no closed form claimed; semi-analytical architecture with no outer optimisation loop.
+\subsection{A common structure across the four mitigations}
+\label{sec:mitigations}
 
-\subsection{A common separation-principle pattern across the four mitigations}
+The mitigations adopted in this paper are not independent engineering fixes.
+Each was arrived at separately, from direct numerical evidence, a stalled
+residual, a spiked row norm, a badly conditioned submap, and the common
+structure was recognised only afterwards. Recording it is worth a paragraph,
+because it suggests where to look first when the architecture is carried into
+a solver where the specific failures differ.
 
-The FM-2/FM-3/FM-4 mitigations used in this paper are not independent
-engineering fixes. They are recognisable instances of a single TRIZ
-contradiction-resolution pattern, \emph{separation}, applied along
-whichever axis resolves the specific improving/worsening parameter pair in
-tension (\citep{cinsrepo};
-\citep{cinsrepo}):
+Three of the four resolve a tension by separating the two things in conflict
+rather than by compromising between them. The transition closure of
+Section~\ref{sec:transition} separates them in \emph{time}: the conflict is
+between a smooth, Newton-tractable residual and an accurate transition model,
+and it is resolved by phase, forcing transition during the inverse iterations
+and releasing it afterwards, with a verification solve confirming that nothing
+was lost. Nothing is traded away in the end state; the kink is removed exactly
+when Newton needs it removed. The prescribed leading edge separates them in
+\emph{space}: the conflict is between design freedom, invert everywhere, and
+row conditioning, since the residual rows near the nose blow up, and it is
+resolved by prescribing the first few percent of chord geometrically and
+inverting only aft of it. That does cost design freedom, and
+Section~\ref{sec:limitations} records the cost rather than explaining it away.
+The station-restriction rule of Section~\ref{sec:le-identifiability} separates
+them along the same axis, one level down: having removed a region from the
+design space, the sampling must be removed from it too.
 
-\begin{itemize}
-\item \textbf{FM-4 (forced trip, then release) is separation in time}
-  (\S\ref{sec:transition}). The contradiction is reliability (a smooth,
-  Newton-tractable residual) vs.\ model accuracy (the true $e^n$ closure).
-  Resolving it by phase, forced/smooth \emph{during} inverse iterations,
-  natural/accurate \emph{after} convergence, with a feedback verification
-  step, sacrifices no accuracy in the end while removing the $C^0$ kink
-  exactly when Newton needs it removed.
-\item \textbf{FM-3 (prescribed-LE treatment) is separation in space}. The
-  contradiction is design freedom (invert everywhere) vs.\ Jacobian-row
-  conditioning (rows near the nose blow up). Prescribing the first
-  $\approx$5\% chord geometrically and inverting only aft of it removes the
-  pathological rows entirely, at the cost of design freedom the manufacturing
-  constraints (mechanical, cooling) of a real turbine blade were going to fix
-  anyway.
-\item \textbf{FM-2 (orthogonalised basis over Tikhonov regularisation,
-  and in practice, keeping $n$ inside the pre-cliff range identified in
-  \S\ref{sec:ablations}) is TRIZ principle 3, local quality}. The tension
-  identified in the dossier is that the natural fix for ill-conditioning,
-  Tikhonov regularisation, turns a determined solve back into a
-  least-squares problem, i.e.\ back into the optimisation this architecture
-  exists to avoid. The discipline instead is to keep the basis order in its
-  well-conditioned regime (or orthogonalise it) rather than regularise a
-  poorly-conditioned one.
-\item The station-selection identifiability guard of \S\ref{sec:ablations}
-  is likewise principle-3/16 in character (local quality, partial/excessive
-  action): rather than adding more target equations (which would
-  over-determine the square system) or accepting whichever stations are
-  convenient, the existing T4 sensitivity matrix is reused (principle 25,
-  self-service) to select which $M$ rows are maximally informative.
-\end{itemize}
+The remaining two resolve their tension by improving the quality of what is
+already there rather than by adding machinery. For the basis-conditioning
+mode, the obvious fix, Tikhonov regularisation, turns a determined solve back
+into a least-squares problem, which is the optimisation this architecture
+exists to avoid; the discipline adopted instead is to keep the basis order
+inside its well-conditioned regime, or to orthogonalise the basis, rather than
+regularise a badly-conditioned one. For station selection, adding more target
+equations would over-determine the square system, and accepting whatever
+stations are convenient is what produced the wrong root of
+Section~\ref{sec:ablations}; the resolution reuses an operator the pre-solve
+had already built to choose which $M$ rows are maximally informative. Both are
+instances of the same instinct: when a determined formulation is the point,
+the fix must not add degrees of freedom.
 
-Each mitigation was arrived at independently, from direct numerical evidence:
-a stalled residual, a spiked row-norm, a badly conditioned submap. The common
-resolution structure was recognised only afterward.
+\subsection{Threats to validity}
+\label{sec:validity}
 
-\subsection{Limitations}
+The most important limitation of this study is structural and is stated first
+because it conditions how every accuracy number in
+Section~\ref{sec:results} should be read. No result reported here recovers a
+geometry from a target that was produced independently of the method. In every
+case, the self-consistency test, the ablation matrix and both panels, the
+target pressure distribution is generated by the same solver, at the same
+paneling, from a coefficient vector that is exactly representable in the same
+CST basis at the same order. Recovery errors at the $10^{-11}$ level are
+therefore measurements of \emph{identifiability and conditioning}, showing
+that the sampled square system has the generating design as its unique
+reachable root and that the Newton iteration finds it, and not measurements of
+accuracy against independent data. This is deliberate: a self-generated target
+is the only construction under which a failure isolates cleanly to one of the
+Table~\ref{tab:fm} failure modes rather than to target infeasibility, which is
+what makes the test falsifiable in the first place. But it means the reported
+precision does not transfer to a target drawn from experiment, from a finer
+discretisation, or from a different solver. The nearest thing to evidence outside this regime is the
+user-supplied-target path described in Section~\ref{sec:artifacts}, which
+recovers shape to a fraction of a millichord while leaving coefficients to
+differ at the $10^{-2}$ level. Even that solve was run against a
+self-generated target, and its coefficient gap is attributable to the
+inviscid pre-solve meeting a viscous target and to the basis conditioning of
+Section~\ref{sec:nsweep} rather than to target independence, so it bounds
+nothing. A genuinely independent target has not been attempted, and doing so
+is the first item of future work.
+
+Two further gaps in the evidence follow from the same source. The
+realisability guard of Section~\ref{sec:presolve} is never exercised on an
+unrealisable target: measured realisability on the reference configuration is
+$3.90\x10^{-4}$ against a threshold of $0.05$, because a self-generated target
+is realisable by construction, so the guard's discriminating power is asserted
+rather than demonstrated. And there is no robustness study: real inverse
+targets are noisy, over- or under-specified, and nothing here tests target
+perturbation or a target that is only nearly realisable. Given that the
+identifiability mechanism of Section~\ref{sec:ablations} is a statement about
+how much information the sampled rows carry, a sweep of recovery error against
+target-noise amplitude is the single cheapest experiment that would sharpen
+this paper's central finding, and it has not been run.
+
+The discretisation is also fixed throughout. Every result uses the same panel
+count, and for a method whose target rows attach to surface stations and whose
+flow-block Jacobian is a finite difference over geometry, sensitivity to panel
+count is a first-order question that this study does not answer.
+
+\subsection{Scope limits}
 \label{sec:limitations}
 
-\begin{itemize}
-\item \textbf{Single-airfoil-family, $N{=}1$ \emph{ablations} (the $n$-sweep,
-  station-selection, and other single-factor tables of
-  \S\ref{sec:ablations}--\S\ref{sec:h2}).} These remain NACA-2412-only,
-  \texttt{seed=42}, one run per cell: Stage-1-lite evidence by design, with
-  no confidence interval reported for any of them. This caveat does
-  \emph{not} extend to the H1 convergence claim itself
-  (\S\ref{sec:h1-panel}, \S\ref{sec:h1-uiuc-panel}), which was subsequently
-  upgraded to genuine panel-level evidence across both the 20-section NACA
-  panel (18/18 generable sections, Wilson LB 0.824) and the 117-section
-  UIUC panel (83/83 converged sections meet the accuracy criterion, Wilson
-  LB 0.956). The ablation-level findings ($n$-sweep, station-selection,
-  flow-solve-count) remain NACA-2412-only and are not extended to the UIUC
-  panel by this paper.
-\item \textbf{Vendor wake-direction assertion failures beyond sharp
-  trailing edges.} Three UIUC sections, \texttt{goe780}, \texttt{mh62}, and
-  \texttt{naca64206}, still fail mfoil's wake-direction assertion
-  (\S\ref{sec:h1-uiuc-panel}) after the minimum-trailing-edge-gap fix that
-  resolved the sharp-trailing-edge case. Their trailing-edge gap is
-  already above the minimum, so the cause is distinct from the case the
-  fix addressed. This is recorded as an open item, not resolved here.
-\item \textbf{Subcritical, isolated airfoil.} All results use mfoil's
-  Kármán--Tsien compressibility correction (subcritical only) on an
-  isolated airfoil: no cascade periodicity, no pitch/stagger, no AVDR
-  streamtube contraction (\dossierref{\S6.2}). The hypothesis under test is a claim about solver
-  \emph{architecture}, not turbine aerodynamics, and is answered as well on
-  an isolated airfoil as on a cascade. The cascade and transonic regimes,
-  however, are genuinely untested here.
-\item \textbf{Single operating condition.} All cells share one
-  \texttt{operating.*} block (one $Re$, one $\alpha$, one Mach regime); no
-  claim in this paper generalizes across flow regimes.
-\end{itemize}
+The ablation evidence is single-airfoil and single-run. The order sweep, the
+station-selection comparison, the remaining single-factor ablations of
+Section~\ref{sec:other-ablations} and the cost comparison of
+Section~\ref{sec:cost} are all on NACA 2412 at a fixed seed, one run per
+configuration, with no confidence interval reported for any of them. That caveat does not extend to the recovery claim itself, which was
+upgraded to panel-level evidence across both the 20-section NACA panel and the
+117-section UIUC panel (Sections~\ref{sec:h1-panel}
+and~\ref{sec:h1-uiuc-panel}); but the ablation-level findings remain
+single-airfoil and are not extended to either panel here.
 
-\subsection{The outdated-baseline finding}
+The panel evidence carries a selection effect, quantified in
+Section~\ref{sec:h1-uiuc-panel}. Twenty-nine percent of the UIUC panel is
+excluded, overwhelmingly because the host analysis solver cannot converge a
+target for the section at all, and the excluded sections are systematically
+thinner than the converged ones. The exclusion arises before any inverse
+problem is posed and is therefore a property of the host solver rather than of
+the formulation, but the accuracy claim is conditioned on it. Three further
+sections fail the host solver's wake-direction assertion for a cause unrelated
+to the sharp-trailing-edge case that an earlier correction addressed; their
+trailing-edge gap is already above the minimum, and this remains an open item.
 
-The pre-registered $\geq$100x claim (STATS\_PROTOCOL H2) is not simply
-missed by the measured 3.1--8.1x. The two independent fair-paired controls
-in \S\ref{sec:h2} give a plausible account of \emph{why} it lands where it
-does. \texttt{scipy.optimize.least\_squares(method="lm")}, tightly tolerance
-($\mathrm{ftol}=\mathrm{xtol}=\mathrm{gtol}=10^{-8}$) and properly scaled
-($x\_scale$ from $|x_0|$, floored at $10^{-3}$) over the same 16
-well-conditioned free coefficients, is a genuinely strong comparator. It
-converges the cold-start case in 6 outer LM iterations, nothing like the
-Dakota-surrogate/Kriging-in-the-loop nested-optimisation baselines that a
-$\geq$100x figure of that magnitude typically describes in the older
-aerodynamic-shape-optimisation literature the dossier's original framing
-appears to draw on. \textbf{The pre-registered
-threshold plausibly encodes an outdated class of nested-optimisation
-baseline.} Measuring against a strong modern gradient-based baseline and
-reporting the resulting 3--8x ratio directly is a more informative
-comparison than either confirming or missing the original number.
+The flow regime is narrow. All results are incompressible: the configuration
+sets free-stream Mach number to zero, so the solver's Kármán--Tsien
+compressibility correction, which would in any case be valid only below the
+critical Mach number, is never exercised. Compressible and transonic behaviour
+is untested, as is anything cascade-specific, since there is no periodicity,
+no pitch or stagger, and no streamtube contraction. All runs share a single
+operating condition, one Reynolds number and one incidence, so no claim here
+generalises across flow regimes. The hypothesis under test is a claim about
+solver \emph{architecture} rather than about turbine aerodynamics, and is
+answered as well on an isolated airfoil as on a cascade; but the regimes the
+architecture was ultimately built for are genuinely untested.
+
+Two limits internal to the formulation were flagged in
+Section~\ref{sec:contribution} and are repeated here because they bound the
+contribution rather than the evidence. The constraint rows, which are half of
+the novelty claim, are implemented and unit-tested but not exercised by any
+measured result, so wherever an exact analytic constraint-row Jacobian is
+offered as an advantage over the nested baseline, it is an advantage of the
+formulation and not one this study has measured, in a comparison where neither
+side carried an active constraint. And the flow-block Jacobian is obtained by
+finite differences rather than from the exact constant geometric sensitivity,
+because the host solver exposes no complete geometric sensitivity of its own
+residual; the exact sensitivity is used where it can be, in the constraint
+rows and the pre-solve, and Section~\ref{sec:h3} measures what the
+finite-difference substitute costs in convergence rate.
+
+Finally, the novelty claim itself rests on a negative result established by
+open literature search rather than by an exhaustive search of the aerospace
+society digital collections. No published work is known that couples a
+Newton-coupled inverse solver directly to CST coefficients as Newton unknowns,
+as opposed to CST as a post-hoc smoother, but that is a statement about what
+was found rather than about what exists.
+
+\subsection{Why the pre-registered cost threshold was missed}
+\label{sec:outdated-baseline}
+
+The pre-registered hundredfold claim is not simply missed by the measured
+$3.1$ to $8.1\x$ in counted solves, or by the $3.4\x$ in wall-clock time. The
+two fair-paired controls of Section~\ref{sec:cost} give a plausible account of
+\emph{why} it lands where it does. A Levenberg--Marquardt solve with all three
+tolerances at $10^{-8}$ and per-variable scaling taken from the initial guess,
+over the same 16 well-conditioned free coefficients, is a genuinely strong
+comparator. It converges the cold-start case in six outer iterations, which is
+nothing like the surrogate-in-the-loop nested-optimisation baselines that a
+hundredfold figure typically describes in the older aerodynamic
+shape-optimisation literature the original framing drew on. The pre-registered
+threshold plausibly encodes an outdated class of nested baseline. Measuring
+against a strong modern gradient-based one and reporting the resulting ratio
+directly, in three currencies rather than the most favourable one, is a more
+informative comparison than either confirming or missing the original number.

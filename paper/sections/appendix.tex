@@ -1,20 +1,20 @@
 \section{Beta-function area-row derivation}
 \label{app:area}
 
-\S\ref{sec:constraints} states the inscribed-area constraint row as a
+Section~\ref{sec:constraints} states the inscribed-area constraint row as a
 closed-form Beta function without deriving it; this appendix supplies the
-algebra (source: \dossierref{\S3.4}).
-The per-surface area under Eq.~\eqref{eq:surfaces} is
+algebra and the two-surface assembly. The per-surface area under
+Eq.~\eqref{eq:surfaces} is
 \begin{equation}
   \mathcal{A}_{\text{surf}} = \int_0^1 \zeta(\psi)\,d\psi
   = \int_0^1 \Big[C(\psi)\sum_i A_i S_i(\psi) + \psi\,\zeta_T\Big]\,d\psi
   = \sum_i A_i \int_0^1 C(\psi)S_i(\psi)\,d\psi + \frac{\zeta_T}{2},
 \end{equation}
-using linearity of the integral (itself a consequence of
-Eq.~\eqref{eq:surfaces}'s linearity in $A$, \S\ref{sec:cst-linearity}) and
-$\int_0^1\psi\,d\psi=1/2$ for the trailing-edge term. The remaining integral,
-per basis function $S_i(\psi)=K_i\psi^i(1-\psi)^{n-i}$ with
-$K_i=\binom{n}{i}$ and $C(\psi)=\psi^{N_1}(1-\psi)^{N_2}$, is
+using linearity of the integral, itself a consequence of
+Eq.~\eqref{eq:surfaces}'s linearity in $A$, and $\int_0^1\psi\,d\psi=1/2$ for
+the trailing-edge term. The remaining integral, per basis function
+$S_i(\psi)=K_i\psi^i(1-\psi)^{n-i}$ with $K_i=\binom{n}{i}$ and
+$C(\psi)=\psi^{N_1}(1-\psi)^{N_2}$, is
 \begin{align}
   \int_0^1 C(\psi)S_i(\psi)\,d\psi
     &= K_i \int_0^1 \psi^{N_1}(1-\psi)^{N_2}\,\psi^i(1-\psi)^{n-i}\,d\psi \\
@@ -22,160 +22,240 @@ $K_i=\binom{n}{i}$ and $C(\psi)=\psi^{N_1}(1-\psi)^{N_2}$, is
 \end{align}
 The Euler integral of the first kind is, by definition,
 $B(p,q) = \int_0^1 t^{p-1}(1-t)^{q-1}\,dt$ for $\Re(p),\Re(q)>0$. Matching
-exponents, $p-1 = i+N_1 \Rightarrow p = i+N_1+1$ and
-$q-1 = n-i+N_2 \Rightarrow q = n-i+N_2+1$, giving exactly
-Eq.~\eqref{eq:area-beta}:
+exponents, $p-1 = i+N_1$ so $p = i+N_1+1$, and $q-1 = n-i+N_2$ so
+$q = n-i+N_2+1$, giving exactly Eq.~\eqref{eq:area-beta}:
 \begin{equation}
   \int_0^1 C(\psi)S_i(\psi)\,d\psi = K_i\,B(i+N_1+1,\;n-i+N_2+1).
 \end{equation}
-For the default round-nose/sharp-tail class ($N_1=0.5$, $N_2=1.0$), this is
-$K_i\,B(i+1.5,\,n-i+2)$, always well-defined since $i+1.5>0$ and
-$n-i+2>0$ for every $i\in\{0,\dots,n\}$, so no term in the sum is singular
-despite the class function's own $\sqrt\psi$ non-analyticity at $\psi=0$
-(\S\ref{sec:constraints}'s point that the LE singularity affects flow-
-residual \emph{rows}, not CST's own geometric \emph{functionals}, which stay
-perfectly regular). Stacking one such row per coefficient
-gives the full area constraint row $g$ in $g\cdot A = b$, with $b$ the
-target inscribed area (or, for the T7/T8 self-consistency protocol, the
-area of the CST fit itself, per the target-consistent-RHS discipline
-$b=g\cdot A^\ast$ established at T4: the constraint right-hand side must
-always be built from what the reference geometry \emph{actually has}, never
-from an idealised or rounded value, or the constraint row itself introduces a
-spurious residual floor no Newton iteration can remove).
+For the default round-nose, sharp-tail class ($N_1=0.5$, $N_2=1.0$) this is
+$K_i\,B(i+1.5,\,n-i+2)$, always well-defined since $i+1.5>0$ and $n-i+2>0$ for
+every $i\in\{0,\dots,n\}$. No term in the sum is singular, despite the class
+function's own $\sqrt\psi$ non-analyticity at $\psi=0$, which is
+Section~\ref{sec:fm}'s point that the leading-edge singularity affects
+flow-residual \emph{rows} and not CST's own geometric \emph{functionals}.
 
-\section{DOF accounting worked example (T7 configuration)}
+The enclosed area is the difference of the two surfaces,
+$\int_0^1(\zeta_u-\zeta_l)\,d\psi$. Collecting one entry per coefficient
+therefore gives a \emph{single} row $g$ whose upper block carries the
+Beta-function values above, whose lower block carries the same values with the
+opposite sign, and whose trailing-edge contribution is
+$\tfrac12(\zeta_{T,u}-\zeta_{T,l})$. The sign on the lower block is not
+cosmetic. Under the stored-sign convention of
+Section~\ref{sec:cst-linearity}, lower-surface coefficients are already
+negative, and applying the upper-surface form to them produces a row that is
+silently wrong in exactly the way the trailing-edge row was once wrong.
+
+The right-hand side $b$ is the target inscribed area, or, for the
+self-consistency protocol of Section~\ref{sec:falsifiable}, the area of the
+CST fit itself, $b=g\cdot A^\ast$. This target-consistent convention is
+binding: the constraint right-hand side must always be built from what the
+reference geometry \emph{actually has}, never from an idealised or rounded
+value, or the constraint row itself introduces a spurious residual floor no
+Newton iteration can remove.
+
+\section{Degree-of-freedom accounting, worked}
 \label{app:dof}
 
-Eq.~\eqref{eq:dof} ($M+K=n_{A,\text{free}}+n_\alpha$) is an assertion, not a
-derived quantity (\S\ref{sec:newton-system}); this appendix works it for the
-T7 winning configuration and states the general rule it specialises.
+Equation~\eqref{eq:dof}, $M+K=n_{A,\text{free}}+n_\alpha$, is an assertion
+rather than a derived quantity (Section~\ref{sec:newton-system}); this
+appendix works it for the reference configuration and states the general rule
+it specialises.
 
-\paragraph{The T7 case.} $n=8$ per side $\Rightarrow$ 9 coefficients per
-surface, 18 total ($A_{u,0..8}$, $A_{l,0..8}$). \texttt{le\_treatment=
-prescribed} removes 2 of these from the free set: $A_{u,0}$ and $A_{l,0}$
-are geometrically fixed to the reference fit's own values, not Newton
-unknowns (\S\ref{sec:falsifiable}), leaving $n_{A,\text{free}}=16$. Because
-$A_{u,0}/A_{l,0}$ are prescribed directly
-rather than tied by an equality row, no separate shared-LE constraint row is
-needed for this configuration: $K=0$. $\alpha$ is fixed for the
-self-consistency protocol (removing the camber--$\alpha$ null direction,
-\S\ref{sec:ablations}): $n_\alpha=0$. Eq.~\eqref{eq:dof} therefore requires
-$M = 16 + 0 - 0 = 16$ target-station equations, exactly the QR-pivoted
-station count reported throughout \S\ref{sec:falsifiable}--\S\ref{sec:ablations}
-(\pth{experiments/results/t7_naca2412/diagnostics.json}, \texttt{static.
-dof\_accounting}: \texttt{n\_A\_free=16, M=16, K=0}).
+\paragraph{The reference case.} At $n=8$ per side there are 9 coefficients per
+surface and 18 in total. The prescribed-leading-edge treatment removes 2 of
+these from the free set: $A_{u,0}$ and $A_{l,0}$ are geometrically fixed to
+the reference fit's own values rather than being Newton unknowns, leaving
+$n_{A,\text{free}}=16$. Because they are prescribed directly rather than tied
+by an equality row, no separate shared-leading-edge constraint row is needed
+for this configuration, so $K=0$. The angle of attack is fixed for the
+self-consistency protocol, removing the camber--incidence null direction of
+Section~\ref{sec:ablations}, so $n_\alpha=0$. Equation~\eqref{eq:dof}
+therefore requires $M = 16 + 0 - 0 = 16$ target-station equations, exactly the
+QR-pivoted station count reported throughout
+Sections~\ref{sec:falsifiable} and~\ref{sec:ablations}, and exactly the value
+recorded in the run's own accounting record.
 
 \paragraph{The general rule.} Restating Eq.~\eqref{eq:dof} in full generality:
-for $n$ Bernstein coefficients per surface (2 surfaces, so $2(n+1)$ raw
-coefficients), $c_{LE}\in\{0,1\}$ constraint rows tying the leading-edge
-coefficients (shared-LE row, used only when \texttt{le\_treatment=none} or
-\texttt{lem}, not when \texttt{prescribed} pins the coefficients directly),
-$p_{LE}\in\{0,2\}$ coefficients removed by prescription (2 when
-\texttt{le\_treatment=prescribed}, else 0), and any additional geometric
-constraint rows $K_{\text{extra}}$ (TE thickness, inscribed area, curvature,
-\S\ref{sec:constraints}):
+for $n$ Bernstein coefficients per surface, hence $2(n+1)$ raw coefficients
+across two surfaces, with $c_{LE}\in\{0,1\}$ constraint rows tying the
+leading-edge coefficients, used only when the leading edge is left free rather
+than prescribed; $p_{LE}\in\{0,2\}$ coefficients removed by prescription; and
+any additional geometric constraint rows $K_{\text{extra}}$ from
+trailing-edge thickness, inscribed area or curvature
+(Section~\ref{sec:constraints}),
 \begin{equation}
   n_{A,\text{free}} = 2(n+1) - p_{LE}, \qquad K = c_{LE} + K_{\text{extra}},
-  \qquad M = n_{A,\text{free}} + n_\alpha - K.
+  \qquad M = n_{A,\text{free}} + n_\alpha - K,
 \end{equation}
-This is the Stage-1 (isolated-airfoil) specialisation of the dossier's
-original rigid-body bookkeeping
-(\S\ref{sec:newton-system}'s $\mathrm{DOF}=2(n+1)-1_{\text{shared LE}}-
-1_{\text{TE fixed}}+3_{\text{scale/rotate/translate}}+1_{\text{stagger or
-}\alpha}$): the three rigid overall modes are not exposed as free Newton
-unknowns in this implementation (chord, position and rotation are fixed by
-convention, not solved for), so they contribute neither to
-$n_{A,\text{free}}$ nor to $M$, and Eq.~\eqref{eq:dof} is the resulting
-simpler, directly-assertable statement. The rule's lineage is Lighthill's
-own well-posedness bookkeeping~\citep{lighthill1945new}: a conformal-mapping
-inverse solve is well-posed only when the number of free shape parameters
-exactly matches the number of independent closure conditions (contour
-closure, LE radius, circulation) the target and geometry family jointly
-admit. Eq.~\eqref{eq:dof} is that same counting argument, discretised for
-a finite-dimensional CST basis and asserted programmatically rather than
-checked by hand.
+which is Eq.~\eqref{eq:dof} rearranged, not a different statement. This is the
+isolated-airfoil specialisation of the rigid-body bookkeeping quoted in
+Section~\ref{sec:newton-system}: the three overall modes of scale, rotation
+and translation are not exposed as free Newton unknowns in this
+implementation, since chord, position and rotation are fixed by convention
+rather than solved for, so they contribute neither to $n_{A,\text{free}}$ nor
+to $M$.
+
+The rule's lineage is Lighthill's own well-posedness
+bookkeeping~\citep{lighthill1945new}: a conformal-mapping inverse solve is
+well-posed only when the number of free shape parameters exactly matches the
+number of independent closure conditions, contour closure, leading-edge radius
+and circulation, that the target and geometry family jointly admit.
+Equation~\eqref{eq:dof} is that same counting argument, discretised for a
+finite-dimensional CST basis and asserted programmatically rather than checked
+by hand.
 
 \section{The onset-closure Jacobian rows}
 \label{app:onset}
 
-\S\ref{sec:transition} describes \texttt{\_residual\_transition\_forced}
-(ADR-0003) narratively; this appendix states its Jacobian-row structure
-explicitly, since it is the one residual block in this paper's extended
-system that is not simply reused unchanged from mfoil
-(\S\ref{sec:newton-system}). At a forced-transition onset station with
-endpoint states $U_1$ (upstream, still formally laminar-indexed) and $U_2$
-(downstream, freshly turbulent), the vendor three-row station residual is
-$R=[R_{\text{mom}},\,R_{\text{shape}},\,R_{\text{lag}}]$
-(\texttt{mfoil.py}, \texttt{residual\_station}). Rows 0--1
-(momentum, shape parameter) are vendor's own ordinary turbulent closure
-evaluated directly across $[x_1,x_2]$: an unchanged code path, so their
-$U$- and $x$-Jacobian blocks are exactly mfoil's own
-$\partial R_{\text{mom},\text{shape}}/\partial U_{1,2}$,
-$\partial R_{\text{mom},\text{shape}}/\partial x$, reused verbatim. Row 2
-(shear-lag) is replaced with the onset condition
-$U_2[2] - c_{ttr}(U_2) = 0$, where $c_{ttr}$ is the same transition-
-correlation root-shear-stress function (\texttt{get\_cttr}) vendor's own
-\texttt{update\_transition} uses to initialise a newly-turbulent node.
-Because $c_{ttr}$ is a function of $U_2$ (specifically $\theta,H_k,Re_\theta,
-u_e$ at the downstream node) only, its Jacobian row has the structure
+Section~\ref{sec:transition} describes the forced-transition onset closure
+narratively; this appendix states its Jacobian-row structure explicitly, since
+it is the one residual block in this paper's extended system that is not
+simply reused unchanged from the host solver.
+
+At a forced-transition onset station with endpoint states $U_1$ upstream,
+still formally laminar-indexed, and $U_2$ downstream, freshly turbulent, the
+vendor three-row station residual is
+$R=[R_{\text{mom}},\,R_{\text{shape}},\,R_{\text{lag}}]$. Rows~0 and~1,
+momentum and shape parameter, are the vendor's own ordinary turbulent closure
+evaluated directly across $[x_1,x_2]$, an unchanged code path, so their state
+and geometry Jacobian blocks are exactly the vendor's own, reused verbatim.
+Row~2, the shear-lag equation, is replaced with the onset condition
+$U_2[2] - c_{ttr}(U_2) = 0$, where $c_{ttr}$ is the same transition-correlation
+shear-stress function the vendor's own transition update uses to initialise a
+newly turbulent node.
+
+Because $c_{ttr}$ is a function of the downstream state alone, specifically of
+$\theta$, the kinematic shape parameter, the momentum-thickness Reynolds
+number and the edge velocity at that node, its Jacobian row has the structure
 \begin{equation}
   R_U[2,\,0{:}4] = 0 \quad(\text{no } U_1 \text{ dependence}), \qquad
   R_U[2,\,4{:}8] = e_{sa} - \left.\frac{\partial c_{ttr}}{\partial U_2}\right|_{U_2},
   \qquad R_x[2,\,:] = 0,
 \end{equation}
 where $e_{sa}=[0,0,1,0]$ selects the shear-lag component of $U_2$ and
-$\partial c_{ttr}/\partial U_2$ is \texttt{get\_cttr}'s own analytic
-derivative block (\texttt{cttr\_U}), already computed by vendor code for the
-identical purpose inside \texttt{update\_transition}: reused, not
-re-derived. The row's independence from $U_1$ and from $x$ is not an
-approximation: it follows structurally from $c_{ttr}$'s own functional
-form, which was verified by direct inspection of \texttt{get\_cttr}
-(ADR-0003, ``Modeling choice''), and it is what makes this replacement
-row well-defined at a station where the natural (unforced) closure's
-internal $x_t$-solve has no solution (\S\ref{sec:transition}).
+$\partial c_{ttr}/\partial U_2$ is the vendor's own analytic derivative block,
+already computed by vendor code for the identical purpose inside its
+transition update: reused, not re-derived. The row's independence from $U_1$
+and from the geometry is not an approximation. It follows structurally from
+$c_{ttr}$'s own functional form, verified by direct inspection of the vendor
+routine, and it is what makes this replacement row well-defined at a station
+where the natural closure's internal transition-point solve has no solution.
 
-\section{Reproducibility statement}
+\section{Convergence-order estimation and the residual floor}
+\label{app:order}
+
+Section~\ref{sec:h3} reports local convergence orders, and the estimates are
+sensitive enough to the estimation rule that the rule belongs in the record.
+
+Given a residual sequence $r_0, r_1, \dots$, the three-point local order is
+\begin{equation}
+  p_k \;=\; \frac{\log(r_k/r_{k-1})}{\log(r_{k-1}/r_{k-2})},
+  \label{eq:order}
+\end{equation}
+which follows from assuming $r_k \approx C\,r_{k-1}^{\,p}$ and eliminating $C$
+between two consecutive steps. It is exact only asymptotically and is
+notoriously noisy on short sequences, which is why
+Section~\ref{sec:h3} reports the spread as well as the median.
+
+Three rules govern its application here. First, the estimator is evaluated on
+the last three residuals lying strictly above $10^{-9}$. That threshold is the
+finite-difference floor of Section~\ref{sec:derivatives}: with a step of
+$10^{-6}$ and double precision, each Jacobian column carries a relative error
+of order $10^{-10}$, so residuals at or below that magnitude reflect the
+Jacobian's own noise rather than the iteration's progress, and an order
+computed across them is meaningless. Runs reaching the floor in fewer than
+three post-initial steps are reported as unscoreable rather than being given a
+number, which is why seven of the twelve converged runs carry no entry in
+Table~\ref{tab:h3}. Second, the raw convergence-order field stored with each
+run does \emph{not} apply this exclusion and is never quoted; every order in
+this paper is recomputed from the stored residual history under the rule
+above. Third, the residual block the estimator is applied to is stated
+explicitly, because it matters: for the ablation-matrix runs it is the full
+extended residual $\norm{[R;\,T-Cp_{target};\,G\!A-b]}$, and for the
+self-consistency run of Section~\ref{sec:falsifiable} it is the target block
+alone, because the flow block is already converged at that run's starting
+point and contributes only its own floor.
+
+\section{Reproducibility and software environment}
 \label{app:repro}
 
-\begin{itemize}
-\item \textbf{Repository.} \url{https://github.com/SharathSPhD/CINS.git}
-  (branch \texttt{main} at every gate closure, per this project's workflow
-  discipline). \pth{vendor/mfoil/mfoil.py}~\citep{fidkowski2022coupled}
-  is vendored unmodified (MIT licence) and is never edited; all solver
-  access is through \pth{src/cins/solver/mfoil_adapter.py}.
-\item \textbf{Manifest scheme.} Every experiment run in this paper writes
-  an immutable manifest under \pth{experiments/results/} recording the
-  git SHA, a hash of the fully-resolved \pth{configs/*.yaml} used, the
-  random seed (\texttt{experiment.seed}, \texttt{42} throughout), and
-  enough metadata to regenerate the run byte-for-byte
-  (\citep{cinsrepo} condition~4). No number in this paper is
-  hand-edited; every table cell traces to a \texttt{result.json} or
-  \texttt{diagnostics.json} artifact under \pth{experiments/results/},
-  cited inline by path throughout \S\ref{sec:falsifiable}--
-  \S\ref{sec:results}.
-\item \textbf{One-command regeneration.} T8 ablation-matrix figures (D-6
-  overlay, $n$-sweep, flow-solve bar chart, station-selection comparison):
-  \texttt{.venv/bin/python -m cins.benchmarks.figures}. This paper's new
-  geometry/Cp/flow-solution/H1-gallery figures
-  (\S\ref{sec:falsifiable}, \S\ref{sec:h1-panel}): \texttt{.venv/bin/python
-  -m cins.benchmarks.paper\_figures}. Both re-run the underlying
-  monolithic solves fresh rather than reading cached scalars, since neither
-  \texttt{t7\_naca2412/diagnostics.json} nor any \texttt{t8/*/result.json}
-  stores the CST coefficient vectors or field distributions themselves
-  (only scalar summaries; verified directly against the on-disk schema
-  before writing \texttt{paper\_figures.py}, not assumed). Individual T7/T8
-  cells: \texttt{.venv/bin/python experiments/run\_t7.py} and
-  \texttt{.venv/bin/python -m cins.benchmarks.runner} respectively. Tests:
-  \texttt{python -m pytest tests/ -q}.
-\item \textbf{Gate-closure evidence.} \citep{cinsrepo},
-  \texttt{T3-closure.md}, \texttt{T4-T7-closure.md} record the six-condition
-  gate-closure contract (\citep{cinsrepo}) for each corresponding
-  task, including adversarial-review findings and their resolution;
-  \citep{cinsrepo} through \texttt{ADR-0004} record the four
-  binding architectural decisions this paper's Formulation section depends
-  on (scipy shim, vendor NACA5 shim, forced-transition shim, realisability
-  semantics).
-\end{itemize}
+The repository at \url{https://github.com/SharathSPhD/CINS} carries the
+engine, every configuration file, the archived run records, the figure
+scripts, the test suite and the source of this manuscript. The flow solver
+\pth{vendor/mfoil/mfoil.py}~\citep{fidkowski2022coupled} is vendored
+unmodified under the MIT licence and is never edited; all solver access passes
+through a single adapter module, which is what makes the forced-transition
+closure of Section~\ref{sec:transition} implementable without a fork.
 
-\bibliographystyle{plainnat}
-\bibliography{p1_refs}
+Every run writes an immutable record under \pth{experiments/results/} carrying
+the commit identifier, a hash of the fully-resolved configuration, the random
+seed, fixed at 42 throughout, and enough metadata to regenerate the run. No
+number in this paper is hand-entered; every table entry traces to a stored
+record, and Appendix~\ref{app:prov} names the record for each table and
+figure.
+
+Regeneration is by module. The ablation-matrix figures, being the convergence
+overlay, the order sweep, the cost bar chart and the station-selection
+comparison, come from \pth{cins.benchmarks.figures}. The geometry, pressure,
+flow-solution and panel-gallery figures come from
+\pth{cins.benchmarks.paper_figures}, and the formulation figures from
+\pth{cins.benchmarks.paper_figures_theory}; both re-run the underlying
+monolithic solves fresh rather than reading cached scalars, because the stored
+records hold scalar summaries and not the coefficient vectors or field
+distributions themselves. The cost, convergence and panel-outcome figures come
+from \pth{cins.benchmarks.paper_figures_archive}, which reads only stored
+records and re-runs nothing. Individual runs are reproduced through
+\pth{experiments/run_t7.py} and \pth{cins.benchmarks.runner}, and the
+test suite through \pth{pytest tests/}. The one qualification on the
+data-availability statement is therefore that figures are regenerable from an
+archived \emph{configuration} plus its recorded seed and commit, which for
+four of the figure families means re-running the solve rather than replotting
+stored arrays.
+
+The environment is Python 3.11 or later with NumPy 1.26 or later, SciPy 1.11
+or later, Matplotlib 3.8 or later and Pydantic 2.5 or later, as pinned in the
+project metadata; the vendored solver is the 2023-06-28 release. All timings
+quoted in Section~\ref{sec:cost} were measured on a single machine under a
+single-threaded configuration and are reported for their ratio rather than
+their absolute value, which is hardware-dependent.
+
+\section{Figure and table provenance}
+\label{app:prov}
+
+Table~\ref{tab:prov} maps every figure and table in this manuscript to the
+record it was produced from, so that no source path need appear in a caption
+or in running prose. Paths are relative to the repository root. Entries marked
+as constructed are diagrams authored in the manuscript source rather than
+generated from data.
+
+\begin{table}[htbp]
+\centering
+\caption{Provenance of every figure and table.}
+\label{tab:prov}
+\footnotesize
+\begin{tabularx}{\textwidth}{@{}l L@{}}
+\toprule
+Float & Source record \\
+\midrule
+Fig.~\ref{fig:cst-basis}, \ref{fig:cst-parameters} & \pth{experiments/results/t8/figures/paper/}, from \texttt{paper\_figures\_theory} \\
+Fig.~\ref{fig:jacobian}, \ref{fig:pipeline}, \ref{fig:artifact-stack} & constructed in the manuscript source \\
+Fig.~\ref{fig:viscous} & \pth{experiments/results/t8/figures/paper/fig_viscous_solution.png} \\
+Fig.~\ref{fig:convergence-overlay} & \pth{experiments/results/t8/figures/h3_convergence_overlay.png} \\
+Fig.~\ref{fig:t7-geometry}, \ref{fig:t7-cp}, \ref{fig:t7-flow} & \pth{experiments/results/t8/figures/paper/}, from \texttt{paper\_figures} \\
+Fig.~\ref{fig:station-selection}, \ref{fig:nsweep} & \pth{experiments/results/t8/figures/}, from \texttt{cins.benchmarks.figures} \\
+Fig.~\ref{fig:le-identifiability} & \pth{experiments/results/t8/figures/paper/fig_le_identifiability.png} \\
+Fig.~\ref{fig:h1-gallery} & \pth{experiments/results/t8/panel_*/result.json} \\
+Fig.~\ref{fig:uiuc-outcomes}, \ref{fig:cost}, \ref{fig:convergence} & \pth{experiments/results/t8/uiuc_panel_summary.json}; \pth{experiments/results/t8/*/result.json}; \pth{configs/experiments/panel_uiuc/*.yaml} \\
+Tab.~\ref{tab:constraint-comparison}, \ref{tab:fm}, \ref{tab:diagnostics} & formulation and instrumentation, no run record \\
+Tab.~\ref{tab:t7} & \pth{experiments/results/t7_naca2412/result.json}; residual history from the companion \pth{diagnostics.json} \\
+Tab.~\ref{tab:identifiability} & \pth{experiments/results/t8/t8_n08_baseline/}, \pth{t8_station_even/} \\
+Tab.~\ref{tab:le-identifiability} & \pth{experiments/results/le_stations/result.json} \\
+Tab.~\ref{tab:n-sweep} & \pth{experiments/results/t8/t8_n{04,06,08,10,12}*/}; \pth{t2_gram_conditioning.json} \\
+Tab.~\ref{tab:other-ablations}, \ref{tab:airfoils} & \pth{experiments/results/t8/t8_*/result.json} \\
+Tab.~\ref{tab:uiuc-outcome}, \ref{tab:uiuc-criteria}, \ref{tab:uiuc-exclusions} & \pth{experiments/results/t8/uiuc_panel_summary.json} \\
+Tab.~\ref{tab:h2} & \pth{experiments/results/t8/t8_n08_baseline*/}, \pth{t8_init_perturbed/}, \pth{control_cold_control/} \\
+Tab.~\ref{tab:h3} & residual histories in \pth{experiments/results/t8/*/result.json}, recomputed per Appendix~\ref{app:order} \\
+Tab.~\ref{tab:comparison-quant}, \ref{tab:comparison-struct} & rows (i)--(ii) as above; rows (iii)--(vi) from the cited literature \\
+\bottomrule
+\end{tabularx}
+\end{table}

@@ -27,11 +27,19 @@ penalty terms. Constrained shape optimization becomes constrained root-finding.
 | T5 | Extended Newton system | **closed** |
 | T6 | Diagnostics D1–D6 | **closed** |
 | T7 | **Falsifiable test: recover A\* from its own Cp** | **PASSED: A\* recovered to 2.75e-11 in 6 iterations** |
-| T8 | Ablations + statistical benchmark | **closed** (H1 panel deferred) |
+| T8 | Ablations + statistical benchmark | **closed** (NACA + UIUC panels run) |
 | T9 | Stage 2 (cascade) design review | in progress |
 
 The manuscript is [paper/p1_main.pdf](paper/p1_main.pdf); its evidence base is
-the run manifests under `experiments/results/`.
+the run manifests under `experiments/results/`, and Appendix F of the manuscript
+maps every figure and table to the record it came from.
+
+## Live artifacts
+
+- **App** — <https://cins-inverse-design.vercel.app> (analyse, inverse design,
+  flow field, gallery; backend at <https://cins-backend.onrender.com>)
+- **Project site** — <https://sharathsphd.github.io/CINS/> (narrative walkthrough
+  of the method and the experiment ladder)
 
 ## Repository layout
 

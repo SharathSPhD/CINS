@@ -1,4 +1,4 @@
-"""T8 ablation figures (STATS_PROTOCOL, ADR-0004 reporting rules).
+"""Ablation-matrix figures for the manuscript.
 
 Regenerates the four T8 figures directly from ``experiments/results/t8/*/result.json``
 and ``diagnostics.json`` -- no hand-entered numbers (STATS_PROTOCOL §7). Run as::
@@ -62,16 +62,16 @@ def _load_diag(cell: str) -> dict[str, Any] | None:
 
 
 def fig_h3_convergence_overlay(out_path: Path = FIGURES_DIR / "h3_convergence_overlay.png") -> Path:
-    """D-6 overlay: log residual vs Newton iteration for the headline cells.
+    """Convergence overlay: log residual against Newton iteration.
 
     baseline (qr_pivot, n=8, converges to the correct root) vs station_even
     (converges but to the WRONG root, err_all_inf=1.4e-3 >> gate 1e-4) vs n12
     (FM-2 conditioning cliff, 21 iterations vs the panel's typical 3-5).
     """
     cells = {
-        "baseline (n=8, qr_pivot)": ("t8_n08_baseline", C_BLUE, "-o"),
-        "station_even (WRONG ROOT)": ("t8_station_even", C_VERMILLION, "-s"),
-        "n12 (FM-2 cliff, 21 it.)": ("t8_n12", C_ORANGE, "-^"),
+        "baseline ($n=8$, QR-pivoted stations)": ("t8_n08_baseline", C_BLUE, "-o"),
+        "evenly-spaced stations (wrong root)": ("t8_station_even", C_VERMILLION, "-s"),
+        "$n=12$ (conditioning cliff, 21 it.)": ("t8_n12", C_ORANGE, "-^"),
     }
     fig, ax = plt.subplots(figsize=(7.0, 4.5))
     for label, (cell, color, style) in cells.items():
@@ -80,14 +80,18 @@ def fig_h3_convergence_overlay(out_path: Path = FIGURES_DIR / "h3_convergence_ov
         ax.plot(
             range(len(hist)), hist, style, color=color, label=label, markersize=5, linewidth=1.6
         )
-    ax.axhline(FLOOR, color=C_GRAY, linestyle=":", linewidth=1.2, label="FD-noise floor (~1e-9)")
     ax.axhline(
-        1e-4, color="black", linestyle="--", linewidth=1.0, label="H1 gate (err_all_inf < 1e-4)"
+        FLOOR, color=C_GRAY, linestyle=":", linewidth=1.2,
+        label="finite-difference floor ($\\sim\\!10^{-9}$)",
+    )
+    ax.axhline(
+        1e-4, color="black", linestyle="--", linewidth=1.0,
+        label=r"accuracy criterion ($10^{-4}$)"
     )
     ax.set_yscale("log")
     ax.set_xlabel("Newton iteration")
-    ax.set_ylabel(r"Newton residual $\|R\|_\infty$ (D-6)")
-    ax.set_title("T8 headline cells: Newton residual history (log scale)")
+    ax.set_ylabel(r"Newton residual $\|R\|_\infty$")
+    ax.set_title("Newton residual history (log scale)")
     ax.legend(fontsize=8, loc="upper right")
     ax.grid(True, which="both", alpha=0.25)
     fig.tight_layout()
@@ -131,7 +135,7 @@ def fig_n_sweep(out_path: Path = FIGURES_DIR / "n_sweep.png") -> Path:
     ax1.set_ylabel("Newton iterations", color=C_BLUE)
     ax1.tick_params(axis="y", labelcolor=C_BLUE)
     ax1.axhline(9, color=C_BLUE, linestyle=":", linewidth=1.0, alpha=0.7)
-    ax1.text(ns[0], 9.4, "H1 gate: max 9 iters", fontsize=7, color=C_BLUE)
+    ax1.text(ns[0], 9.4, "iteration budget (9)", fontsize=7, color=C_BLUE)
 
     ax1b = ax1.twinx()
     ax1b.plot(ns, errs, "-s", color=C_VERMILLION, label=r"$\|A-A^*\|_\infty$")
@@ -139,12 +143,12 @@ def fig_n_sweep(out_path: Path = FIGURES_DIR / "n_sweep.png") -> Path:
     ax1b.set_ylabel(r"$\|A-A^*\|_\infty$", color=C_VERMILLION)
     ax1b.tick_params(axis="y", labelcolor=C_VERMILLION)
     ax1b.axhline(1e-4, color=C_VERMILLION, linestyle="--", linewidth=1.0, alpha=0.7)
-    ax1.set_title("n-sweep: iterations & recovery error (FM-2)")
+    ax1.set_title("Iterations and recovery error against Bernstein order")
     ax1.grid(True, alpha=0.25)
 
-    ax2.plot(ns, submap_cond, "-o", color=C_GREEN, label="T7/T8 submap cond (qr_pivot)")
+    ax2.plot(ns, submap_cond, "-o", color=C_GREEN, label="selected station submap")
     if all(v is not None for v in extended_cond):
-        ax2.plot(ns, extended_cond, "-^", color=C_PURPLE, label="T6 D-2 extended-system cond_J")
+        ax2.plot(ns, extended_cond, "-^", color=C_PURPLE, label="extended Newton system")
     if t2_cond_by_n:
         t2_ns = sorted(t2_cond_by_n)
         ax2.plot(
@@ -152,12 +156,12 @@ def fig_n_sweep(out_path: Path = FIGURES_DIR / "n_sweep.png") -> Path:
             [t2_cond_by_n[n] for n in t2_ns],
             "-s",
             color=C_ORANGE,
-            label="T2 Gram/fit cond (context, NACA 2412)",
+            label="Bernstein Gram matrix (NACA 2412)",
         )
     ax2.set_yscale("log")
     ax2.set_xlabel("Bernstein order n (per side)")
     ax2.set_ylabel("Condition number (log scale)")
-    ax2.set_title("Conditioning context (ADR-0004: three DISTINCT matrices)")
+    ax2.set_title("Conditioning: three distinct matrices")
     ax2.legend(fontsize=7.5, loc="upper left")
     ax2.grid(True, which="both", alpha=0.25)
 
@@ -243,10 +247,10 @@ def fig_h2_flow_solves(out_path: Path = FIGURES_DIR / "h2_flow_solves.png") -> P
 
     ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels, fontsize=8)
-    ax.set_ylabel("n_flow_solves_equivalent (linear axis, not truncated)")
+    ax.set_ylabel("counted flow solves (linear axis, not truncated)")
     ax.set_title(
-        "H2: flow-solve count, monolithic vs nested scipy.least_squares\n"
-        "(fair-paired by shared init strategy; >=100x claim rejected under both pairs)"
+        "Counted flow solves, monolithic against nested least-squares\n"
+        "(fair-paired by shared initialisation; the pre-registered 100x is rejected)"
     )
     threshold = mono_presolve["n_flow_solves_equivalent"] * 100
     ax.axhline(threshold, color="black", linestyle="--", linewidth=1.0)
@@ -300,7 +304,7 @@ def fig_station_selection(out_path: Path = FIGURES_DIR / "station_selection.png"
         )
     ax.set_ylabel(r"$\|A-A^*\|_\infty$ (log scale)")
     ax.set_title(
-        "Station selection is the identifiability guard\n(both cells report Newton-converged)"
+        "Station selection is the identifiability guard\n(both runs report Newton convergence)"
     )
     ax.legend(fontsize=8, loc="upper left")
     ax.grid(True, which="both", axis="y", alpha=0.25)
