@@ -313,9 +313,10 @@ export default function AnalyzePage() {
           </button>
           {loading && re !== "" && (
             <div className="text-xs text-neutral-500">
-              A viscous solve (Reynolds number given) measures ~124s on the free-tier backend
-              even when warm, and longer just after a cold start. This will report an error
-              below instead of hanging if it does not return within 200s.
+              A viscous solve (Reynolds number given) measures 124-192s on the free-tier
+              backend even when warm (shared/throttled CPU, so it varies run to run), and
+              longer just after a cold start. This will report an error below instead of
+              hanging if it does not return within 240s.
             </div>
           )}
 

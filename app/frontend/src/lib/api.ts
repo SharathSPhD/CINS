@@ -511,15 +511,18 @@ async function getJson<TRes>(path: string, timeoutMs: number = DEFAULT_TIMEOUT_M
 
 // Analyze can run a full viscous mfoil solve whenever Re is given (the
 // Analyze page prefills Re=1e6, so this is the DEFAULT path, not an edge
-// case). Measured directly against the deployed Render free-tier backend:
-// a warm viscous NACA 2412 analyze takes ~124s; app/README.md documents
-// ~166s on a cold container. The old DEFAULT_TIMEOUT_MS (45s) aborted every
-// such request client-side well before the backend could ever finish,
-// which is the defect this fixes (not a dropped connection: the backend was
-// always going to answer, just slower than the client allowed it to).
-// 200s covers the documented cold-start case with margin. Inviscid analyze
-// (no Re) stays fast (~16s measured) and finishes well inside this budget.
-const ANALYZE_TIMEOUT_MS = 200_000;
+// case). Measured directly against the deployed Render free-tier backend,
+// warm, back to back: a viscous NACA 2412 analyze took 124s on one run and
+// 192s on another (the free instance's 0.1 vCPU is shared/throttled, so wall
+// time varies run to run); app/README.md separately documents ~166s on a
+// cold container. The old DEFAULT_TIMEOUT_MS (45s) aborted every such
+// request client-side well before the backend could ever finish, which is
+// the defect this fixes (not a dropped connection: the backend was always
+// going to answer, just slower than the client allowed it to). 240s keeps
+// real margin above the 192s worst case actually observed, not just the
+// documented one. Inviscid analyze (no Re) stays fast (~16s measured) and
+// finishes well inside this budget either way.
+const ANALYZE_TIMEOUT_MS = 240_000;
 
 export function analyze(req: AnalyzeRequest): Promise<AnalyzeResponse> {
   return postJson("/api/analyze", req, ANALYZE_TIMEOUT_MS);

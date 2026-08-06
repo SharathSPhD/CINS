@@ -280,8 +280,8 @@ export default function FlowFieldPage() {
                 <>
                   {" "}
                   The viscous boundary-layer panel below (Reynolds number given) is slower&mdash;
-                  measured ~124s on the free-tier backend even when warm&mdash;and has its own
-                  200s budget.
+                  measured 124-192s on the free-tier backend even when warm&mdash;and has its own
+                  240s budget.
                 </>
               )}
             </div>
