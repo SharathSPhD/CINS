@@ -9,12 +9,10 @@
 % paper/results_digest.md preamble; experiments/results/t8/ANALYSIS.md \S0.
 
 Every number in this section traces to a \texttt{result.json} or
-\texttt{diagnostics.json} artifact under \pth{experiments/results/t8/}
-(paper/results\_digest.md; per-cell citation in
-\pth{experiments/results/t8/ANALYSIS.md}). All values are $N{=}1$
+\texttt{diagnostics.json} artifact under \pth{experiments/results/t8/}. All values are $N{=}1$
 (single \texttt{seed=42} run per cell); no confidence intervals are reported
 because none are statistically defensible at $N{=}1$, per
-\pth{docs/STATS_PROTOCOL.md}'s Stage-1-lite scoping. The $n$-sweep,
+\citep{cinsrepo}'s Stage-1-lite scoping. The $n$-sweep,
 station-selection, and other single-factor \emph{ablation} tables in this
 section are a single-airfoil (NACA 2412) matrix plus two extra
 single-airfoil cells (0012, 4415). These are deliberately narrow,
@@ -49,8 +47,7 @@ distinction matters, it is stated at the point of use.
 
 This finding leads the ablation discussion, ahead of the flow-solve count,
 because it is the most novel, most precisely quantified, and most
-consequential result in T8 (benchmarks/REPORT.md, ``Recommendations for
-P1''). The square extended Newton system (\S\ref{sec:newton-system}) demands
+consequential result in T8. The square extended Newton system (\S\ref{sec:newton-system}) demands
 exactly $M$ target-station equations. With evenly-spaced stations, between-
 station Cp information is discarded, and the resulting $16\times16$ station-
 sensitivity submap can be badly ill-conditioned. Table~\ref{tab:identifiability}
@@ -87,11 +84,11 @@ motion changes the sampled Cp by less than floating-point precision.
 Newton converges to \emph{any} of several exact roots of the (badly-
 conditioned) discrete system, a structural non-uniqueness of the sampled
 problem, not a numerical accident. This reproduces and sharpens a pre-T8
-finding (\pth{docs/triz/T7-identifiability.md}: cond $\sim10^7$, error
+finding (\citep{cinsrepo}: cond $\sim10^7$, error
 $1.4\times10^{-3}$--$6\times10^{-2}$ with evenly-spaced stations) with a
 controlled ablation cell. Two contributing null-direction families were
 identified and eliminated \emph{before} the station-selection fix, each
-verified empirically (\pth{docs/triz/T7-identifiability.md}): a
+verified empirically (\citep{cinsrepo}): a
 camber--$\alpha$ equivalence (freeing $\alpha$ lets a slightly different
 camber at a slightly different $\alpha$ interpolate the same samples, so
 $\alpha$ is fixed for self-consistency tests), and a prescribed-LE mismatch
@@ -110,7 +107,7 @@ submap's conditioning. The measured effect: submap condition
 $10^7\to90.3$; recovery error $1.4\times10^{-3}\to1.08\times10^{-11}$.
 Full-curve sensitivity information enters only through the
 (already-required) linear pre-solve, and the nonlinear Newton solve stays
-square and determined throughout (\pth{docs/triz/T7-identifiability.md}).
+square and determined throughout (\citep{cinsrepo}).
 Sensitivity-optimal station selection is therefore the identifiability
 guard for determined inverse systems, a methodological contribution of this
 paper beyond the original dossier hypothesis: a practical answer to the
@@ -194,13 +191,13 @@ representation itself. Source:
 \toprule
 Quantity & LE stations in candidate set & LE stations excluded \\
 \midrule
-Candidate stations          & 200                   & 169 \\
-Submap condition            & $31.7$                & $19.9$ \\
-Converged                   & \textbf{no}           & \textbf{yes} \\
-Newton iterations           & 50 (budget exhausted) & \textbf{7} \\
-Final residual              & $1.89\times10^{-10}$  & $8.21\times10^{-11}$ \\
-$\norm{A-A^*}_\infty$ (free)& $6.97\times10^{-1}$   & $\mathbf{4.10\times10^{-3}}$ \\
-Max surface offset (mc)     & $11.74$               & $\mathbf{0.127}$ \\
+Candidate stations & 200 & 169 \\
+Submap condition & $31.7$ & $19.9$ \\
+Converged & \textbf{no} & \textbf{yes} \\
+Newton iterations & 50 (budget exhausted) & \textbf{7} \\
+Final residual & $1.89\times10^{-10}$ & $8.21\times10^{-11}$ \\
+$\norm{A-A^*}_\infty$ (free)& $6.97\times10^{-1}$ & $\mathbf{4.10\times10^{-3}}$ \\
+Max surface offset (mc) & $11.74$ & $\mathbf{0.127}$ \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -257,10 +254,10 @@ monotonically throughout. Source:
 \toprule
 $n$ & Iterations & $\mathrm{err\_all\_inf}$ & Submap $\mathrm{cond}$ & $\mathrm{cond}(J)$, D-2, it.\,0 & T2 Gram/fit $\mathrm{cond}$ \\
 \midrule
-4  & 3 & $8.08\times10^{-12}$ & 10.6 & $6.46\times10^7$ & 498 \\
-6  & 4 & $1.59\times10^{-10}$ & 20.4 & $8.46\times10^7$ & 7{,}327 \\
-8  & 4 & $1.08\times10^{-11}$ & 90.3 & $1.57\times10^8$ & 108{,}538 \\
-10 & 4 & $1.46\times10^{-10}$ & 592  & $4.52\times10^8$ & 1{,}626{,}188 \\
+4 & 3 & $8.08\times10^{-12}$ & 10.6 & $6.46\times10^7$ & 498 \\
+6 & 4 & $1.59\times10^{-10}$ & 20.4 & $8.46\times10^7$ & 7{,}327 \\
+8 & 4 & $1.08\times10^{-11}$ & 90.3 & $1.57\times10^8$ & 108{,}538 \\
+10 & 4 & $1.46\times10^{-10}$ & 592 & $4.52\times10^8$ & 1{,}626{,}188 \\
 \textbf{12} & \textbf{21} (FAILS 9-iter gate) & $6.31\times10^{-10}$ & 1{,}144 & $2.07\times10^9$ & 24{,}579{,}174 \\
 \bottomrule
 \end{tabular}
@@ -319,8 +316,7 @@ no silent corruption, no wrong answer (experiments/results/t8/ANALYSIS.md~\S4).
 Table~\ref{tab:airfoils} adds two additional single-airfoil cells
 (0012, 4415) to the 2412 baseline reported throughout
 \S\ref{sec:falsifiable}; that 3-airfoil table alone is $N{=}1$ per section
-and explicitly not a generalization claim
-(paper/results\_digest.md~\S5.2). It was subsequently superseded by the
+and explicitly not a generalization claim. It was subsequently superseded by the
 pre-registered H1 evaluation itself, run post-review after the T8 ablation
 matrix closed (experiments/results/t8/ANALYSIS.md, ``H1 addendum''):
 the winning configuration (\S\ref{sec:falsifiable}) applied to a 20-section
@@ -544,7 +540,7 @@ termination), over the same 16 free coefficients. This is a competent
 modern LM solver, not a weak strawman: it converges the cold-start case in
 \texttt{n\_nfev=6} outer LM iterations, each costing multiple flow solves
 for its own finite-difference Jacobian columns. \textbf{Recommended P1
-sentence} (paper/results\_digest.md~\S5.3): \emph{``The monolithic
+sentence}: \emph{``The monolithic
 architecture requires 3.1--8.1x fewer flow-residual evaluations than a
 fairly-paired, well-tuned nested Levenberg--Marquardt baseline
 (\texttt{scipy.least\_squares}), depending on initialisation strategy,
@@ -574,8 +570,7 @@ iteration but \emph{reduces} total flow-solve count ($43<120$) and does not
 cost correctness. The presolve consumes roughly 77 flow-solve-
 equivalents ($\approx$64\% of the baseline total), primarily for iteration
 efficiency and starting-residual quality, not for the uniqueness guarantee,
-which comes from \texttt{station\_selection=qr\_pivot} alone
-(paper/results\_digest.md~\S5.4). This has \emph{not} been verified in the
+which comes from \texttt{station\_selection=qr\_pivot} alone. This has \emph{not} been verified in the
 sharper crossed form (\texttt{init=perturbed} $\times$
 \texttt{station\_selection=even}); it is flagged explicitly as future work,
 not as tested (experiments/results/t8/ANALYSIS.md~\S5, ``Caveat'').
@@ -587,8 +582,7 @@ STATS\_PROTOCOL's 3-point local order estimator
 ($p\approx\log(R_k/R_{k-1})/\log(R_{k-1}/R_{k-2})$) is applied only where
 $\geq3$ residual values exist strictly above the $\approx10^{-9}$
 FD-noise floor. The raw \texttt{convergence\_order} field stored per cell
-does \emph{not} apply this exclusion and is not quoted directly
-(paper/results\_digest.md~\S5.5). Table~\ref{tab:h3} reports the recomputed
+does \emph{not} apply this exclusion and is not quoted directly. Table~\ref{tab:h3} reports the recomputed
 orders for the five cells with enough clean-tail residuals to estimate one.
 
 \begin{table}[h]

@@ -34,9 +34,7 @@ $n-i+2>0$ for every $i\in\{0,\dots,n\}$, so no term in the sum is singular
 despite the class function's own $\sqrt\psi$ non-analyticity at $\psi=0$
 (\S\ref{sec:constraints}'s point that the LE singularity affects flow-
 residual \emph{rows}, not CST's own geometric \emph{functionals}, which stay
-perfectly regular). Stacking one such row per coefficient (upper and lower
-surface separately, since the CST convention stores lower-surface
-coefficients with their natural negative sign, SPEC.md~\S2.1)
+perfectly regular). Stacking one such row per coefficient
 gives the full area constraint row $g$ in $g\cdot A = b$, with $b$ the
 target inscribed area (or, for the T7/T8 self-consistency protocol, the
 area of the CST fit itself, per the target-consistent-RHS discipline
@@ -150,7 +148,7 @@ internal $x_t$-solve has no solution (\S\ref{sec:transition}).
   git SHA, a hash of the fully-resolved \pth{configs/*.yaml} used, the
   random seed (\texttt{experiment.seed}, \texttt{42} throughout), and
   enough metadata to regenerate the run byte-for-byte
-  (\pth{docs/GATES.md} condition~4). No number in this paper is
+  (\citep{cinsrepo} condition~4). No number in this paper is
   hand-edited; every table cell traces to a \texttt{result.json} or
   \texttt{diagnostics.json} artifact under \pth{experiments/results/},
   cited inline by path throughout \S\ref{sec:falsifiable}--
@@ -169,11 +167,11 @@ internal $x_t$-solve has no solution (\S\ref{sec:transition}).
   cells: \texttt{.venv/bin/python experiments/run\_t7.py} and
   \texttt{.venv/bin/python -m cins.benchmarks.runner} respectively. Tests:
   \texttt{python -m pytest tests/ -q}.
-\item \textbf{Gate-closure evidence.} \pth{docs/gates/T2-closure.md},
+\item \textbf{Gate-closure evidence.} \citep{cinsrepo},
   \texttt{T3-closure.md}, \texttt{T4-T7-closure.md} record the six-condition
-  gate-closure contract (\pth{docs/GATES.md}) for each corresponding
+  gate-closure contract (\citep{cinsrepo}) for each corresponding
   task, including adversarial-review findings and their resolution;
-  \pth{docs/adr/ADR-0001} through \texttt{ADR-0004} record the four
+  \citep{cinsrepo} through \texttt{ADR-0004} record the four
   binding architectural decisions this paper's Formulation section depends
   on (scipy shim, vendor NACA5 shim, forced-transition shim, realisability
   semantics).

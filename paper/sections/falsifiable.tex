@@ -1,7 +1,5 @@
 \label{sec:falsifiable}
-% <- T7; D-6 is the headline figure; protocol dossier \S7.8, numbers docs/gates/T4-T7-closure.md
-
-The architecture's central claim, that appending CST coefficients to
+% <- T7; D-6 is the headline figure; protocol dossier \S7.8, numbers The architecture's central claim, that appending CST coefficients to
 mfoil's Newton system yields a determined, quadratically convergent
 root-find, is falsifiable by a single self-consistency experiment with a
 \emph{known} answer, guaranteed realisable by construction. The protocol
@@ -23,8 +21,7 @@ isolates the LE question from the architecture question), transition
 forced (\S\ref{sec:transition}), stations chosen by QR column pivoting
 (\S\ref{sec:ablations}), initialized from the T4 pre-solve, $\alpha$ fixed.
 
-\paragraph{Protocol, including release-and-verify.} Success criterion
-(dossier~\S7.8; SPEC.md~\S7, T7 row): $\|A-A^\ast\|_\infty < 10^{-4}$ within
+\paragraph{Protocol, including release-and-verify.} Success criterion: $\|A-A^\ast\|_\infty < 10^{-4}$ within
 $\leq9$ Newton iterations, with a visible quadratic tail in the D-6
 convergence history. Because the inverse solve runs under the forced-
 transition closure of \S\ref{sec:transition}, the protocol additionally
@@ -50,7 +47,7 @@ design ($c_l=0.449091$, $c_d=0.005774$ under both). Realisability
 $A_{u,0}$ and $A_{l,0}$ are \emph{prescribed} by the
 \texttt{le\_treatment=prescribed} configuration and are not recovered. The
 error norms quoted above are over the 16 free coefficients
-(\pth{docs/gates/T4-T7-closure.md}).
+(\citep{cinsrepo}).
 
 \begin{table}[h]
 \centering
@@ -74,8 +71,7 @@ Release-and-verify $\Delta c_d$ & $<2\times10^{-4}$ & $\mathbf{3.0\times10^{-14}
 \end{tabular}
 \end{table}
 
-An independently-run six-vector adversarial review (docs/gates/T4-T7-
-closure.md) probed circularity, station-index correspondence, the
+An independently-run six-vector adversarial review probed circularity, station-index correspondence, the
 pinned-coefficient framing, the absence (at the time) of release-and-verify,
 realisability semantics, and the submap/system conditioning category error;
 every confirmed finding is reflected in this paper's reporting discipline:

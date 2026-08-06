@@ -2,7 +2,7 @@
 
 \subsection{CST parameterisation and its linearity}
 \label{sec:cst-linearity}
-% <- from docs/SPEC.md \S2 at T2; math source \dossierref{\S3.1}-3.4
+% <- T2; math source \dossierref{\S3.1}--\S3.4
 
 Let $\psi = x/c \in [0,1]$ and $\zeta = z/c$. The CST class function for a
 round-nose, sharp-tail family is
@@ -25,7 +25,7 @@ The upper and lower surfaces are
 with $\zeta_{T,u} = +t_{TE}/2$, $\zeta_{T,l} = -t_{TE}/2$. The sign
 convention is binding throughout: lower-surface coefficients are stored with
 their natural negative sign, so the shared-leading-edge row reads
-$A_{u,0}+A_{l,0}=0$ (SPEC.md~\S2.1, \S2.3).
+$A_{u,0}+A_{l,0}=0$.
 
 Figure~\ref{fig:cst-basis} shows the construction term by term. The class
 function of panel~(a) is fixed geometry that carries no dependence on $A$ at
@@ -56,7 +56,7 @@ The property this paper exploits is that Eq.~\eqref{eq:surfaces} is
   \label{eq:dsurface-dA}
 \end{equation}
 does not depend on $A$. It is a fixed matrix, computed once from the
-chordwise node distribution and cached (SPEC.md~\S2.1; T2 requirement,
+chordwise node distribution and cached (T2 requirement,
 \dossierref{\S7.3}): \emph{``does not
 depend on A. Recomputing it per Newton iteration is the single most common
 way to lose the performance argument.''} This design-independence is what
@@ -74,7 +74,7 @@ trailing edge ($\tan\beta_u = -\zeta_u'(1)$) while the lower surface rises
 \begin{equation}
   A_0 = \sqrt{2R_{LE}/c}, \qquad
   A_{u,n} = \zeta_{T,u}/c + \tan\beta_u, \qquad
-  A_{l,n} = \zeta_{T,l}/c - \tan\beta_l .
+  A_{l,n} = \zeta_{T,l}/c - \tan\beta_l.
   \label{eq:endpoint}
 \end{equation}
 The sign flip on the lower surface is stated explicitly because applying the
@@ -85,8 +85,7 @@ the fitted trailing-edge slope. Near $\psi\to0$,
 $\zeta \approx A_0\sqrt{\psi}$, so $R_{LE} = A_0^2/2$; $G^2$ curvature
 continuity across the leading edge reduces to matching the leading
 coefficient magnitude on the two surfaces, $A_{u,0} = |A_{l,0}|$; under the
-stored-sign convention ($A_{l,i}<0$), the row $A_{u,0} + A_{l,0} = 0$
-(SPEC.md~\S2.3).
+stored-sign convention ($A_{l,i}<0$), the row $A_{u,0} + A_{l,0} = 0$.
 
 Figure~\ref{fig:cst-parameters} gives these identities their physical
 reading and checks the design-independence claim numerically. Panels~(a)
@@ -118,7 +117,7 @@ lower blocks, in the ordering used throughout
 
 \subsection{Constraints as linear rows}
 \label{sec:constraints}
-% <- T3; closed-form source \dossierref{\S3.4}, SPEC.md \S2.4
+% <- T3; closed-form source \dossierref{\S3.4}
 
 Because Eq.~\eqref{eq:surfaces} is linear in $A$, every geometric functional
 that is itself linear or integral in $\zeta$ becomes a linear row
@@ -135,10 +134,8 @@ integral is inscribed area: the per-surface contribution is
 a Beta function, plus the trailing-edge term $\int_0^1 \psi\,\zeta_T\,d\psi =
 \zeta_T/2$. Eq.~\eqref{eq:area-beta} is evaluated with
 \texttt{scipy.special.beta}, never by numerical quadrature in a production
-constraint row; quadrature is retained only as an independent gate check
-(SPEC.md~\S9, ``Do not''). That gate passed: \texttt{area\_row} matches
-numerical quadrature of the fitted NACA~2412 to $10^{-10}$
-(docs/gates/T3-closure.md; SPEC.md~\S7, T3 row). This closed-form machinery
+constraint row; quadrature is retained only as an independent gate check. That gate passed: \texttt{area\_row} matches
+numerical quadrature of the fitted NACA~2412 to $10^{-10}$. This closed-form machinery
 is the same Beta-function apparatus Joseph \& Mohan~\citep{joseph2021closed}
 use for thin-airfoil lift/moment integrals against a Bernstein camber basis.
 This is not a coincidence: both integrate Bernstein polynomials against the
@@ -189,7 +186,7 @@ Curvature & rational function of $A$, differentiable & monotonicity predicate, n
 
 \subsection{The extended Newton system and DOF accounting}
 \label{sec:newton-system}
-% <- T5, FM-1; SPEC.md \S4-\S5, dossier \S7.6
+% <- T5, FM-1-\S5, dossier \S7.6
 
 The extended system appends the CST coefficients (and, optionally, angle of
 attack) directly to the flow solver's own global unknown vector. Unknowns:
@@ -261,8 +258,7 @@ matrix of Eq.~\eqref{eq:dsurface-dA}, and its first factor is addressed in
 In the Stage-1 (isolated-airfoil, mfoil) implementation, the three rigid
 overall modes (scale/rotate/translate) are not exposed as free Newton
 unknowns, so the implemented squareness condition is the simpler, equivalent
-statement actually asserted at construction time and logged every run
-(SPEC.md~\S3):
+statement actually asserted at construction time and logged every run:
 \begin{equation}
   M + K = n_{A,\text{free}} + n_{\alpha},
   \label{eq:dof}
@@ -282,9 +278,7 @@ produces the exact, actionable diagnostics
 "extended system not square: M+K=15 but\\
 \hspace*{1em}n\_A\_free+n\_alpha=16 (M=15, K=0, n\_A\_free=16)"
 \end{quote}
-with zero Newton iterations spent and no silent wrong answer
-(paper/results\_digest.md~\S5.2 ``Other single-factor ablations'';
-experiments/results/t8/ANALYSIS.md~\S4). Getting Eq.~\eqref{eq:dof} wrong is,
+with zero Newton iterations spent and no silent wrong answer. Getting Eq.~\eqref{eq:dof} wrong is,
 per the dossier, plausibly what the author's PhD-era divergence was
 misdiagnosed as an LE-singularity problem when it was rank deficiency
 (\dossierref{\S4}, FM-1). Instrumenting
@@ -294,15 +288,14 @@ quantity.
 
 \subsection{Derivative strategy: why finite-difference-over-\texorpdfstring{$A$}{A}, not the analytic chain rule or complex-step}
 \label{sec:derivatives}
-% <- decision tree, SPEC.md \S5; empirical finding docs/mfoil_internals.md \S3-4 (T1)
+% <- derivative-mode decision tree; empirical finding (T1)
 
-SPEC.md's derivative-mode decision tree (\S5) prefers, in order: (1) the
-analytic chain rule $\partial R/\partial A = (\partial R/\partial x)(\partial
+The derivative-mode decision tree adopted for this work prefers, in order:
+(1) the analytic chain rule $\partial R/\partial A = (\partial R/\partial x)(\partial
 x/\partial A)$ if mfoil exposes $\partial R/\partial x$ analytically; (2)
 complex-step over $A$ if the residual-assembly path is free of
 \texttt{abs}/\texttt{max}/\texttt{min}/comparison operators; (3) real
-(central) finite differences over $A$ otherwise. T1 introspection
-(docs/mfoil\_internals.md~\S3--4) resolved both questions empirically, and
+(central) finite differences over $A$ otherwise. T1 introspection resolved both questions empirically, and
 neither resolved in the analytic-chain-rule's favour:
 
 \begin{itemize}
@@ -310,32 +303,27 @@ neither resolved in the analytic-chain-rule's favour:
   mfoil exposes \texttt{M.glob.R\_x}, but it is only a \emph{partial}
   sensitivity: real and useful for the arc-length ($\xi$) mapping, but
   missing the geometry-dependent operators that matter most, the
-  inviscid panel/AIC coupling and the stagnation-point formulation
-  (docs/mfoil\_internals.md~\S3, ``KEY QUESTION A''). Using this partial
+  inviscid panel/AIC coupling and the stagnation-point formulation. Using this partial
   block as if it were the complete $\partial R/\partial x$ would silently
   drop exactly the rows the leading-edge failure mode (FM-3,
   \S\ref{sec:fm}) is about.
 \item \textbf{Complex-step is blocked, not merely inconvenient.} A bare
   \texttt{residual\_station}\slash\allowbreak\texttt{residual\_transition} call, with fixed
   panels and a complex-perturbed state, is verified complex-step-safe and
-  reproduces the analytic $R_x$ to float64 machine epsilon
-  (docs/mfoil\_internals.md~\S4.1). The \emph{full} augmented residual,
+  reproduces the analytic $R_x$ to float64 machine epsilon. The \emph{full} augmented residual,
   which is what a perturbation in $A$ actually varies since $A$ moves
   the panel geometry itself, calls the panel-influence and
   stagnation-detection code paths. These use \texttt{atan2}, branch
   selection on real quantities, and a hard \texttt{ValueError} guard for
-  complex node arrays (docs/mfoil\_internals.md~\S4.1--4.2,
-  \texttt{mfoil.py:2713}). These are exactly the operators complex-step
+  complex node arrays. These are exactly the operators complex-step
   cannot tolerate, and they sit in precisely the geometry-dependent block
   that (1) shows was missing from the analytic path: complex-step
-  \emph{cannot fill the gap the analytic chain rule leaves}
-  (docs/mfoil\_internals.md~\S8, ``picture \S3.2. Complex-step cannot fill
-  that gap either'').
+  \emph{cannot fill the gap the analytic chain rule leaves}.
 \end{itemize}
 
 The implemented and gate-verified strategy is therefore real central finite
 differences with respect to $A$ only, never with respect to node
-coordinates $x$ (SPEC.md~\S5, ``Hard rule (never violate)''; SPEC.md~\S9).
+coordinates $x$ ().
 This is a deliberate architectural discipline, not a fallback of
 convenience. $A$ has $n_A\approx16$--$36$ columns depending on Bernstein
 order, so a full central-difference Jacobian block costs
@@ -344,14 +332,12 @@ against the alternative of finite-differencing over $N_{panel}\gg n_A$ node
 coordinates. That alternative would silently destroy the flow-solve-count
 argument this paper's Results section depends on. T5 gate closure verified
 the resulting Jacobian columns to 5--6 significant figures across a
-step-size sweep with no stencil discontinuities (docs/gates/T4-T7-closure.md,
-``T5''). The step size itself ($\mathrm{fd\_step}=10^{-6}$,
+step-size sweep with no stencil discontinuities. The step size itself ($\mathrm{fd\_step}=10^{-6}$,
 \pth{configs/default.yaml}) is not hand-tuned per case. The T5 sweep
 varied it across several decades and confirmed the resulting FD-column
 agreement with the (independently verified, \S\ref{sec:derivatives} above)
 complex-step-safe partial block was flat across the sweep's central range,
-with no visible truncation/roundoff trade-off cliff at the scales exercised
-(docs/gates/T4-T7-closure.md, ``T5''). That is, $10^{-6}$ sits well inside a
+with no visible truncation/roundoff trade-off cliff at the scales exercised. That is, $10^{-6}$ sits well inside a
 broad plateau, not at a knife-edge optimum a different problem instance
 would move.
 
@@ -484,9 +470,7 @@ building a second one.
 
 \subsection{Forced-transition onset closure}
 \label{sec:transition}
-% <- ADR-0003 (revised mechanism); FM-4, docs/triz/FM4-transition-smoothness.md
-
-mfoil's (and XFOIL's) $e^n$ transition closure is only $C^0$ in the design
+% <- ADR-0003 (revised mechanism); FM-4, mfoil's (and XFOIL's) $e^n$ transition closure is only $C^0$ in the design
 variables: the transition-station equation itself performs an internal
 sub-Newton solve for the point $x_t$ where the marched amplification factor
 crosses $n_{crit}$, and that location moves discontinuously as geometry
@@ -596,11 +580,10 @@ for every number reported in this paper:
 1.\ \textbf{CST-representability} (the realisability guard, above) must be
 answered with \emph{model-consistent} quantities: inviscid target against
 inviscid linearisation. On the T7 winning configuration this is
-$3.90\times10^{-4}$ (paper/results\_digest.md~\S5.1); the target is
+$3.90\times10^{-4}$; the target is
 representable. 2.\ \textbf{Model gap}, how far the inviscid linearisation
 sits from the viscous physics the Newton solve actually faces, is a
-\emph{separate}, diagnostic-only quantity, $0.110$ on the same case
-(paper/results\_digest.md~\S5.1). This is boundary-layer displacement
+\emph{separate}, diagnostic-only quantity, $0.110$ on the same case. This is boundary-layer displacement
 effect, which no inviscid model captures. It is \emph{not} target
 unrealisability; the subsequent monolithic solve converging to
 $2.75\times10^{-11}$ (\S\ref{sec:falsifiable}) is direct proof the target
@@ -611,8 +594,6 @@ was realisable despite the nonzero model gap.
 numbers are always labelled with their model (``inviscid-consistent''), and
 the conditioning of the QR-selected station submap ($\mathrm{cond}\approx90$,
 \S\ref{sec:ablations}) is never quoted as the conditioning of the full
-extended Newton system ($\mathrm{cond}\approx1.57\times10^8$ at the first
-iteration of the T8 baseline cell, D-2 diagnostic,
-paper/results\_digest.md~\S5.2 n-sweep table). These are different
+extended Newton system. These are different
 matrices answering different questions; conflating them was one of the
-review's confirmed findings (ADR-0004; docs/gates/T4-T7-closure.md, item 6).
+review's confirmed findings.

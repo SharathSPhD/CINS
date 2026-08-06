@@ -26,11 +26,12 @@ penalty terms. Constrained shape optimization becomes constrained root-finding.
 | T4 | Analytic pre-solve + realisability | **closed** |
 | T5 | Extended Newton system | **closed** |
 | T6 | Diagnostics D1–D6 | **closed** |
-| T7 | **Falsifiable test: recover A\* from its own Cp** | **PASSED — A\* recovered to 1.1e-11 in 4 iterations** |
+| T7 | **Falsifiable test: recover A\* from its own Cp** | **PASSED: A\* recovered to 2.75e-11 in 6 iterations** |
 | T8 | Ablations + statistical benchmark | **closed** (H1 panel deferred) |
 | T9 | Stage 2 (cascade) design review | in progress |
 
-Full research dossier: [docs/CST_MISES_Monolithic_Inverse_Design.md](docs/CST_MISES_Monolithic_Inverse_Design.md)
+The manuscript is [paper/p1_main.pdf](paper/p1_main.pdf); its evidence base is
+the run manifests under `experiments/results/`.
 
 ## Repository layout
 
@@ -39,8 +40,7 @@ Full research dossier: [docs/CST_MISES_Monolithic_Inverse_Design.md](docs/CST_MI
 - `configs/` — all run parameters as validated YAML (config-driven, nothing hardcoded)
 - `tests/` — unit / gates / regression (TDD; gate tests encode the dossier's numeric criteria)
 - `experiments/results/` — git-versioned run manifests + results (reproducible figures)
-- `docs/` — SPEC, PRD, GATES contract, ADRs, TRIZ logs, gate-closure reports
-- `paper/` — AIAA paper P1, grown at every gate
+- `paper/` — the manuscript (`p1_main.tex` plus `sections/`), grown at every gate
 - `site/` — GitHub Pages progress dashboard
 - `app/` — full-stack app (FastAPI + Next.js + Supabase), ships after gate T7
 

@@ -23,3 +23,14 @@ experiments/results/demo/frames/
 experiments/results/demo/frames_vertical/
 experiments/results/demo/wide/
 experiments/results/demo/vertical/
+
+# Development scaffolding and internal engineering notes. Kept locally, not
+# published: agent configuration, TRIZ session logs, the per-directory
+# instruction files, and the internal docs tree (spec, PRD, ADRs, gate-closure
+# reports, design dossier). The public evidence base is experiments/results/,
+# which remains tracked, and the manuscript cites that rather than these.
+/.claude/
+/.triz/
+/docs/
+CLAUDE.md
+**/CLAUDE.md
