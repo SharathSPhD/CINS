@@ -273,9 +273,17 @@ export default function FlowFieldPage() {
           </button>
           {loading && elapsedS > 5 && (
             <div className="text-xs text-neutral-500">
-              This is normally well under a second once the backend is warm; a longer wait
-              usually means a free-tier backend is cold-starting. This will show an error
-              below instead of hanging if it does not come back within 30s.
+              The inviscid field is normally well under a second once the backend is warm; a
+              longer wait usually means a free-tier backend is cold-starting (this will show an
+              error below instead of hanging if it does not come back within 90s).
+              {re !== "" && (
+                <>
+                  {" "}
+                  The viscous boundary-layer panel below (Reynolds number given) is slower&mdash;
+                  measured ~124s on the free-tier backend even when warm&mdash;and has its own
+                  200s budget.
+                </>
+              )}
             </div>
           )}
 

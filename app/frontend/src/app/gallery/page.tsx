@@ -10,6 +10,7 @@ import ArchivedResidualChart from "@/components/ArchivedResidualChart";
 
 import { useEffect, useMemo, useState } from "react";
 import AirfoilShape from "@/components/AirfoilShape";
+import CstBasisFigure from "@/components/CstBasisFigure";
 import CstPanel from "@/components/CstPanel";
 import { describeError, showcase, type ShowcaseResponse } from "@/lib/api";
 import { loadCorpus, type CorpusAirfoil } from "@/lib/corpus";
@@ -203,11 +204,17 @@ function AirfoilCorpusSection() {
   const [corpusError, setCorpusError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [visible, setVisible] = useState(24);
+  // Defaults to NACA 2412 (the same section paper_figures_theory.py's
+  // fig_cst_basis uses) once the corpus loads, so the "how a shape is built"
+  // panel is visible on first paint rather than hidden behind a click.
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCorpus()
-      .then((c) => setCorpus(c.airfoils))
+      .then((c) => {
+        setCorpus(c.airfoils);
+        setSelectedId((prev) => prev ?? (c.airfoils.some((a) => a.id === "naca:2412") ? "naca:2412" : (c.airfoils[0]?.id ?? null)));
+      })
       .catch((err) => setCorpusError(describeError(err)));
   }, []);
 
@@ -230,7 +237,8 @@ function AirfoilCorpusSection() {
       </div>
       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
         Every section&apos;s outline and order-8 CST fit, read from one static asset. Select a card
-        to see what the CST parameterization made of it.
+        to see what the CST parameterization made of it, panel by panel: the class function, the
+        Bernstein shape functions, the coefficient-weighted terms, and the surface they sum to.
       </p>
       {corpusError && (
         <div className="mt-2 rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-300">
@@ -262,7 +270,7 @@ function AirfoilCorpusSection() {
       )}
 
       {selected && (
-        <div className="mt-4">
+        <div className="mt-4 space-y-4">
           <CstPanel
             title={`CST parameterization: ${selected.name}`}
             primary={{
@@ -271,6 +279,23 @@ function AirfoilCorpusSection() {
               A_lower: selected.A_lower,
               fitRms: selected.fit_rms,
             }}
+          />
+          <CstBasisFigure
+            name={selected.name}
+            A_upper={selected.A_upper}
+            A_lower={selected.A_lower}
+            // corpus.json (scripts/gen_corpus.py) doesn't carry zeta_T
+            // separately, but the decimated coordinate list keeps its true
+            // TE endpoints at both ends (decimate() always includes index 0
+            // and N-1), so the real trailing-edge offsets are read straight
+            // off the source outline rather than assumed to be zero. Node
+            // ordering follows mfoil (src/cins/CLAUDE.md): TE-lower -> LE ->
+            // TE-upper, so index 0 is the lower TE point and the last index
+            // is the upper TE point.
+            zetaTUpper={selected.coords[selected.coords.length - 1]?.[1] ?? 0}
+            zetaTLower={selected.coords[0]?.[1] ?? 0}
+            sourceCoords={selected.coords}
+            fitRms={selected.fit_rms}
           />
         </div>
       )}

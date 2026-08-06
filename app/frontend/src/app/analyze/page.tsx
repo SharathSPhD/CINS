@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AirfoilShape from "@/components/AirfoilShape";
 import BLChart from "@/components/BLChart";
 import CpChart from "@/components/CpChart";
@@ -10,6 +10,7 @@ import {
   analyze,
   describeError,
   fit,
+  health,
   listAirfoils,
   uploadAirfoil,
   type AirfoilListItem,
@@ -28,6 +29,7 @@ export default function AnalyzePage() {
   const [xtrLower, setXtrLower] = useState(0.05);
 
   const [loading, setLoading] = useState(false);
+  const [elapsedS, setElapsedS] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [fitResult, setFitResult] = useState<FitResponse | null>(null);
@@ -40,10 +42,40 @@ export default function AnalyzePage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Free-tier backend wake-up (defect-fix, see lib/api.ts's ANALYZE_TIMEOUT_MS
+  // comment): ping /health as soon as the page loads, so a cold Render
+  // container starts spinning up before the user has even picked settings,
+  // rather than only starting once they click Solve. `waking` flips true
+  // only if the ping is still outstanding after 2s (a warm backend answers
+  // in well under that), so a warm backend never shows this at all.
+  const [waking, setWaking] = useState(false);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     listAirfoils()
       .then(setCatalog)
       .catch(() => setCatalog(null));
+
+    let alive = true;
+    const showWakingAfter = setTimeout(() => {
+      if (alive) setWaking(true);
+    }, 2000);
+    health()
+      .catch(() => {
+        // A failed ping isn't fatal here: the actual Solve request is the
+        // one that must succeed or report an error; this is only a
+        // best-effort warm-up.
+      })
+      .finally(() => {
+        if (alive) {
+          clearTimeout(showWakingAfter);
+          setWaking(false);
+        }
+      });
+    return () => {
+      alive = false;
+      clearTimeout(showWakingAfter);
+    };
   }, []);
 
   async function pickAirfoil(item: AirfoilListItem) {
@@ -66,6 +98,12 @@ export default function AnalyzePage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setElapsedS(0);
+    const startedAt = Date.now();
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    heartbeatRef.current = setInterval(() => {
+      setElapsedS((Date.now() - startedAt) / 1000);
+    }, 500);
     try {
       const res = customCoords
         ? await analyze({
@@ -99,6 +137,7 @@ export default function AnalyzePage() {
       setFitResult(null);
     } finally {
       setLoading(false);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     }
   }
 
@@ -258,13 +297,27 @@ export default function AnalyzePage() {
             )}
           </div>
 
+          {waking && !loading && (
+            <div className="rounded-md border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs text-amber-800 dark:text-amber-300">
+              Waking the backend (free-tier container was asleep)&mdash;this can take up to a
+              minute before Solve responds quickly.
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
             className="w-full rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {loading ? "Solving..." : "Solve"}
+            {loading ? `Solving... (${elapsedS.toFixed(0)}s)` : "Solve"}
           </button>
+          {loading && re !== "" && (
+            <div className="text-xs text-neutral-500">
+              A viscous solve (Reynolds number given) measures ~124s on the free-tier backend
+              even when warm, and longer just after a cold start. This will report an error
+              below instead of hanging if it does not return within 200s.
+            </div>
+          )}
 
           {error && (
             <div className="rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-300">

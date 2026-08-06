@@ -51,6 +51,45 @@ export function shapeFunction(psi: number, A: number[]): ShapeFunctionResult {
   return { terms, sum };
 }
 
+/**
+ * The order-n Bernstein polynomial basis itself, UNWEIGHTED by any
+ * coefficient: B_i(psi) = K_i psi^i (1-psi)^(n-i) for i=0..n. Mirrors
+ * ``cins.cst.basis.bernstein_matrix`` (one row of it, evaluated at a single
+ * psi) -- panel (b) of the paper's fig_cst_basis (paper_figures_theory.py):
+ * the fixed polynomials the shape function is built from, before any A_i
+ * weighting is applied.
+ */
+export function bernsteinBasis(psi: number, n: number): number[] {
+  return Array.from({ length: n + 1 }, (_, i) => bernsteinK(n, i) * Math.pow(psi, i) * Math.pow(1 - psi, n - i));
+}
+
+export interface WeightedTermsResult {
+  /** Per-coefficient weighted term A_i * C(psi) * K_i psi^i (1-psi)^(n-i). */
+  terms: number[];
+  /** C(psi) * S(psi): the geometric contribution before the psi*zeta_T offset. */
+  sum: number;
+}
+
+/**
+ * The A-weighted, class-multiplied terms A_i C(psi) S_i(psi) and their sum
+ * C(psi)S(psi) -- panel (c) of fig_cst_basis: the only place A enters, and it
+ * enters linearly (each term is A_i times a psi-only function). Excludes the
+ * psi*zeta_T trailing-edge offset, matching the paper figure's own panel
+ * (which plots `C * (S @ A_u)` only, not the full ``zeta``).
+ */
+export function classShapeWeightedTerms(
+  psi: number,
+  A: number[],
+  N1: number = CST_N1_DEFAULT,
+  N2: number = CST_N2_DEFAULT,
+): WeightedTermsResult {
+  const C = classFunction(psi, N1, N2);
+  const { terms: shapeTerms } = shapeFunction(psi, A);
+  const terms = shapeTerms.map((t) => C * t);
+  const sum = terms.reduce((s, v) => s + v, 0);
+  return { terms, sum };
+}
+
 /** Full CST surface: zeta(psi) = C(psi) * S(psi) + psi * zeta_T. */
 export function cstSurfaceZeta(
   psi: number,

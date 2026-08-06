@@ -509,8 +509,35 @@ async function getJson<TRes>(path: string, timeoutMs: number = DEFAULT_TIMEOUT_M
   return res.json() as Promise<TRes>;
 }
 
+// Analyze can run a full viscous mfoil solve whenever Re is given (the
+// Analyze page prefills Re=1e6, so this is the DEFAULT path, not an edge
+// case). Measured directly against the deployed Render free-tier backend:
+// a warm viscous NACA 2412 analyze takes ~124s; app/README.md documents
+// ~166s on a cold container. The old DEFAULT_TIMEOUT_MS (45s) aborted every
+// such request client-side well before the backend could ever finish,
+// which is the defect this fixes (not a dropped connection: the backend was
+// always going to answer, just slower than the client allowed it to).
+// 200s covers the documented cold-start case with margin. Inviscid analyze
+// (no Re) stays fast (~16s measured) and finishes well inside this budget.
+const ANALYZE_TIMEOUT_MS = 200_000;
+
 export function analyze(req: AnalyzeRequest): Promise<AnalyzeResponse> {
-  return postJson("/api/analyze", req);
+  return postJson("/api/analyze", req, ANALYZE_TIMEOUT_MS);
+}
+
+// Cheap liveness probe (app/backend/app/routers/health.py's GET /health,
+// proxied locally by next.config.ts's rewrite). Used to ping the backend on
+// page load so a free-tier cold start begins spinning up BEFORE the user
+// clicks Solve, and to detect "the container is asleep" so the UI can say so
+// instead of just showing a spinner for a while.
+export interface HealthResponse {
+  status: string;
+}
+
+const HEALTH_TIMEOUT_MS = 20_000; // generous: this call IS the cold-start wake-up
+
+export function health(): Promise<HealthResponse> {
+  return getJson("/health", HEALTH_TIMEOUT_MS);
 }
 
 export function submitInverse(req: InverseRequest): Promise<InverseSubmitResponse> {
