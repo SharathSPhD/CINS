@@ -117,3 +117,41 @@ def test_the_solve_path_still_runs_the_full_presolve(client, gate_request):
 
     full = engine.run_presolve_gate_raw(RawTargetInverseRequest(**gate_request))["gate"]
     assert full["presolve_passes"] == 2
+
+
+def test_polling_a_running_job_does_not_500(client):
+    """Regression: the deployed poll answered 500 while the gate was running.
+
+    jobs.run_job writes partial progress payloads into job.result so the
+    inverse endpoint can show live stages. Those partials are shaped for the
+    inverse payload, so validating one against this endpoint's response model
+    fails and the poll returns 500 rather than "still running" - which is
+    worse than the timeout it replaced, because the caller cannot wait either.
+    """
+    from app import jobs
+
+    job = jobs.create_job()
+    job.status = "running"
+    job.phase = "presolve pass 1/2 (inviscid Cp + sensitivity matrix)"
+    job.result = {"phase": job.phase, "stages": [], "realisability": None}
+
+    r = client.get(f"/api/inverse/gate/{job.id}")
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["status"] == "running"
+    assert body["result"] is None
+    assert body["phase"] == job.phase
+
+
+def test_polling_a_running_analyze_job_does_not_500(client):
+    from app import jobs
+
+    job = jobs.create_job()
+    job.status = "running"
+    job.phase = "viscous solve"
+    job.result = {"phase": job.phase}
+
+    r = client.get(f"/api/analyze/{job.id}")
+    assert r.status_code == 200, r.text
+    assert r.json()["result"] is None
+    assert r.json()["phase"] == "viscous solve"

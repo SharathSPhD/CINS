@@ -52,7 +52,13 @@ def poll_analyze(job_id: str) -> dict:
     return {
         "job_id": job.id,
         "status": job.status,
-        "result": job.result,
+        # Only once done. run_job writes partial progress payloads into
+        # job.result while the task runs (that is what makes the inverse
+        # endpoint's live stage list work), and those partials are shaped for
+        # the inverse payload, not for this response model. Returning one here
+        # fails response validation and the poll answers 500, which is worse
+        # than the timeout it replaced: the caller cannot even wait properly.
+        "result": job.result if job.status == "done" else None,
         "error": job.error,
         "phase": job.phase,
     }
