@@ -358,15 +358,62 @@ export interface RawTargetGate {
   threshold: number;
   A_upper_init: number[];
   A_lower_init: number[];
+  screening?: boolean;
+  npanel?: number | null;
+  presolve_passes?: number | null;
+  cached?: boolean;
 }
 
-// Measured ~27s locally for a typical target (two presolve passes, each
-// rebuilding an 18-coefficient sensitivity matrix): see app/backend/app/jobs.py's
-// module docstring for why this is genuinely slow, not stuck.
+// The gate spends two inviscid solves per CST coefficient, so at order 6 it is
+// 15 solves in the screening configuration and 60 at full fidelity. Measured
+// against the deployed backend, the full-fidelity form did not return within
+// 600s, so the previous 120s budget was not merely too small: no fixed budget
+// works. The job form below is the supported path; this one stays for scripted
+// callers and for the cache hit, which is immediate.
 const GATE_TIMEOUT_MS = 120_000;
 
 export function presolveGateRaw(req: RawTargetInverseRequest): Promise<RawTargetGate> {
   return postJson("/api/inverse/gate", req, GATE_TIMEOUT_MS);
+}
+
+export interface GateSubmitResponse {
+  job_id: string;
+  status: string;
+}
+
+export interface GateJobResponse {
+  job_id: string;
+  status: "queued" | "running" | "done" | "error";
+  result: RawTargetGate | null;
+  error: string | null;
+  phase: string | null;
+}
+
+export function submitPresolveGate(req: RawTargetInverseRequest): Promise<GateSubmitResponse> {
+  return postJson("/api/inverse/gate/submit", req, DEFAULT_TIMEOUT_MS);
+}
+
+export function pollPresolveGate(jobId: string): Promise<GateJobResponse> {
+  return getJson(`/api/inverse/gate/${jobId}`, DEFAULT_TIMEOUT_MS);
+}
+
+/**
+ * Submit the realisability gate and poll it to completion. Each request is
+ * short, so no single call can time out however slow the container is.
+ */
+export async function presolveGateViaJob(
+  req: RawTargetInverseRequest,
+  onPhase?: (phase: string) => void,
+  pollMs = 2000,
+): Promise<RawTargetGate> {
+  const { job_id } = await submitPresolveGate(req);
+  for (;;) {
+    const job = await pollPresolveGate(job_id);
+    if (job.phase && onPhase) onPhase(job.phase);
+    if (job.status === "done" && job.result) return job.result;
+    if (job.status === "error") throw new ApiError(400, job.error ?? "gate failed");
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
 }
 
 export function submitInverseRaw(req: RawTargetInverseRequest): Promise<InverseSubmitResponse> {

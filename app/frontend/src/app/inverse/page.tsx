@@ -11,7 +11,7 @@ import {
   analyze,
   describeError,
   pollInverse,
-  presolveGateRaw,
+  presolveGateViaJob,
   showcase,
   submitInverse,
   submitInverseRaw,
@@ -302,6 +302,10 @@ function RawTargetPanel() {
 
   const [gate, setGate] = useState<RawTargetGate | null>(null);
   const [gateLoading, setGateLoading] = useState(false);
+  // The gate runs 15 inviscid solves in its screening configuration, which is
+  // a couple of minutes on the free-tier container. Reporting the phase keeps
+  // that distinguishable from a hang.
+  const [gatePhase, setGatePhase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [jobId, setJobId] = useState<string | null>(null);
@@ -394,9 +398,10 @@ function RawTargetPanel() {
       return;
     }
     setGateLoading(true);
+    setGatePhase(null);
     setError(null);
     try {
-      const g = await presolveGateRaw(buildRawRequest());
+      const g = await presolveGateViaJob(buildRawRequest(), setGatePhase);
       setGate(g);
     } catch (err) {
       setError(describeError(err));
@@ -605,7 +610,9 @@ function RawTargetPanel() {
             title={points.length < 5 ? "Load or upload a target curve first (need >= 5 stations)" : undefined}
             className="flex-1 rounded-md border border-neutral-300 dark:border-neutral-700 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {gateLoading ? "Checking... (up to ~1-2 min)" : "Check realisability"}
+            {gateLoading
+              ? `${gatePhase ?? "Checking"}... (up to ~2-3 min on the free tier)`
+              : "Check realisability"}
           </button>
           <button
             type="button"
@@ -662,6 +669,11 @@ function GateCard({ gate }: { gate: RawTargetGate }) {
          : "This target may not be representable by this CST parameterization/order; the monolithic Newton solve may stagnate or fail to converge. You can still proceed."}
       </p>
       <p className="mt-1 text-xs text-neutral-500">KKT condition number: {gate.kkt_cond.toExponential(2)}</p>
+      <p className="mt-1 text-xs text-neutral-500">
+        {gate.presolve_passes ?? 2} presolve passes at {gate.npanel} panels, the
+        same fidelity the solve itself uses.
+        {gate.cached ? " Served from cache." : ""}
+      </p>
     </div>
   );
 }

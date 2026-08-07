@@ -1184,6 +1184,40 @@ def _phase_payload(
     }
 
 
+_GATE_CACHE: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
+_GATE_CACHE_MAX = 32
+_GATE_CACHE_LOCK = threading.Lock()
+
+
+def run_presolve_gate_screening(req: Any, on_progress=None) -> dict[str, Any]:
+    """The standalone /api/inverse/gate path: full fidelity, cached.
+
+    Caching is the only safe saving available here. The Inverse page's common
+    flow is a handful of baseline and template pairs, so the first caller pays
+    for the presolve and everyone after gets it immediately. Reducing the
+    presolve itself was tried and rejected; see ``run_presolve_gate_raw``.
+    """
+    key = hashlib.sha256(
+        json.dumps(
+            req.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+        ).encode()
+    ).hexdigest()
+    with _GATE_CACHE_LOCK:
+        hit = _GATE_CACHE.get(key)
+        if hit is not None:
+            _GATE_CACHE.move_to_end(key)
+            return {**hit, "cached": True}
+
+    verdict = run_presolve_gate_raw(req, on_progress=on_progress)["gate"]
+    verdict = {**verdict, "cached": False}
+    with _GATE_CACHE_LOCK:
+        _GATE_CACHE[key] = verdict
+        _GATE_CACHE.move_to_end(key)
+        while len(_GATE_CACHE) > _GATE_CACHE_MAX:
+            _GATE_CACHE.popitem(last=False)
+    return verdict
+
+
 def run_presolve_gate_raw(
     req: Any,
     on_progress: Callable[[dict[str, Any]], None] | None = None,
@@ -1193,7 +1227,27 @@ def run_presolve_gate_raw(
     can show the verdict before the user commits to a full inverse run) and
     as the first step of ``run_inverse_raw`` itself. ``on_progress``/``t0``
     are supplied only by ``run_inverse_raw`` (a job with phase reporting);
-    the standalone ``/api/inverse/gate`` call leaves them ``None``."""
+    the standalone ``/api/inverse/gate`` call leaves them ``None``.
+
+    The gate is dominated by ``build_sensitivity_matrix``, which spends two
+    inviscid solves per CST coefficient: at order 6 that is 29 solves per
+    presolve pass, and the two passes make 60. Measured at 199 panels this is
+    18.8 s locally, which on the free-tier container (33x slower, see
+    ``run_analyze``) is about 620 s. That is why this call could not finish
+    inside any client timeout rather than merely exceeding the one it had, and
+    why the supported path is the job form plus the cache rather than a larger
+    budget.
+
+    A cheaper configuration was tried and rejected. One presolve pass at the
+    interactive paneling runs 3.2x faster, and on a self-consistency target it
+    agreed with the full verdict, but that agreement was luck: on a 4412 target
+    against a 2412 baseline the coarse paneling and the missing pass move the
+    metric in opposite directions and happen to cancel. Taken singly, one pass
+    at full paneling reports 0.071 where two report 0.036, which flips the
+    verdict across the 0.05 threshold. A gate that can invert its own answer to
+    run faster is worse than a slow one, so both knobs stay at study fidelity.
+    ``screening`` is retained only as the flag that marks the cached standalone
+    path; it no longer changes any numerical setting."""
     t0 = t0 if t0 is not None else time.perf_counter()
 
     def _phase(text: str) -> None:
@@ -1222,6 +1276,8 @@ def run_presolve_gate_raw(
         else:
             resolved_rows.append(row)  # type: ignore[arg-type]
 
+    n_passes = 2
+
     a0 = np.concatenate([a_u0, a_l0])
     # The baseline's own fitted nose, kept before the presolve passes move it.
     # When the leading edge is prescribed it must come from here rather than
@@ -1230,8 +1286,10 @@ def run_presolve_gate_raw(
     # nose forces every remaining coefficient to compensate for it.
     a0_baseline = a0.copy()
     ps = None
-    for pass_i in range(2):  # 2 presolve passes, mirroring prepare_cell's own init="presolve" loop
-        _phase(f"presolve pass {pass_i + 1}/2 (inviscid Cp + sensitivity matrix)")
+    for pass_i in range(n_passes):  # mirrors prepare_cell's own init="presolve" loop
+        _phase(
+            f"presolve pass {pass_i + 1}/{n_passes} (inviscid Cp + sensitivity matrix)"
+        )
         base_res = solve_inviscid_cp(
             a0[: n_u + 1], a0[n_u + 1 :], zeta_t_u, zeta_t_l, psi, cfg
         )
@@ -1264,6 +1322,8 @@ def run_presolve_gate_raw(
         "gate": {
             "realisability": ps.realisability,
             "realisable": ps.realisable,
+            "npanel": int(cfg.paneling.npanel),
+            "presolve_passes": int(n_passes),
             "kkt_cond": ps.kkt_cond,
             "threshold": cfg.presolve.realisability_threshold,
             "A_upper_init": a0[: n_u + 1].tolist(),

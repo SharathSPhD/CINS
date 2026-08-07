@@ -564,6 +564,27 @@ class RawTargetGate(BaseModel):
     threshold: float
     A_upper_init: list[float]
     A_lower_init: list[float]
+    screening: bool = Field(
+        False,
+        description="computed in the cheaper screening configuration "
+        "(one presolve pass at the interactive paneling)",
+    )
+    npanel: int | None = Field(None, description="paneling the presolve ran at")
+    presolve_passes: int | None = Field(None, description="presolve passes run")
+    cached: bool = Field(False, description="served without recomputing")
+
+
+class GateSubmitResponse(BaseModel):
+    job_id: str
+    status: str
+
+
+class GateJobResponse(BaseModel):
+    job_id: str
+    status: str
+    result: RawTargetGate | None = None
+    error: str | None = None
+    phase: str | None = None
 
 
 class RawTargetSubmitResponse(BaseModel):

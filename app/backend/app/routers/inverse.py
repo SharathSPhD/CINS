@@ -6,6 +6,8 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from app import engine, jobs
 from app.schemas import (
+    GateJobResponse,
+    GateSubmitResponse,
     InverseJobResponse,
     InverseRequest,
     InverseSubmitResponse,
@@ -51,14 +53,50 @@ def poll_inverse(job_id: str) -> dict:
     }
 
 
+@router.post("/inverse/gate/submit", response_model=GateSubmitResponse, status_code=202)
+def submit_presolve_gate(
+    req: RawTargetInverseRequest, background_tasks: BackgroundTasks
+) -> dict:
+    """Start the gate and return a job id. Poll GET /api/inverse/gate/{job_id}.
+
+    The synchronous form below cannot be relied on from a browser: the gate
+    spends two inviscid solves per CST coefficient, which measures about 620 s
+    on the free-tier container, so the request outlives any client timeout
+    rather than merely exceeding a particular one. This form has no window to
+    exceed."""
+    job = jobs.create_job()
+    background_tasks.add_task(
+        jobs.run_job, job.id, engine.run_presolve_gate_screening, req
+    )
+    return {"job_id": job.id, "status": job.status}
+
+
+@router.get("/inverse/gate/{job_id}", response_model=GateJobResponse)
+def poll_presolve_gate(job_id: str) -> dict:
+    job = jobs.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"unknown job_id {job_id!r}")
+    return {
+        "job_id": job.id,
+        "status": job.status,
+        "result": job.result,
+        "error": job.error,
+        "phase": job.phase,
+    }
+
+
 @router.post("/inverse/gate", response_model=RawTargetGate)
 def presolve_gate_raw(req: RawTargetInverseRequest) -> dict:
     """The T4 presolve realisability verdict ONLY (no Newton solve) for a
     user-defined target: lets the UI show the ADR-0004 warning immediately,
     before the user commits to a (slower) full inverse run. Always 200; a
-    non-realisable target is a warning, not an error."""
+    non-realisable target is a warning, not an error.
+
+    Retained for scripted callers and served from the same cache as the job
+    form, so a repeat is immediate. Interactive callers should use
+    /api/inverse/gate/submit."""
     try:
-        return engine.run_presolve_gate_raw(req)["gate"]
+        return engine.run_presolve_gate_screening(req)
     except engine.EngineError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
