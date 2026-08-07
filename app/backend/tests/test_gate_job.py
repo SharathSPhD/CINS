@@ -32,9 +32,9 @@ def gate_request(client):
 
 @pytest.fixture(autouse=True)
 def _clear():
-    engine._GATE_CACHE.clear()  # noqa: SLF001 - the cache is under test
+    engine._GATE_CTX_CACHE.clear()  # noqa: SLF001 - the cache is under test
     yield
-    engine._GATE_CACHE.clear()  # noqa: SLF001
+    engine._GATE_CTX_CACHE.clear()  # noqa: SLF001
 
 
 def _poll(client, job_id, deadline_s=900):
@@ -155,3 +155,39 @@ def test_polling_a_running_analyze_job_does_not_500(client):
     assert r.status_code == 200, r.text
     assert r.json()["result"] is None
     assert r.json()["phase"] == "viscous solve"
+
+
+def test_the_solve_reuses_the_gate_the_user_just_ran(client, gate_request):
+    """The Inverse page's flow is "check realisability", then "run inverse
+    solve", and run_inverse_raw starts by calling the same gate. Before the
+    context was cached it repeated all 60 inviscid solves the user had just
+    waited through, about 620 s on the free-tier container, before the first
+    Newton iteration. That, not the Newton solve, is what exhausted the 1500 s
+    watchdog in the field.
+    """
+    from app.schemas import RawTargetInverseRequest
+
+    req = RawTargetInverseRequest(**gate_request)
+    first = engine.run_presolve_gate_raw(req)
+    assert first["cached"] is False
+
+    second = engine.run_presolve_gate_raw(req)
+    assert second["cached"] is True
+    assert second["gate"]["realisability"] == pytest.approx(
+        first["gate"]["realisability"], rel=1e-12
+    )
+    assert second["a0"] == pytest.approx(first["a0"], rel=1e-12)
+
+
+def test_cached_context_is_isolated_from_caller_mutation(client, gate_request):
+    """run_inverse_raw overwrites the nose coefficients in a0. If it were
+    handed the cached array itself, the next caller would inherit that edit."""
+    from app.schemas import RawTargetInverseRequest
+
+    req = RawTargetInverseRequest(**gate_request)
+    first = engine.run_presolve_gate_raw(req)
+    original = float(first["a0"][0])
+    first["a0"][0] = 999.0
+
+    second = engine.run_presolve_gate_raw(req)
+    assert float(second["a0"][0]) == pytest.approx(original, rel=1e-12)

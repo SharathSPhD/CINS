@@ -312,6 +312,48 @@ export function flowfield(req: FlowFieldRequest): Promise<FlowFieldResponse> {
   return postJson("/api/flowfield", req, FLOWFIELD_TIMEOUT_MS);
 }
 
+export interface FlowFieldSubmitResponse {
+  job_id: string;
+  status: string;
+}
+
+export interface FlowFieldJobResponse {
+  job_id: string;
+  status: "queued" | "running" | "done" | "error";
+  result: FlowFieldResponse | null;
+  error: string | null;
+  phase: string | null;
+}
+
+export function submitFlowField(req: FlowFieldRequest): Promise<FlowFieldSubmitResponse> {
+  return postJson("/api/flowfield/submit", req, DEFAULT_TIMEOUT_MS);
+}
+
+export function pollFlowField(jobId: string): Promise<FlowFieldJobResponse> {
+  return getJson(`/api/flowfield/${jobId}`, DEFAULT_TIMEOUT_MS);
+}
+
+/**
+ * Submit the field and poll it to completion. The default 60x40 grid measures
+ * 92.3s on the deployed free-tier container against the 90s the synchronous
+ * call allowed, so it failed on the margin rather than on the request. Polling
+ * removes the margin entirely.
+ */
+export async function flowFieldViaJob(
+  req: FlowFieldRequest,
+  onPhase?: (phase: string) => void,
+  pollMs = 1500,
+): Promise<FlowFieldResponse> {
+  const { job_id } = await submitFlowField(req);
+  for (;;) {
+    const job = await pollFlowField(job_id);
+    if (job.phase && onPhase) onPhase(job.phase);
+    if (job.status === "done" && job.result) return job.result;
+    if (job.status === "error") throw new ApiError(400, job.error ?? "flow field failed");
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+}
+
 // --------------------------------------------------------------------------- //
 // /api/inverse/raw, /api/inverse/gate: user-defined target Cp
 // --------------------------------------------------------------------------- //

@@ -8,7 +8,7 @@ import {
   airfoilGeometry,
   analyze,
   describeError,
-  flowfield,
+  flowFieldViaJob,
   listAirfoils,
   type AirfoilListItem,
   type AirfoilListResponse,
@@ -33,6 +33,9 @@ export default function FlowFieldPage() {
   const [field, setField] = useState<FlowFieldResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [elapsedS, setElapsedS] = useState(0);
+  // The field runs about a minute and a half on the free-tier container,
+  // so the wait needs to show what it is doing.
+  const [phase, setPhase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
@@ -55,7 +58,8 @@ export default function FlowFieldPage() {
       .then(setCatalog)
       .catch(() => setCatalog(null));
     return () => {
-      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+      setPhase(null);
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
   }, []);
 
@@ -92,7 +96,7 @@ export default function FlowFieldPage() {
 
     const baseReq = customCoords ? { coords: customCoords, alpha } : { naca, alpha };
 
-    const fieldPromise = flowfield(baseReq)
+    const fieldPromise = flowFieldViaJob(baseReq, setPhase)
       .then((res) => {
         if (requestId !== requestIdRef.current) return;
         setField(res);
@@ -269,7 +273,9 @@ export default function FlowFieldPage() {
             disabled={loading}
             className="w-full rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {loading ? `Solving... (${elapsedS.toFixed(0)}s)`: "Solve"}
+            {loading
+              ? `${phase ? phase[0].toUpperCase() + phase.slice(1) : "Solving"}... (${elapsedS.toFixed(0)}s)`
+              : "Solve"}
           </button>
           {loading && elapsedS > 5 && (
             <div className="text-xs text-neutral-500">

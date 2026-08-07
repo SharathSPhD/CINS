@@ -310,6 +310,21 @@ class FlowFieldResponse(BaseModel):
         "circulation from the alpha given; grid points inside the airfoil "
         "body are null."
     )
+    cached: bool = Field(False, description="served from the field cache")
+
+
+class FlowFieldSubmitResponse(BaseModel):
+    job_id: str
+    status: str
+
+
+class FlowFieldJobResponse(BaseModel):
+    job_id: str
+    status: str
+    result: FlowFieldResponse | None = None
+    error: str | None = None
+    phase: str | None = None
+
 
 
 # --------------------------------------------------------------------------- #

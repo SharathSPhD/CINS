@@ -638,11 +638,36 @@ def _point_in_polygon(px: float, py: float, xs: np.ndarray, ys: np.ndarray) -> b
     return inside
 
 
-def run_flowfield(req: Any) -> dict[str, Any]:
+_FLOWFIELD_CACHE: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
+_FLOWFIELD_CACHE_MAX = 32
+_FLOWFIELD_CACHE_LOCK = threading.Lock()
+
+
+def run_flowfield(
+    req: Any, on_progress: Callable[[dict[str, Any]], None] | None = None
+) -> dict[str, Any]:
     """Inviscid velocity/Cp field on a grid (vendor ``inviscid_velocity`` at
     fixed circulation), for vector/contour/streamline rendering client-side.
     ``req`` is an ``app.schemas.FlowFieldRequest``. Inviscid-only (no viscous
-    wake deficit); grid size is capped (see ``_FLOWFIELD_MAX_CELLS``)."""
+    wake deficit); grid size is capped (see ``_FLOWFIELD_MAX_CELLS``).
+
+    Measured on the deployed free-tier container at the default 60x40 grid:
+    92.3 s, against the 90 s the client allowed. The margin was the whole
+    problem, so this is reachable as a job as well, and the result is cached
+    because the field is deterministic in its request and the page's airfoil
+    and angle choices repeat."""
+    key = hashlib.sha256(
+        json.dumps(
+            req.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+        ).encode()
+    ).hexdigest()
+    with _FLOWFIELD_CACHE_LOCK:
+        hit = _FLOWFIELD_CACHE.get(key)
+        if hit is not None:
+            _FLOWFIELD_CACHE.move_to_end(key)
+            return {**hit, "cached": True}
+    if on_progress is not None:
+        on_progress({"phase": "inviscid field"})
     if req.coords is not None:
         coords = np.array(req.coords, dtype=float).T
         if coords.shape[0] != 2:
@@ -699,7 +724,7 @@ def run_flowfield(req: Any) -> dict[str, Any]:
     speed = _masked(speed_grid)
     cp = _masked(cp_grid)
 
-    return {
+    result = {
         "x": xs.tolist(),
         "y": ys.tolist(),
         "u": u,
@@ -711,7 +736,14 @@ def run_flowfield(req: Any) -> dict[str, Any]:
         "Vinf": Vinf,
         "nx": nx,
         "ny": ny,
+        "cached": False,
     }
+    with _FLOWFIELD_CACHE_LOCK:
+        _FLOWFIELD_CACHE[key] = result
+        _FLOWFIELD_CACHE.move_to_end(key)
+        while len(_FLOWFIELD_CACHE) > _FLOWFIELD_CACHE_MAX:
+            _FLOWFIELD_CACHE.popitem(last=False)
+    return result
 
 
 # --------------------------------------------------------------------------- #
@@ -1184,38 +1216,46 @@ def _phase_payload(
     }
 
 
-_GATE_CACHE: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
-_GATE_CACHE_MAX = 32
+# The whole pre-solve context is cached, not just the verdict it produces.
+# The Inverse page's flow is "check realisability", then "run inverse solve",
+# and run_inverse_raw begins by calling this same gate. Caching only the
+# verdict left the solve repeating all 60 inviscid solves the user had just
+# waited through: about 620 s on the free-tier container, before the first
+# Newton iteration, which is what exhausted the 1500 s watchdog in practice.
+# Small (arrays for a handful of baseline and target pairs), so 16 is enough.
+_GATE_CTX_CACHE: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
+_GATE_CTX_CACHE_MAX = 16
 _GATE_CACHE_LOCK = threading.Lock()
+
+
+def _gate_key(req: Any) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            req.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+        ).encode()
+    ).hexdigest()
+
+
+def _copy_ctx(ctx: dict[str, Any]) -> dict[str, Any]:
+    """Hand back a copy so a caller that updates ``a0`` in place (run_inverse_raw
+    does, when it restores the baseline nose) cannot corrupt the cached entry
+    for the next caller."""
+    out = dict(ctx)
+    for k, v in ctx.items():
+        if isinstance(v, np.ndarray):
+            out[k] = v.copy()
+    out["gate"] = dict(ctx["gate"])
+    return out
 
 
 def run_presolve_gate_screening(req: Any, on_progress=None) -> dict[str, Any]:
     """The standalone /api/inverse/gate path: full fidelity, cached.
 
-    Caching is the only safe saving available here. The Inverse page's common
-    flow is a handful of baseline and template pairs, so the first caller pays
-    for the presolve and everyone after gets it immediately. Reducing the
-    presolve itself was tried and rejected; see ``run_presolve_gate_raw``.
+    Caching is the only safe saving available here. Reducing the pre-solve
+    itself was tried and rejected; see ``run_presolve_gate_raw``.
     """
-    key = hashlib.sha256(
-        json.dumps(
-            req.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
-        ).encode()
-    ).hexdigest()
-    with _GATE_CACHE_LOCK:
-        hit = _GATE_CACHE.get(key)
-        if hit is not None:
-            _GATE_CACHE.move_to_end(key)
-            return {**hit, "cached": True}
-
-    verdict = run_presolve_gate_raw(req, on_progress=on_progress)["gate"]
-    verdict = {**verdict, "cached": False}
-    with _GATE_CACHE_LOCK:
-        _GATE_CACHE[key] = verdict
-        _GATE_CACHE.move_to_end(key)
-        while len(_GATE_CACHE) > _GATE_CACHE_MAX:
-            _GATE_CACHE.popitem(last=False)
-    return verdict
+    ctx = run_presolve_gate_raw(req, on_progress=on_progress)
+    return {**ctx["gate"], "cached": bool(ctx.get("cached"))}
 
 
 def run_presolve_gate_raw(
@@ -1253,6 +1293,14 @@ def run_presolve_gate_raw(
     def _phase(text: str) -> None:
         if on_progress is not None:
             on_progress(_phase_payload(text, t0))
+
+    key = _gate_key(req)
+    with _GATE_CACHE_LOCK:
+        hit = _GATE_CTX_CACHE.get(key)
+        if hit is not None:
+            _GATE_CTX_CACHE.move_to_end(key)
+            _phase("presolve (cached)")
+            return {**_copy_ctx(hit), "cached": True}
 
     _phase("fit: baseline CST fit")
     a_u0, a_l0, zeta_t_u, zeta_t_l = _baseline_from_spec(req.baseline, req.n)
@@ -1307,7 +1355,7 @@ def run_presolve_gate_raw(
         a0 = np.asarray(ps.A, dtype=float)
 
     assert ps is not None
-    return {
+    ctx: dict[str, Any] = {
         "cfg": cfg,
         "psi": psi,
         "target_res": target_res,
@@ -1330,6 +1378,13 @@ def run_presolve_gate_raw(
             "A_lower_init": a0[n_u + 1 :].tolist(),
         },
     }
+
+    with _GATE_CACHE_LOCK:
+        _GATE_CTX_CACHE[key] = ctx
+        _GATE_CTX_CACHE.move_to_end(key)
+        while len(_GATE_CTX_CACHE) > _GATE_CTX_CACHE_MAX:
+            _GATE_CTX_CACHE.popitem(last=False)
+    return {**_copy_ctx(ctx), "cached": False}
 
 
 def run_inverse_raw(

@@ -38,7 +38,16 @@ JobStatus = Literal["queued", "running", "done", "error"]
 # Default: 25 minutes: above the documented ~10-20 min free-tier full-job
 # ceiling (app/README.md) with headroom, but still bounded so the UI is never
 # stuck showing "running" indefinitely.
-DEFAULT_TIMEOUT_S = float(os.environ.get("CINS_INVERSE_TIMEOUT_S", "1500"))
+# Measured, not guessed. On the deployed free-tier container the pre-solve
+# alone is about 620 s and the Newton solve follows it, and a real job was
+# observed being killed here at 1500 s while still inside presolve pass 1 of 2.
+# The pre-solve is now reused from the gate the user just ran, which removes
+# most of that, but the watchdog must still sit above the case where it was not
+# run first. This is a liveness guard against a job that will never answer, not
+# a performance budget: erring long costs a stale "running" status, while
+# erring short throws away work that was going to succeed, which is what
+# happened.
+DEFAULT_TIMEOUT_S = float(os.environ.get("CINS_INVERSE_TIMEOUT_S", "3600"))
 
 
 @dataclass
