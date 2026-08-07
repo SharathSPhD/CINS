@@ -29,11 +29,15 @@ docstring for the exact call sequences reused from
   backend origin directly — NEXT_PUBLIC_API_BASE baked at build)
 - Backend: https://cins-backend.onrender.com (Render free tier, Docker from
   app/backend/Dockerfile, auto-deploys on push to main)
-- **Free-tier latency reality:** a viscous analyze measures ~166 s and a full
-  inverse job ~10–20 min on Render's 0.1-vCPU instance (numbers verified correct
-  against the pinned baselines — it is slow, not wrong). Inviscid endpoints run
-  in seconds. A paid instance (~$7/mo) cuts viscous solves to ~15 s. The
-  archived-showcase endpoints (/api/showcase, /static/figures) are instant.
+- **Free-tier latency reality:** the instance measures about 33x slower than a
+  development machine, so a viscous analyze takes ~115 s and the realisability
+  gate ~894 s (numbers verified correct against the pinned baselines: it is
+  slow, not wrong). Every long call is a job and is cached; see "Free-tier
+  latency, and what the caches can and cannot do" below for the measurements
+  and for the one limit the caches do not cover. Inviscid endpoints run in
+  seconds and the archived-showcase endpoints (/api/showcase, /static/figures)
+  are instant. A paid instance removes both the 33x and the container
+  recycling.
 - CORS: exact origins via ALLOWED_ORIGINS env (wildcard+credentials silently
   drops the allow-origin header — learned the hard way).
 
@@ -79,7 +83,10 @@ cd app/frontend && npm run build && npm run lint
 | `POST /api/fit` | least-squares CST fit to supplied coordinates -> A_upper/A_lower, zeta_T, rms, gram_condition |
 | `POST /api/presolve` | T4 linear pre-solve + realisability metric (ADR-0004) |
 | `POST /api/inverse` | submit a self-consistency (`naca_target`) monolithic CST-Newton inverse solve; returns `job_id` (202) |
+| `POST /api/analyze/submit` | analyze as a job; poll `GET /api/analyze/{job_id}` |
+| `POST /api/flowfield/submit` | flow field as a job; poll `GET /api/flowfield/{job_id}` |
 | `POST /api/inverse/gate` | T4 realisability gate only (no solve) for a user-defined target |
+| `POST /api/inverse/gate/submit` | the gate as a job; poll `GET /api/inverse/gate/{job_id}` |
 | `POST /api/inverse/raw` | submit a user-defined-target (`raw_target`) inverse solve; returns `job_id` (202) |
 | `GET /api/inverse/{job_id}` | poll job status/result — shared by `/api/inverse` and `/api/inverse/raw` |
 | `GET /api/airfoils` | UIUC corpus (123 sections, cached thickness/camber) + curated NACA presets |
@@ -280,6 +287,39 @@ phase-1 local-dev scope, not an oversight.
   phase; `app/backend/requirements.txt` layers FastAPI/uvicorn/httpx onto the
   repo's existing `.venv` (already has `cins` installed editable plus
   numpy/scipy/pydantic/pyyaml from the root `pyproject.toml`).
+
+## Free-tier latency, and what the caches can and cannot do
+
+Every long-running endpoint is reachable as a job (`/api/analyze/submit`,
+`/api/flowfield/submit`, `/api/inverse/gate/submit`, `/api/inverse/raw`) and
+polled, so none of them can fail on a client or proxy timeout. Measured on the
+deployed container against the same call locally:
+
+| call | local | deployed | notes |
+| --- | --- | --- | --- |
+| viscous analyze | 3.5 s | 115 s | 33x, and the basis for the others |
+| flow field, 60x40 | 0.4 s | 35 to 92 s | varies with container load |
+| realisability gate | 19 s | 894 s | 60 inviscid solves, two per coefficient |
+
+Results are cached in process, and the pre-solve context is cached whole rather
+than only its verdict, so an inverse solve does not repeat the gate the user
+just ran: measured at 0.000 s against 19.13 s locally, about 631 s of free-tier
+time.
+
+The limit worth knowing: **the cache is in process, and the free-tier container
+recycles.** This was observed directly rather than inferred. A gate was
+computed and cached, the container restarted (the next submit took 32 s, a cold
+start), and both the gate context and an unrelated cached flow field came back
+`cached: false` on the following request. Nothing is wrong with the cache; the
+process holding it is gone. On the free tier a first call after any restart pays
+full price.
+
+Two durable options, neither taken yet:
+
+- Precompute the application's common flows offline and commit them, the way
+  `app/frontend/public/showcase.json` already serves the Results Gallery. This
+  survives restarts because it ships in the image.
+- A paid instance, which removes both the 33x and the recycling.
 
 ## Deferred (explicitly out of scope for this phase)
 
