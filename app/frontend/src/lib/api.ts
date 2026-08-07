@@ -528,6 +528,54 @@ export function analyze(req: AnalyzeRequest): Promise<AnalyzeResponse> {
   return postJson("/api/analyze", req, ANALYZE_TIMEOUT_MS);
 }
 
+// Preferred path for the Analyze page. Raising the timeout above only widened
+// the window the request had to finish inside; it did not remove the window,
+// so a slow container still surfaced as an error rather than as a wait. The
+// job form has no window at all: the solve is started, the connection is
+// released, and the answer is collected by polling. The only budget left is
+// the user's patience, which the caller controls via onPhase.
+export interface AnalyzeSubmitResponse {
+  job_id: string;
+  status: string;
+}
+
+export interface AnalyzeJobResponse {
+  job_id: string;
+  status: "queued" | "running" | "done" | "error";
+  result: AnalyzeResponse | null;
+  error: string | null;
+  phase: string | null;
+}
+
+export function submitAnalyze(req: AnalyzeRequest): Promise<AnalyzeSubmitResponse> {
+  return postJson("/api/analyze/submit", req, DEFAULT_TIMEOUT_MS);
+}
+
+export function pollAnalyze(jobId: string): Promise<AnalyzeJobResponse> {
+  return getJson(`/api/analyze/${jobId}`, DEFAULT_TIMEOUT_MS);
+}
+
+/**
+ * Submit an analyze and poll it to completion. Each individual request is
+ * short, so no single call can time out however slow the container is.
+ * `onPhase` reports what the backend says it is doing, so the wait shows
+ * movement rather than a bare spinner.
+ */
+export async function analyzeViaJob(
+  req: AnalyzeRequest,
+  onPhase?: (phase: string) => void,
+  pollMs = 1500,
+): Promise<AnalyzeResponse> {
+  const { job_id } = await submitAnalyze(req);
+  for (;;) {
+    const job = await pollAnalyze(job_id);
+    if (job.phase && onPhase) onPhase(job.phase);
+    if (job.status === "done" && job.result) return job.result;
+    if (job.status === "error") throw new ApiError(400, job.error ?? "analyze failed");
+    await new Promise((r) => setTimeout(r, pollMs));
+  }
+}
+
 // Cheap liveness probe (app/backend/app/routers/health.py's GET /health,
 // proxied locally by next.config.ts's rewrite). Used to ping the backend on
 // page load so a free-tier cold start begins spinning up BEFORE the user

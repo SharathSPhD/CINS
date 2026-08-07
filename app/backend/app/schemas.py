@@ -54,6 +54,14 @@ class AnalyzeRequest(BaseModel):
         0.0, ge=0.0, lt=0.7, description="Mach number (Karman-Tsien, subcritical only)"
     )
     transition: TransitionSpec | None = None
+    npanel: int | None = Field(
+        None, ge=50, le=1000,
+        description=(
+            "panel count; omit for the interactive default "
+            "(paneling.npanel_interactive), pass the study count to reproduce "
+            "the manuscript"
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_geometry(self) -> "AnalyzeRequest":
@@ -128,6 +136,26 @@ class AnalyzeResponse(BaseModel):
         description="airfoil surface offset by delta* along outward normals (mfoil "
         "mplot_boundary_layer): {'upper': [[x,y],...], 'lower': [[x,y],...]}",
     )
+    npanel: int | None = Field(
+        None, description="panel count actually solved, so the interactive "
+        "default is visible rather than assumed to be the study count"
+    )
+    cached: bool = Field(
+        False, description="served from the in-process result cache without re-solving"
+    )
+
+
+class AnalyzeSubmitResponse(BaseModel):
+    job_id: str
+    status: str
+
+
+class AnalyzeJobResponse(BaseModel):
+    job_id: str
+    status: str
+    result: AnalyzeResponse | None = None
+    error: str | None = None
+    phase: str | None = None
 
 
 # --------------------------------------------------------------------------- #

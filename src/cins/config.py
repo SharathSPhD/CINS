@@ -30,6 +30,11 @@ class CSTConfig(BaseModel):
 class PanelingConfig(BaseModel):
     npanel: int = Field(ge=50, le=1000)
     spacing: Literal["cosine", "uniform"]
+    # Paneling for interactive (application) solves, where a user is waiting on
+    # a shared free-tier container rather than a batch run. Lower than
+    # ``npanel`` by design: the study configuration is what the manuscript
+    # reports and is never taken from this field.
+    npanel_interactive: int = Field(default=139, ge=50, le=1000)
 
 
 class OperatingConfig(BaseModel):

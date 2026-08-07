@@ -14,6 +14,10 @@ cst:
 
 paneling:
   npanel: 199
+  # Interactive/app solves only; the manuscript always uses npanel above.
+  # 139 costs 0.09% in cl and 0.33% in cd against 199 and runs 1.7x faster
+  # (measured, tests/unit/test_interactive_paneling.py).
+  npanel_interactive: 139
   spacing: cosine
 
 operating:

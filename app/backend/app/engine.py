@@ -21,11 +21,13 @@ instances, natural transition only) do not need it.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import tempfile
 import threading
 import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Callable
 
@@ -116,18 +118,83 @@ def _deep_merge(base: dict, overlay: dict) -> dict:
 # /api/analyze
 # --------------------------------------------------------------------------- #
 
+# A viscous solve is deterministic in its request, so the same request always
+# has the same answer and is worth keeping. The application runs on a shared
+# free-tier container where that solve measures ~115 s against ~3.5 s on a
+# development machine, so a repeat request is the difference between two
+# minutes and nothing at all. Bounded because the container's memory is small
+# and each entry carries several node-length arrays; insertion-ordered, so the
+# oldest entry is the one evicted.
+_ANALYZE_CACHE: "OrderedDict[str, dict[str, Any]]" = OrderedDict()
+_ANALYZE_CACHE_MAX = 64
+_ANALYZE_CACHE_LOCK = threading.Lock()
 
-def run_analyze(req: Any) -> dict[str, Any]:
+
+def _analyze_cache_key(req: Any, npanel: int) -> str:
+    """Content hash of everything that changes the answer. Coordinates are
+    rounded before hashing so a geometry that only differs in float noise
+    still hits, and included in full otherwise, since two different sections
+    must never share an entry."""
+    tr = req.transition
+    payload = {
+        "naca": req.naca,
+        "coords": (
+            [[round(float(a), 9), round(float(b), 9)] for a, b in req.coords]
+            if req.coords is not None
+            else None
+        ),
+        "alpha": round(float(req.alpha), 9),
+        "Re": None if req.Re is None else round(float(req.Re), 6),
+        "Ma": round(float(req.Ma), 9),
+        "npanel": int(npanel),
+        "transition": None if tr is None else [tr.mode, tr.xtr_upper, tr.xtr_lower],
+    }
+    return hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def analyze_cache_stats() -> dict[str, int]:
+    with _ANALYZE_CACHE_LOCK:
+        return {"entries": len(_ANALYZE_CACHE), "capacity": _ANALYZE_CACHE_MAX}
+
+
+def run_analyze(
+    req: Any, on_progress: Callable[[dict[str, Any]], None] | None = None
+) -> dict[str, Any]:
     """Direct mfoil solve on the given geometry. ``req`` is an
-    ``app.schemas.AnalyzeRequest``."""
+    ``app.schemas.AnalyzeRequest``.
+
+    Runs at ``paneling.npanel_interactive`` rather than the study
+    ``paneling.npanel``: a user is waiting on a shared container here, and the
+    coarser count costs 0.09 percent in cl and 0.33 percent in cd while
+    running 1.7x faster (pinned by tests/unit/test_interactive_paneling.py).
+    The count used is reported back in the response so the difference is
+    visible rather than silent. Callers that need the study paneling pass
+    ``npanel`` explicitly."""
+    cfg_paneling = load_config().paneling
+    npanel = getattr(req, "npanel", None) or cfg_paneling.npanel_interactive
+
+    def _phase(text: str) -> None:
+        if on_progress is not None:
+            on_progress({"phase": text})
+
+    key = _analyze_cache_key(req, npanel)
+    with _ANALYZE_CACHE_LOCK:
+        hit = _ANALYZE_CACHE.get(key)
+        if hit is not None:
+            _ANALYZE_CACHE.move_to_end(key)
+            return {**hit, "cached": True}
+
     if req.coords is not None:
         coords = np.array(req.coords, dtype=float).T  # (N,2) -> (2,N)
         if coords.shape[0] != 2:
             raise EngineError("coords must be a list of [x, y] pairs")
-        m = make_mfoil(coords=coords)
+        m = make_mfoil(coords=coords, npanel=npanel)
     else:
-        m = make_mfoil(naca=req.naca)
+        m = make_mfoil(naca=req.naca, npanel=npanel)
 
+    _phase("viscous solve" if req.Re is not None else "inviscid solve")
     m.setoper(alpha=req.alpha, Re=req.Re, Ma=req.Ma)
     mod = mfoil_module()
 
@@ -246,7 +313,7 @@ def run_analyze(req: Any) -> dict[str, Any]:
             up_pts = np.stack([xs_up, ys_up], axis=1).tolist()
             bl_offset = {"lower": lo_pts, "upper": up_pts}
 
-    return {
+    result = {
         "converged": converged,
         "cl": float(m.post.cl),
         "cd": float(m.post.cd),
@@ -266,7 +333,16 @@ def run_analyze(req: Any) -> dict[str, Any]:
         "coords": geom.T.tolist(),
         "bl": bl,
         "bl_offset": bl_offset,
+        "npanel": int(npanel),
+        "cached": False,
     }
+
+    with _ANALYZE_CACHE_LOCK:
+        _ANALYZE_CACHE[key] = result
+        _ANALYZE_CACHE.move_to_end(key)
+        while len(_ANALYZE_CACHE) > _ANALYZE_CACHE_MAX:
+            _ANALYZE_CACHE.popitem(last=False)
+    return result
 
 
 # --------------------------------------------------------------------------- #

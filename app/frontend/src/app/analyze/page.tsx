@@ -7,7 +7,7 @@ import CpChart from "@/components/CpChart";
 import CstStudio from "@/components/CstStudio";
 import {
   airfoilGeometry,
-  analyze,
+  analyzeViaJob,
   describeError,
   fit,
   health,
@@ -30,6 +30,10 @@ export default function AnalyzePage() {
 
   const [loading, setLoading] = useState(false);
   const [elapsedS, setElapsedS] = useState(0);
+  // What the backend says it is doing, polled from the job. On the free-tier
+  // container a viscous solve runs for a couple of minutes, and a spinner that
+  // never changes is indistinguishable from one that has hung.
+  const [phase, setPhase] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [fitResult, setFitResult] = useState<FitResponse | null>(null);
@@ -99,6 +103,7 @@ export default function AnalyzePage() {
     setLoading(true);
     setError(null);
     setElapsedS(0);
+    setPhase(null);
     const startedAt = Date.now();
     if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     heartbeatRef.current = setInterval(() => {
@@ -106,7 +111,7 @@ export default function AnalyzePage() {
     }, 500);
     try {
       const res = customCoords
-        ? await analyze({
+        ? await analyzeViaJob({
             coords: customCoords,
             alpha,
             Re : re === "" ? undefined : re,
@@ -114,8 +119,8 @@ export default function AnalyzePage() {
             transition: tripEnabled
               ? { mode : "forced", xtr_upper : xtrUpper, xtr_lower : xtrLower }
              : undefined,
-          })
-       : await analyze({
+          }, setPhase)
+       : await analyzeViaJob({
             naca,
             alpha,
             Re : re === "" ? undefined : re,
@@ -123,7 +128,7 @@ export default function AnalyzePage() {
             transition: tripEnabled
               ? { mode : "forced", xtr_upper : xtrUpper, xtr_lower : xtrLower }
              : undefined,
-          });
+          }, setPhase);
       setResult(res);
       try {
         const fitRes = await fit({ coords: res.coords, n: 8 });
@@ -309,7 +314,9 @@ export default function AnalyzePage() {
             disabled={loading}
             className="w-full rounded-md bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 py-2 text-sm font-medium disabled:opacity-50"
           >
-            {loading ? `Solving... (${elapsedS.toFixed(0)}s)` : "Solve"}
+            {loading
+              ? `${phase ? phase[0].toUpperCase() + phase.slice(1) : "Solving"}... (${elapsedS.toFixed(0)}s)`
+              : "Solve"}
           </button>
           {loading && re !== "" && (
             <div className="text-xs text-neutral-500">
