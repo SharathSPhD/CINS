@@ -29,6 +29,7 @@
       <a class="sh-primary" href="assets/paper/p1_main.pdf" target="_blank" rel="noopener noreferrer">Paper</a>
       <a class="sh-primary" href="https://cins-inverse-design.vercel.app" target="_blank" rel="noopener noreferrer">Live app</a>
       <a class="sh-primary" href="https://github.com/SharathSPhD/CINS" target="_blank" rel="noopener noreferrer">Repository</a>
+      <a class="sh-primary" href="#about">About</a>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle color theme">&#9681;</button>
     </nav>
   </div>
@@ -49,7 +50,8 @@
     <li><a href="#flow-solves" data-scene-link="flow-solves"><span class="dot" aria-hidden="true"></span><span class="lab">Flow-solve count</span></a></li>
     <li><a href="#conditioning" data-scene-link="conditioning"><span class="dot" aria-hidden="true"></span><span class="lab">The conditioning cliff</span></a></li>
     <li><a href="#next" data-scene-link="next"><span class="dot" aria-hidden="true"></span><span class="lab">What's next</span></a></li>
-        <li><a href="#reading" data-scene-link="reading"><span class="dot" aria-hidden="true"></span><span class="lab">Evidence</span></a></li>
+    <li><a href="#about" data-scene-link="about"><span class="dot" aria-hidden="true"></span><span class="lab">The author</span></a></li>
+    <li><a href="#references" data-scene-link="references"><span class="dot" aria-hidden="true"></span><span class="lab">References</span></a></li>
   </ol>
 </nav>
 
@@ -199,8 +201,8 @@
           <div class="eqn-row eqn">u<sub>e</sub> = u<sub>e,inv</sub> + <span class="rm">ue_m</span>&thinsp;&middot;&thinsp;(&delta;*&thinsp;u<sub>e</sub>)</div>
           <div class="eqn-label">&delta;*&thinsp;u<sub>e</sub> is a transpiration mass flow induced by the boundary layer's
           own growth; <span class="rm">ue_m</span> is mfoil's panel mass-influence matrix, the
-          same object that assembles the inviscid solution. Source: docs/mfoil_internals.md
-          &sect;1.3, citing mfoil.py's <code>solve_glob</code>.</div>
+          same object that assembles the inviscid solution, assembled in mfoil.py's
+          <code>solve_glob</code>.</div>
         </div>
 
         <p class="reveal">
@@ -373,7 +375,7 @@
             the fitted TE offset &zeta;<sub>T,u</sub>=0.00126c gives tan&beta;=0.2053,
             &beta;&asymp;11.6&deg;, again a single coefficient read, not a nonlinear angular
             search variable. The inscribed area is a linear functional of the full coefficient
-            vector with closed-form Beta-function weights (&sect;3.4 of the dossier); computed
+            vector with closed-form Beta-function weights; computed
             that way for NACA 2412's fit it agrees with a numerical quadrature of the same
             surface to 1&times;10<sup>&minus;14</sup>. Each of these becomes one exact row in the
             constraint block G&middot;A=b (Act II), not a penalty term evaluated on a rebuilt mesh.
@@ -1181,42 +1183,116 @@
   </section>
 
   <!-- ============================== EVIDENCE / CLOSE ============================== -->
-  <section id="reading" class="scene" data-scene="reading">
+  <section id="about" class="scene" data-scene="about">
     <div class="reading">
       <header class="scene-head reveal">
-        <p class="eyebrow"><span class="num">13</span><span class="rule" aria-hidden="true"></span>Evidence</p>
-        <h2>Every number traces to a run manifest</h2>
+        <p class="eyebrow"><span class="num">13</span><span class="rule" aria-hidden="true"></span>The author</p>
+        <h2>About the author</h2>
+      </header>
+      <div class="scene-body">
+        <div class="aa-body reveal">
+          <span class="aa-mark" aria-hidden="true"></span>
+          <div>
+            <p class="aa-name">Sharath Sathish</p>
+            <p>
+              Sharath Sathish works on turbomachinery and applied numerics, and on
+              putting research-grade methods behind interfaces people can actually
+              use. The thread running through it is the one this project follows:
+              take a problem the field solves by searching, and ask whether it can
+              be posed so that it is simply solved instead. Earlier work on
+              <a href="https://doi.org/10.1115/GT2019-90606" target="_blank" rel="noopener noreferrer">supercritical
+              CO<sub>2</sub> axial turbine design</a> (ASME Turbo Expo 2019) is where
+              the inverse-design question in CINS first came up in anger.
+            </p>
+            <p>
+              Other projects, writing and talks live at
+              <a href="https://technektar.com" target="_blank" rel="noopener noreferrer"><strong>technektar.com</strong></a>,
+              including <a href="https://sharathsphd.github.io/ActiveCIrcuitDiscovery/" target="_blank" rel="noopener noreferrer">Active
+              Circuit Discovery</a>, which asks a similar question of a very
+              different system: what is a large language model actually doing
+              inside, and can the search for the answer be made principled.
+            </p>
+            <p class="aa-links">
+              <a class="res-link" href="https://technektar.com" target="_blank" rel="noopener noreferrer">TechNektar</a>
+              <a class="res-link" href="https://scholar.google.com/citations?hl=en&amp;user=dcyu5ucAAAAJ" target="_blank" rel="noopener noreferrer">Google Scholar</a>
+              <a class="res-link" href="https://www.linkedin.com/in/sharath-s" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+              <a class="res-link" href="https://www.researchgate.net/profile/Sharath-Sathish/research" target="_blank" rel="noopener noreferrer">ResearchGate</a>
+              <a class="res-link" href="https://github.com/SharathSPhD" target="_blank" rel="noopener noreferrer">GitHub</a>
+              <a class="res-link" href="mailto:sharath.sathish@gmail.com">sharath.sathish@gmail.com</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="references" class="scene" data-scene="references">
+    <div class="reading">
+      <header class="scene-head reveal">
+        <p class="eyebrow"><span class="num">14</span><span class="rule" aria-hidden="true"></span>References</p>
+        <h2>What this work is built on</h2>
       </header>
       <div class="scene-body">
         <p class="reveal">
-          Every experiment run writes an immutable manifest, config hash, git commit,
-          random seed, under <code>experiments/results/</code>. The figures on this
-          page are copied unmodified from
-          <code>experiments/results/t8/figures/</code>; none were redrawn by hand for
-          presentation. Three of them, the cost breakdown, the convergence histories
-          and the panel outcome map, are produced by a module that reads only stored
-          manifests and re-runs nothing, so they can be regenerated in seconds. The
-          paper's Appendix F maps every figure and table in it to the record it came
-          from. The nine-gate ladder below (T0 through T9) tracks Stage 1 from
-          environment bring-up to design review for Stage 2.
+          The core sources behind the method, in the order they matter to it. The
+          full bibliography is in the paper.
         </p>
-        <div id="gate-ledger" class="gate-ledger reveal" aria-label="Gate ledger, T0 through T9"></div>
-
-        <section id="about-author" class="about reveal">
-          <h3>About this project</h3>
-          <p>
-            CINS is Stage 1 of a monolithic CST-Newton inverse-design method: an
-            isolated-airfoil implementation built on the open-source mfoil solver. The
-            code, experiment configs, and the paper source live in the repository.
-            The full-stack app runs the same engine core behind a FastAPI backend and a
-            Next.js frontend.
-          </p>
-          <div class="btn-row">
-            <a class="btn" href="https://github.com/SharathSPhD/CINS" target="_blank" rel="noopener noreferrer">github.com/SharathSPhD/CINS</a>
-            <a class="btn" href="https://github.com/SharathSPhD/CINS/tree/main/experiments/results" target="_blank" rel="noopener noreferrer">Run manifests &amp; results</a>
-            <a class="btn" href="https://cins-inverse-design.vercel.app" target="_blank" rel="noopener noreferrer">cins-inverse-design.vercel.app</a>
-          </div>
-        </section>
+        <ol class="citations reveal">
+          <li>
+            <span class="cite-a">Kulfan, B. M.</span> (2008).
+            <span class="cite-t">Universal Parametric Geometry Representation Method.</span>
+            <span class="cite-v">Journal of Aircraft 45(1), 142&ndash;158.</span>
+            <a href="https://doi.org/10.2514/1.29958" target="_blank" rel="noopener noreferrer">doi:10.2514/1.29958</a>
+            <span class="cite-note">The CST parameterization, and the linearity in <em>A</em> the whole method rests on.</span>
+          </li>
+          <li>
+            <span class="cite-a">Drela, M.</span> (1990).
+            <span class="cite-t">Viscous and Inviscid Inverse Schemes Using Newton's Method.</span>
+            <span class="cite-v">AGARD Report 780.</span>
+            <span class="cite-note">The prior art this work is measured against: geometry unknowns inside a Newton system, without a linear geometric basis.</span>
+          </li>
+          <li>
+            <span class="cite-a">Fidkowski, K. J.</span> (2022).
+            <span class="cite-t">A Coupled Inviscid&ndash;Viscous Airfoil Analysis Solver, Revisited.</span>
+            <span class="cite-v">AIAA Journal 60(5), 2961&ndash;2971.</span>
+            <a href="https://doi.org/10.2514/1.J061341" target="_blank" rel="noopener noreferrer">doi:10.2514/1.J061341</a>
+            <span class="cite-note">mfoil, the coupled solver whose global Newton system CINS appends to. Used unmodified.</span>
+          </li>
+          <li>
+            <span class="cite-a">Drela, M. &amp; Giles, M. B.</span> (1987).
+            <span class="cite-t">Viscous-Inviscid Analysis of Transonic and Low Reynolds Number Airfoils.</span>
+            <span class="cite-v">AIAA Journal 25(10), 1347&ndash;1355.</span>
+            <a href="https://doi.org/10.2514/3.9789" target="_blank" rel="noopener noreferrer">doi:10.2514/3.9789</a>
+            <span class="cite-note">ISES: the coupled viscous-inviscid formulation the flow model descends from.</span>
+          </li>
+          <li>
+            <span class="cite-a">Lighthill, M. J.</span> (1945).
+            <span class="cite-t">A New Method of Two-Dimensional Aerodynamic Design.</span>
+            <span class="cite-v">ARC R&amp;M 2112.</span>
+            <span class="cite-note">Where inverse design begins, and the origin of the realisability question the T4 gate answers.</span>
+          </li>
+          <li>
+            <span class="cite-a">Volpe, G. &amp; Melnik, R. E.</span> (1986).
+            <span class="cite-t">The Design of Transonic Aerofoils by a Well-Posed Inverse Method.</span>
+            <span class="cite-v">International Journal for Numerical Methods in Engineering 22(2), 341&ndash;361.</span>
+            <a href="https://doi.org/10.1002/nme.1620220204" target="_blank" rel="noopener noreferrer">doi:10.1002/nme.1620220204</a>
+            <span class="cite-note">Well-posedness and the closure constraints an inverse formulation cannot do without.</span>
+          </li>
+          <li>
+            <span class="cite-a">Masters, D. A. et al.</span> (2017).
+            <span class="cite-t">Geometric Comparison of Aerofoil Shape Parameterization Methods.</span>
+            <span class="cite-v">AIAA Journal 55(5), 1575&ndash;1589.</span>
+            <a href="https://doi.org/10.2514/1.J054943" target="_blank" rel="noopener noreferrer">doi:10.2514/1.J054943</a>
+            <span class="cite-note">Why CST at this order, and what it costs in conditioning.</span>
+          </li>
+          <li>
+            <span class="cite-a">Sathish, S., Kumar, P., Namburi, A. N., Swami, L., Gopi, P. C. &amp; Fuetterer, C.</span> (2019).
+            <span class="cite-t">Novel Approaches for sCO<sub>2</sub> Axial Turbine Design.</span>
+            <span class="cite-v">ASME Turbo Expo 2019, Volume 9, V009T38A011.</span>
+            <a href="https://doi.org/10.1115/GT2019-90606" target="_blank" rel="noopener noreferrer">doi:10.1115/GT2019-90606</a>
+            <span class="cite-note">The author's earlier turbomachinery work, and the design setting that motivates Stage 2.</span>
+          </li>
+        </ol>
       </div>
     </div>
   </section>
@@ -1226,9 +1302,11 @@
 <footer class="site-footer">
   <div class="reading">
     <p>CINS: CST Inverse Newton Solver. Stage 1 (isolated airfoil, mfoil) complete;
-    Stage 2 (cascade) in design review. Figures computed from
-    <span class="mono">experiments/results/t8/</span>; every number above traces to a
-    git-versioned run manifest.</p>
+    Stage 2 (cascade) in design review. Every figure is computed from a git-versioned
+    run manifest under <span class="mono">experiments/results/</span> and none was
+    redrawn by hand. Written by
+    <a href="#about">Sharath Sathish</a> &middot;
+    <a href="https://technektar.com" target="_blank" rel="noopener noreferrer">technektar.com</a></p>
   </div>
 </footer>
 

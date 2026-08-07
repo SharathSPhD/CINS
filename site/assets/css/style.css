@@ -409,3 +409,38 @@ table.data tr.hl td { color: var(--ink); background: color-mix(in srgb, var(--ac
   .hero .lead { max-width: 52ch; font-size: 1.02rem; }
   .hero-video video { max-height: 46vh; object-fit: contain; }
 }
+
+/* --- About the author, and the reference list ------------------------- */
+.aa-body { display: flex; gap: 1.4rem; align-items: flex-start; }
+.aa-mark {
+  flex: 0 0 auto; width: 56px; height: 56px; border-radius: 50%;
+  border: 1px solid var(--hairline);
+  background:
+    radial-gradient(70% 70% at 32% 28%, var(--accent) 0%, transparent 62%),
+    linear-gradient(140deg, rgba(127,127,127,.20), transparent 65%);
+  opacity: .92;
+}
+.aa-name { font-weight: 650; letter-spacing: -0.01em; margin: 0 0 .5rem; font-size: 1.05rem; }
+.aa-body p { margin: 0 0 .8rem; }
+.aa-links { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.1rem !important; }
+.res-link {
+  display: inline-block; padding: .3rem .7rem; border: 1px solid var(--hairline);
+  border-radius: 999px; font-size: .82rem; text-decoration: none; color: inherit;
+  transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+}
+.res-link:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); transform: translateY(-1px); }
+
+.citations { margin: 1.4rem 0 0; padding-left: 1.4rem; }
+.citations li { margin: 0 0 1.15rem; line-height: 1.55; }
+.citations .cite-a { font-weight: 600; }
+.citations .cite-t { font-style: italic; }
+.citations .cite-v { opacity: .82; }
+.citations .cite-note {
+  display: block; margin-top: .25rem; font-size: .88rem; opacity: .72;
+  border-left: 2px solid var(--hairline); padding-left: .7rem;
+}
+
+@media (max-width: 640px) {
+  .aa-body { flex-direction: column; gap: .9rem; }
+  .aa-mark { width: 44px; height: 44px; }
+}
